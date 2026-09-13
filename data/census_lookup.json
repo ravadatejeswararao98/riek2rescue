@@ -1,0 +1,67 @@
+[
+  {
+    "village_id": "V_STATIC_01",
+    "village_name": "Coastal Industrial Park",
+    "mandal": "Visakhapatnam Urban",
+    "district": "Visakhapatnam",
+    "state": "Andhra Pradesh",
+    "lat": 17.6868,
+    "lng": 83.2185,
+    "census_2011_pop": 2500,
+    "growth_adjusted_pop": 2500,
+    "elevation_m": 3,
+    "hazard_type": "cyclone"
+  },
+  {
+    "village_id": "V_STATIC_02",
+    "village_name": "Kakinada Urban Slums",
+    "mandal": "Kakinada Urban",
+    "district": "East Godavari",
+    "state": "Andhra Pradesh",
+    "lat": 16.9891,
+    "lng": 82.2475,
+    "census_2011_pop": 8500,
+    "growth_adjusted_pop": 8500,
+    "elevation_m": 1,
+    "hazard_type": "cyclone"
+  },
+  {
+    "village_id": "V_STATIC_03",
+    "village_name": "Machilipatnam Delta",
+    "mandal": "Machilipatnam",
+    "district": "Krishna",
+    "state": "Andhra Pradesh",
+    "lat": 16.1793,
+    "lng": 81.1340,
+    "census_2011_pop": 4200,
+    "growth_adjusted_pop": 4200,
+    "elevation_m": 2,
+    "hazard_type": "flood"
+  },
+  {
+    "village_id": "V_STATIC_04",
+    "village_name": "Srikakulam River Catchment",
+    "mandal": "Srikakulam",
+    "district": "Srikakulam",
+    "state": "Andhra Pradesh",
+    "lat": 18.2949,
+    "lng": 83.8938,
+    "census_2011_pop": 3100,
+    "growth_adjusted_pop": 3100,
+    "elevation_m": 5,
+    "hazard_type": "flood"
+  },
+  {
+    "village_id": "V_STATIC_05",
+    "village_name": "Nellore Coastal Villages",
+    "mandal": "Nellore Urban",
+    "district": "Nellore",
+    "state": "Andhra Pradesh",
+    "lat": 14.4426,
+    "lng": 79.9865,
+    "census_2011_pop": 1800,
+    "growth_adjusted_pop": 1800,
+    "elevation_m": 4,
+    "hazard_type": "cyclone"
+  }
+]

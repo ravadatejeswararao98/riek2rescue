@@ -1,0 +1,50 @@
+[
+  {
+    "shelter_id": "S_STATIC_01",
+    "name": "Visakhapatnam Hill Camp",
+    "district": "Visakhapatnam",
+    "lat": 17.7,
+    "lng": 83.22,
+    "capacity": 5000,
+    "current_occupancy": 473,
+    "status": "open",
+    "last_updated": "2026-09-13T19:28:50.534Z",
+    "updated_by": "varma (LEVEL-3 (VERIFIED DISPATCH))"
+  },
+  {
+    "shelter_id": "S_STATIC_02",
+    "name": "Kakinada Municipal Shelter",
+    "district": "East Godavari",
+    "lat": 17,
+    "lng": 82.25,
+    "capacity": 10000,
+    "current_occupancy": 0
+  },
+  {
+    "shelter_id": "S_STATIC_03",
+    "name": "Krishna Relief Center",
+    "district": "Krishna",
+    "lat": 16.2,
+    "lng": 81.15,
+    "capacity": 6000,
+    "current_occupancy": 0
+  },
+  {
+    "shelter_id": "S_STATIC_04",
+    "name": "Srikakulam ZP High School",
+    "district": "Srikakulam",
+    "lat": 18.3,
+    "lng": 83.9,
+    "capacity": 4000,
+    "current_occupancy": 0
+  },
+  {
+    "shelter_id": "S_STATIC_05",
+    "name": "Nellore Community Hall",
+    "district": "Nellore",
+    "lat": 14.45,
+    "lng": 79.99,
+    "capacity": 3000,
+    "current_occupancy": 0
+  }
+]
