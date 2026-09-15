@@ -179,6 +179,8 @@ class DisasterMap {
     this.riskZoneCircles = [];
     this.markers = { safeSites: [], hospitals: [], habitations: null, hazards: [] };
     this.userMarker = null;
+    this.locateMarker = null;
+    this._hasActiveLocate = false;
     this.init();
   }
 
@@ -187,19 +189,19 @@ class DisasterMap {
     const minZ = config.minZoom || 4;
     const maxZ = config.maxZoom || 18;
 
-    // Constrain geographical bounding box around India and neighboring hazard monitoring regions
+    // Constrain geographical bounding box strictly to Andhra Pradesh and surrounding coastal buffer
     const regionalBounds = L.latLngBounds(
-      L.latLng(4.0, 65.0),   // Southwest corner (Indian Ocean / Lakshadweep)
-      L.latLng(37.5, 98.5)   // Northeast corner (Kashmir / Arunachal Pradesh)
+      L.latLng(10.0, 74.0),   // Expanded Southwest corner
+      L.latLng(22.0, 87.0)    // Expanded Northeast corner to allow panning up to see popups
     );
 
     this.map = L.map(this.containerId, {
-      center: config.center || [16.99, 82.25],
+      center: config.center || [15.9129, 80.5],
       zoom: config.zoom || 7,
-      minZoom: minZ,
+      minZoom: Math.max(minZ, 6),
       maxZoom: maxZ,
       maxBounds: regionalBounds,
-      maxBoundsViscosity: 0.75,
+      maxBoundsViscosity: 0.85,
       zoomControl: true,
       attributionControl: false,
       scrollWheelZoom: false, // Disabled on startup to prevent scroll-locking during initial asset & tile loading
@@ -221,17 +223,13 @@ class DisasterMap {
 
         // AP Boundary Enforcement
         if (window.APBoundaryService) {
-          const checkAPReady = setInterval(() => {
-            if (window.APBoundaryService.ready) {
-              clearInterval(checkAPReady);
-              window.APBoundaryService.drawBorder(this.map);
-              // Only fit bounds if no specific coordinate was requested (defaults to config center)
-              if (!config.center || config.center[0] === 16.99) {
-                window.APBoundaryService.fitMap(this.map);
-              }
+          window.APBoundaryService.whenReady().then(() => {
+            window.APBoundaryService.drawBorder(this.map);
+            // Only fit bounds if no specific coordinate was requested and no active locate has occurred
+            if ((!config.center || config.center[0] === 15.9129 || config.center[0] === 16.99) && !this._hasActiveLocate) {
+              window.APBoundaryService.fitMap(this.map);
             }
-          }, 100);
-          setTimeout(() => clearInterval(checkAPReady), 3000);
+          });
         }
       }, 350);
     });
@@ -272,21 +270,27 @@ class DisasterMap {
 
     // Dark styling for base tiles is applied via CSS filter (see .leaflet-tile-pane)
 
-    // Draw default risk zones and markers only if not skipped by caller
+    // Draw default risk zones and markers once AP boundary is ready or immediately
     if (!this.options || !this.options.skipDefaultOverlays) {
-      this.drawRiskZones();
-      this.addSafeSiteMarkers();
-      this.addHazardMarkers();
-      this.addHospitalMarkers();
-      this.addHabitationMarkers();
-      this.updateZoomVisibility(); // Initial visibility check
+      if (window.APBoundaryService && typeof window.APBoundaryService.whenReady === 'function') {
+        window.APBoundaryService.whenReady().then(() => {
+          this.renderAllOverlays();
+        });
+      } else {
+        this.renderAllOverlays();
+      }
     }
 
-    // NOTE: No default user-location marker is placed here.
-    // The real pulsing citizenMarker in citizen.js is the single source of truth
-    // for "you are here" — it only appears after GPS/geolocation resolves.
-
     return this;
+  }
+
+  renderAllOverlays() {
+    this.drawRiskZones();
+    this.addSafeSiteMarkers();
+    this.addHazardMarkers();
+    this.addHospitalMarkers();
+    this.addHabitationMarkers();
+    this.updateZoomVisibility(); // Initial visibility check
   }
 
   drawRiskZones() {
@@ -309,6 +313,9 @@ class DisasterMap {
     APP_DATA.riskZones.forEach(zone => {
       const lat = zone.epicenter ? zone.epicenter.lat : zone.lat;
       const lng = zone.epicenter ? zone.epicenter.lng : zone.lng;
+      // Removed strict isInsideAndhraPradesh filter here because hazard epicenters 
+      // (like earthquakes or cyclones) can originate offshore or in neighboring states 
+      // but their radius still impacts Andhra Pradesh.
       const baseRadius = zone.baseRadius || zone.radius;
       const hazardType = zone.hazardType || (zone.name.toLowerCase().includes('cyclone') ? 'cyclone' : zone.name.toLowerCase().includes('flood') ? 'flood' : zone.name.toLowerCase().includes('landslide') ? 'landslide' : zone.name.toLowerCase().includes('earthquake') ? 'earthquake' : 'cyclone');
 
@@ -442,7 +449,13 @@ class DisasterMap {
   }
 
   addSafeSiteMarkers() {
+    this.safeSitesMarkers = [];
+
     APP_DATA.safeSites.forEach(site => {
+      // Safe sites must strictly be inside AP
+      if (window.isInsideAndhraPradesh && !window.isInsideAndhraPradesh(site.lat, site.lng)) {
+        return;
+      }
       const pct = Math.round((site.current / site.capacity) * 100);
       const capColor = pct > 85 ? '#ef4444' : pct > 60 ? '#f97316' : '#22c55e';
       const icon = L.divIcon({
@@ -477,6 +490,9 @@ class DisasterMap {
   addHazardMarkers() {
     const icons = { Cyclone: '🌀', Flood: '🌊', Landslide: '⛰️', Earthquake: '📳', Cloudburst: '⛈️' };
     APP_DATA.activeHazards.forEach(h => {
+      if (window.isInsideAndhraPradesh && !window.isInsideAndhraPradesh(h.lat, h.lng)) {
+        return;
+      }
       const icon = L.divIcon({
         html: `<div style="font-size:24px;text-shadow:0 2px 6px rgba(0,0,0,0.6);animation:float 2s ease-in-out infinite">${icons[h.type] || '⚠️'}</div>`,
         className: '', iconSize: [32, 32], iconAnchor: [16, 16]
@@ -501,6 +517,9 @@ class DisasterMap {
 
   addHospitalMarkers() {
     APP_DATA.hospitals.forEach(h => {
+      if (window.isInsideAndhraPradesh && !window.isInsideAndhraPradesh(h.lat, h.lng)) {
+        return;
+      }
       const icon = L.divIcon({
         html: `<div class="map-poi-pin poi-hospital" title="Hospital: ${h.name}">H</div>`,
         className: '', iconSize: [22, 22], iconAnchor: [11, 11]
@@ -543,8 +562,13 @@ class DisasterMap {
     });
 
     APP_DATA.habitations.forEach(hab => {
+      const hLat = hab.lat;
+      const hLng = hab.lng || hab.lon;
+      if (window.isInsideAndhraPradesh && !window.isInsideAndhraPradesh(hLat, hLng)) {
+        return;
+      }
       // Compute dynamic risk based on Turf.js point-in-polygon vs active hazards
-      let computedRisk = 'GREEN';
+      let computedRisk = hab.risk || 'GREEN';
       let activeThreat = 'None';
       if (typeof window.turf !== 'undefined' && this.hazardPolygons) {
         const pt = turf.point([hab.lng || hab.lon, hab.lat]);
@@ -741,6 +765,203 @@ class DisasterMap {
     this.map.flyTo([lat, lng], zoom, { duration: 1.5, easeLinearity: 0.5 });
   }
 
+  setLocatePointer(lat, lng, options = {}) {
+    if (!this.map) return null;
+    const nLat = Number(lat);
+    const nLng = Number(lng);
+    if (!Number.isFinite(nLat) || !Number.isFinite(nLng)) return null;
+
+    // Strict Andhra Pradesh Boundary Check
+    if (window.isInsideAndhraPradesh && !window.isInsideAndhraPradesh(nLat, nLng)) {
+      console.warn('[Map] Attempted to locate coordinates outside Andhra Pradesh boundary:', nLat, nLng);
+      if (typeof window.showToast === 'function') {
+        window.showToast('Selected location is outside the Andhra Pradesh operational boundary.', 'warning');
+      }
+      return null;
+    }
+
+    this._hasActiveLocate = true;
+    this._lastLocatedCoords = [nLat, nLng];
+
+    // Remove any previous active locate pointer & accuracy circle cleanly
+    if (this.locateMarker) {
+      try {
+        if (this.map.hasLayer(this.locateMarker)) {
+          this.map.removeLayer(this.locateMarker);
+        }
+      } catch (e) {}
+      this.locateMarker = null;
+    }
+    if (this.locateAccuracyCircle) {
+      try {
+        if (this.map.hasLayer(this.locateAccuracyCircle)) {
+          this.map.removeLayer(this.locateAccuracyCircle);
+        }
+      } catch (e) {}
+      this.locateAccuracyCircle = null;
+    }
+
+    const isSos = Boolean(options.isSos || (options.name && options.name.includes('SOS')));
+
+    // Determine color & badges matching canonical zone status
+    let lvl = (options.level || options.tier || options.severity || '').toUpperCase();
+    if (!lvl || lvl === 'GREEN' || lvl === 'SAFE' || lvl === 'NORMAL' || lvl === 'LOW') {
+      if (typeof window !== 'undefined' && typeof window.getZoneForCoordinates === 'function') {
+        const zInfo = window.getZoneForCoordinates(nLat, nLng);
+        if (zInfo && zInfo.level) {
+          lvl = zInfo.level;
+        }
+      }
+    }
+    let markerColor = '#ef4444';
+    let pulseBg = 'rgba(239,68,68,0.25)';
+    let dotShadow = 'rgba(239,68,68,0.8)';
+    let badgeLabel = 'SELECTED LOCATION';
+
+    if (isSos) {
+      markerColor = '#dc2626';
+      pulseBg = 'rgba(220,38,38,0.38)';
+      dotShadow = 'rgba(220,38,38,0.95)';
+      badgeLabel = '🚨 SOS DISTRESS';
+    } else if (lvl === 'ORANGE' || lvl === 'HIGH') {
+      markerColor = '#f97316';
+      pulseBg = 'rgba(249,115,22,0.25)';
+      dotShadow = 'rgba(249,115,22,0.8)';
+      badgeLabel = 'HIGH ALERT';
+    } else if (lvl === 'YELLOW' || lvl === 'MODERATE' || lvl === 'MONITORING' || lvl === 'ADVISORY') {
+      markerColor = '#eab308';
+      pulseBg = 'rgba(234,179,8,0.25)';
+      dotShadow = 'rgba(234,179,8,0.8)';
+      badgeLabel = 'MONITORING';
+    } else if (lvl === 'SAFE' || lvl === 'GREEN' || lvl === 'LOW' || lvl === 'NORMAL') {
+      markerColor = '#22c55e';
+      pulseBg = 'rgba(34,197,94,0.25)';
+      dotShadow = 'rgba(34,197,94,0.8)';
+      badgeLabel = 'NORMAL';
+    } else if (lvl === 'RED' || lvl === 'CRITICAL') {
+      markerColor = '#ef4444';
+      pulseBg = 'rgba(239,68,68,0.25)';
+      dotShadow = 'rgba(239,68,68,0.8)';
+      badgeLabel = 'RED ZONE';
+    }
+
+    // Inject pulse CSS & popup styling if not already present
+    if (typeof document !== 'undefined' && !document.getElementById('locate-pulse-style') && !document.getElementById('citizen-pulse-style')) {
+      const style = document.createElement('style');
+      style.id = 'locate-pulse-style';
+      style.textContent = `
+        @keyframes citizenPulse {
+          0%   { transform: scale(0.8); opacity: 0.9; }
+          70%  { transform: scale(2.5); opacity: 0;   }
+          100% { transform: scale(2.5); opacity: 0;   }
+        }
+        .location-popup-header {
+          padding-right: 32px !important;
+        }
+        .location-popup-risk {
+          text-transform: uppercase !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Optional accuracy circle around device location
+    if (options.accuracy && Number.isFinite(Number(options.accuracy)) && Number(options.accuracy) > 0) {
+      this.locateAccuracyCircle = L.circle([nLat, nLng], {
+        radius: Math.min(Number(options.accuracy), 5000),
+        color: isSos ? '#dc2626' : markerColor,
+        weight: 1.5,
+        fillColor: isSos ? '#dc2626' : markerColor,
+        fillOpacity: 0.12,
+        dashArray: '4, 4'
+      }).addTo(this.map);
+    }
+
+    // Identical pulsing pointer/marker mechanism as My Location
+    const pulseIcon = L.divIcon({
+      className: '',
+      html: `
+        <div style="position:relative;width:38px;height:38px;">
+          <div style="position:absolute;inset:0;border-radius:50%;background:${pulseBg};animation:citizenPulse 1.8s ease-out infinite;"></div>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:18px;background:${markerColor};border-radius:50%;border:3px solid #fff;box-shadow:0 0 12px ${dotShadow};"></div>
+        </div>`,
+      iconSize: [38, 38],
+      iconAnchor: [19, 19],
+    });
+
+    this.locateMarker = L.marker([nLat, nLng], { icon: pulseIcon, zIndexOffset: 9500 })
+      .addTo(this.map);
+
+    // Build popup with identical structure as My Location
+    const nameStr = options.name || (isSos ? '🚨 Citizen Emergency SOS' : 'Selected Location');
+    const titleStr = isSos ? '🚨 CITIZEN SOS DISTRESS' : (options.title || 'Selected Location');
+    const coordsStr = `${nLat.toFixed(5)}°N, ${nLng.toFixed(5)}°E`;
+    const accStr = options.accuracy ? `📡 <strong>GPS Accuracy:</strong> ±${Math.round(options.accuracy)}m` : '';
+    const descStr = options.desc || '';
+    const popStr = options.population ? `👥 <strong>${Number(options.population).toLocaleString()}</strong> population at risk` : '';
+
+    const popupHtml = `
+      <div class="location-popup">
+        <div class="location-popup-header">
+          <div class="location-popup-title-row">
+            <span class="location-popup-icon">${isSos ? '🚨' : '📍'}</span>
+            <span class="location-popup-title">${titleStr}</span>
+          </div>
+          <div class="location-popup-risk" style="background:${markerColor}20; color:${markerColor}; font-weight:700; font-size:11px; padding:2.5px 8px; border-radius:12px;">
+            ${badgeLabel}
+          </div>
+        </div>
+        <div class="location-popup-place" style="font-size:13px; font-weight:700; color:#0f172a; margin-top:4px;">${nameStr}</div>
+        <div class="location-popup-coords" style="font-size:11px; color:#64748b; font-family:monospace; margin-top:2px;">${coordsStr}</div>
+        ${accStr ? `<div style="font-size:11px; color:#0284c7; margin-top:3px;">${accStr}</div>` : ''}
+        ${descStr ? `<div class="location-popup-zone" style="font-size:11.5px; color:#334155; margin-top:4px;">${descStr}</div>` : ''}
+        ${popStr ? `<div class="location-popup-advisory" style="font-size:11.5px; color:#0284c7; font-weight:600; margin-top:4px;">${popStr}</div>` : ''}
+      </div>
+    `;
+
+    this.locateMarker.bindPopup(popupHtml, {
+      className: 'location-popup-wrapper',
+      maxWidth: 340,
+      minWidth: 280
+    });
+
+    // Zoom extent: 16 for SOS street level, 12-14 for standard
+    const targetZoom = (typeof options.zoom === 'number' && options.zoom >= 4)
+      ? options.zoom
+      : (isSos ? 16 : 14);
+
+    // Map centering
+    this.map.flyTo([nLat, nLng], targetZoom, {
+      duration: 1.5,
+      easeLinearity: 0.5
+    });
+
+    // Automatically reveal the popup once the map flies to the coordinates (just like My Location)
+    if (options.openPopup !== false) {
+      const openPop = () => {
+        if (this.locateMarker && this.map.hasLayer(this.locateMarker)) {
+          this.locateMarker.openPopup();
+        }
+      };
+      this.map.once('moveend', openPop);
+      setTimeout(openPop, 1200);
+    }
+
+    return this.locateMarker;
+  }
+
+  clearLocatePointer() {
+    if (this.locateMarker) {
+      try {
+        if (this.map && this.map.hasLayer(this.locateMarker)) {
+          this.map.removeLayer(this.locateMarker);
+        }
+      } catch (e) {}
+      this.locateMarker = null;
+    }
+    this._hasActiveLocate = false;
+  }
+
   updateZoomVisibility() {
     if (!this.map) return;
     const currentZoom = this.map.getZoom();
@@ -788,6 +1009,98 @@ if (typeof document !== 'undefined') {
     .custom-popup-light .popup-stat { color: #475569; }
     .custom-popup-light .popup-stat strong { color: #0f172a; }
 
+    /* Google Maps-style Location Pin & Ground Pulse */
+    .locate-pin-div-icon {
+      background: transparent !important;
+      border: none !important;
+    }
+    .locate-pin-wrapper {
+      position: relative;
+      width: 32px;
+      height: 42px;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+    .locate-pin-head {
+      position: relative;
+      z-index: 2;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .locate-pin-wrapper:hover .locate-pin-head {
+      transform: translateY(-4px) scale(1.08);
+    }
+    .locate-pin-pulse {
+      position: absolute;
+      bottom: 0px;
+      left: 16px;
+      width: 24px;
+      height: 12px;
+      margin-left: -12px;
+      margin-bottom: -6px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, var(--pin-color, #ef4444) 0%, rgba(239,68,68,0) 70%);
+      animation: locatePing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+    @keyframes locatePing {
+      0% { transform: scale(0.6); opacity: 0.9; }
+      75%, 100% { transform: scale(2.8); opacity: 0; }
+    }
+    .locate-popup-container {
+      padding: 12px 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+    }
+    .locate-popup-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .locate-badge {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .locate-pin-icon-tag {
+      font-size: 14px;
+    }
+    .locate-popup-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+    .locate-popup-coords code {
+      font-size: 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+    .locate-popup-desc {
+      font-size: 12px;
+      color: #334155;
+      line-height: 1.45;
+      margin-top: 4px;
+    }
+    .locate-popup-pop {
+      font-size: 11.5px;
+      color: #0284c7;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed #e2e8f0;
+    }
+
     @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-4px); } }
     @keyframes pulse-ring { 0% { opacity: 0.8; transform: scale(0.8); } 80% { opacity: 0; transform: scale(2.2); } 100% { opacity: 0; } }
   `;
@@ -816,5 +1129,10 @@ function isolateMapOverlays(selectorsOrElements) {
 
 if (typeof window !== 'undefined') {
   window.isolateMapOverlays = isolateMapOverlays;
+  window.DisasterMap = DisasterMap;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { DisasterMap, RISK_TIERS, RISK_COLORS, LAYER_CONFIG };
 }
 

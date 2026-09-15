@@ -80,16 +80,15 @@ const HAZARD_INTEL = {
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
-      { name: 'Guwahati Evacuation Hub', lat: 26.18, lng: 91.73, capacity: 8000, current: 6200 },
-      { name: 'Jorhat Relief Center',    lat: 26.75, lng: 94.21, capacity: 3000, current: 2100 },
-      { name: 'Majuli Boat Camp',        lat: 26.98, lng: 94.20, capacity: 1200, current: 980 }
+      { name: 'Rajahmundry Flood Relief Center', lat: 17.0005, lng: 81.8040, capacity: 6000, current: 1850 },
+      { name: 'Vijayawada Indoor Stadium Shelter', lat: 16.5062, lng: 80.6480, capacity: 8000, current: 2100 },
+      { name: 'Konaseema Delta Relief Hub', lat: 16.5500, lng: 81.9000, capacity: 3500, current: 980 }
     ],
     alerts: [],
     history: [
-      { year: 2022, name: 'Assam Floods',   lat: 26.35, lng: 92.80, affected: 5800000, note: 'Worst in a decade' },
-      { year: 2020, name: 'Bihar Floods',   lat: 25.90, lng: 85.60, affected: 8300000, note: 'Kosi + Gandak overflow' },
-      { year: 2019, name: 'Kerala Floods',  lat: 9.90,  lng: 76.50, affected: 2100000, note: 'Landslide-linked flooding' },
-      { year: 2018, name: 'Kerala Deluge',  lat: 10.52, lng: 76.21, affected: 5400000, note: 'Dam releases statewide' }
+      { year: 2022, name: 'Godavari Deluge',   lat: 17.00, lng: 81.80, affected: 420000, note: 'Record discharge at Dowleswaram barrage' },
+      { year: 2020, name: 'Krishna Flood',     lat: 16.51, lng: 80.65, affected: 250000, note: 'Prakasam barrage high flood discharge' },
+      { year: 2009, name: 'Kurnool Megaflood', lat: 15.83, lng: 78.04, affected: 600000, note: 'Tungabhadra catastrophic backflow' }
     ],
     habitations: []
   },
@@ -99,14 +98,13 @@ const HAZARD_INTEL = {
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
-      { name: 'Chamoli Safe Zone',   lat: 30.42, lng: 79.37, capacity: 1500, current: 220 },
-      { name: 'Kullu Relief Ground', lat: 31.94, lng: 77.11, capacity: 2200, current: 410 }
+      { name: 'Araku Valley Relief Center', lat: 18.3273, lng: 82.8775, capacity: 2500, current: 180 },
+      { name: 'Tirumala First Ghat Road Shelter', lat: 13.6750, lng: 79.3500, capacity: 3000, current: 220 }
     ],
     alerts: [],
     history: [
-      { year: 2024, name: 'Wayanad Landslides',  lat: 11.47, lng: 76.13, affected: 1500, note: 'Severe casualties' },
-      { year: 2021, name: 'Chamoli Disaster',    lat: 30.45, lng: 79.60, affected: 200,  note: 'Glacier burst debris flow' },
-      { year: 2013, name: 'Kedarnath Tragedy',   lat: 30.73, lng: 79.07, affected: 100000, note: 'Flood + landslide cascade' }
+      { year: 2023, name: 'Araku Hill Slope Slip', lat: 18.33, lng: 82.88, affected: 1200, note: 'Ghat road rockfall and debris clearing' },
+      { year: 2021, name: 'Tirumala Ghat Landslide', lat: 13.68, lng: 79.35, affected: 5000, note: 'Slope breach after heavy depression rain' }
     ],
     habitations: []
   },
@@ -116,14 +114,12 @@ const HAZARD_INTEL = {
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
-      { name: 'Imphal Central Shelter', lat: 24.82, lng: 93.97, capacity: 4000, current: 1800 },
-      { name: 'Guwahati Open Ground',   lat: 26.16, lng: 91.78, capacity: 6000, current: 300 }
+      { name: 'Vijayawada Civil Defense Ground', lat: 16.5100, lng: 80.6400, capacity: 5000, current: 400 },
+      { name: 'Guntur Police Parade Ground', lat: 16.3000, lng: 80.4400, capacity: 4500, current: 200 }
     ],
     alerts: [],
     history: [
-      { year: 2023, name: 'M6.2 Nepal border quake', lat: 29.40, lng: 81.20, affected: 60000, note: 'Felt across North India' },
-      { year: 2011, name: 'Sikkim Earthquake M6.9',  lat: 27.72, lng: 88.16, affected: 300000, note: 'Widespread damage' },
-      { year: 2001, name: 'Bhuj Earthquake M7.7',    lat: 23.42, lng: 70.23, affected: 1600000, note: 'Deadliest recent quake' }
+      { year: 2020, name: 'Prakasam Tremor M4.1', lat: 15.50, lng: 80.05, affected: 15000, note: 'Felt across Ongole and coastal fault lines' }
     ],
     habitations: []
   },
@@ -133,12 +129,12 @@ const HAZARD_INTEL = {
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
-      { name: 'Nagapattinam High Ground', lat: 10.80, lng: 79.79, capacity: 4500, current: 0 },
-      { name: 'Port Blair Vertical Shelter', lat: 11.66, lng: 92.75, capacity: 2000, current: 0 }
+      { name: 'Visakhapatnam High Ground Evacuation Hub', lat: 17.7200, lng: 83.3100, capacity: 6000, current: 0 },
+      { name: 'Machilipatnam Elevated Center', lat: 16.1900, lng: 81.1400, capacity: 3500, current: 0 }
     ],
     alerts: [],
     history: [
-      { year: 2004, name: 'Indian Ocean Tsunami', lat: 10.77, lng: 79.84, affected: 2790000, note: 'Catastrophic, Tamil Nadu' }
+      { year: 2004, name: '2004 Indian Ocean Tsunami', lat: 15.90, lng: 80.47, affected: 250000, note: 'Catastrophic wave run-up along Nizampatnam, Machilipatnam, and Vizag coasts' }
     ],
     habitations: []
   },
@@ -148,12 +144,12 @@ const HAZARD_INTEL = {
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
-      { name: 'Shimla Community Hall', lat: 31.11, lng: 77.19, capacity: 1800, current: 120 },
-      { name: 'Kangra Relief Camp',    lat: 32.09, lng: 76.26, capacity: 2400, current: 300 }
+      { name: 'Alluri Sitharama Raju Relief Hub', lat: 17.9500, lng: 82.3500, capacity: 2000, current: 150 },
+      { name: 'Paderu Agency Center', lat: 18.0833, lng: 82.6667, capacity: 1800, current: 90 }
     ],
     alerts: [],
     history: [
-      { year: 2023, name: 'Himachal Monsoon Fury', lat: 31.70, lng: 77.10, affected: 420000, note: 'Beas river devastation' }
+      { year: 2022, name: 'Eastern Ghats Agency Inundation', lat: 18.08, lng: 82.67, affected: 35000, note: 'Agency tract flash torrents' }
     ],
     habitations: []
   },
@@ -163,11 +159,12 @@ const HAZARD_INTEL = {
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
-      { name: 'Sagar Island Relocation Site', lat: 21.75, lng: 88.15, capacity: 2600, current: 780 }
+      { name: 'Uppada Coastal Relocation Center', lat: 17.0900, lng: 82.3400, capacity: 3000, current: 520 },
+      { name: 'Suryalanka Sea Wall Camp', lat: 15.8700, lng: 80.5300, capacity: 2200, current: 140 }
     ],
     alerts: [],
     history: [
-      { year: 2020, name: 'Sagar Island land loss', lat: 21.70, lng: 88.10, affected: 15000, note: 'Villages relocated' }
+      { year: 2023, name: 'Uppada Beach Road Inundation', lat: 17.08, lng: 82.33, affected: 12000, note: 'Severe sea erosion along Kakinada-Uppada coastal corridor' }
     ],
     habitations: []
   }
@@ -446,7 +443,16 @@ class HazardEngine {
     const targetKey = (this.activeKey && HAZARD_INTEL[this.activeKey]) ? this.activeKey : normHazard;
     this.render(targetKey, true);
 
+    // Sync to Firestore and Mesh
+    if (window.firebaseLive && typeof window.firebaseLive.broadcastZoneCreation === 'function') {
+      window.firebaseLive.broadcastZoneCreation(existing);
+    }
+
     return existing;
+  }
+
+  injectOrEscalateZone(alert) {
+    return this.injectOrEscalateAuthorityZone(alert);
   }
 
   setMap(newMap) {
@@ -475,40 +481,20 @@ class HazardEngine {
 
   setTimelineStep(stepIndex) {
     this.timelineStep = Math.max(0, Math.min(5, stepIndex));
-    if (!this.renderedZoneLayers || !this.renderedZoneLayers.length) return;
 
-    this.renderedZoneLayers.forEach(({ polygonLayer, labelMarker, zone, hazard }) => {
-      // Skip the merged green hull layer — it has no individual zone forecast data
-      if (!zone.current_tier && !zone.forecast_tier_by_hour) return;
-
-      const currentTier = zone.current_tier || zone.level || 'GREEN';
-      const activeTier = (this.timelineStep === 0) 
-        ? currentTier 
-        : (zone.forecast_tier_by_hour?.[this.timelineStep] || currentTier);
-      const s = RISK_STYLE[activeTier] || RISK_STYLE.GREEN;
-
-      if (polygonLayer && typeof polygonLayer.setStyle === 'function') {
-        polygonLayer.setStyle({
-          fillColor: s.fill,
-          fillOpacity: s.opacity || 0.28,
-          color: s.stroke,
-          weight: activeTier === 'RED' ? 2.6 : 1.8,
-          opacity: s.strokeOpacity || 0.85,
-          className: `hazard-polygon level-${activeTier.toLowerCase()}`
-        });
-      }
-
-      if (polygonLayer && typeof polygonLayer.setPopupContent === 'function') {
-        polygonLayer.setPopupContent(this.zonePopup(s, zone, hazard, this.timelineStep));
-      }
-
-      if (labelMarker && labelMarker.setIcon) {
-        labelMarker.setIcon(this.zoneLabelIcon({ ...zone, level: activeTier }));
-      }
-    });
+    // Fully re-render the active hazard's zones for the new tier
+    // This correctly transitions zones between merged green hulls and individual danger polygons
+    if (this.activeKey) {
+      this.invalidateCache(this.activeKey);
+      this.render(this.activeKey, true);
+    }
 
     if (typeof this.onStatsChange === 'function' && this.activeKey) {
       this.onStatsChange(this.stats(this.activeKey));
+    }
+
+    if (typeof window !== 'undefined' && typeof window.updateCitizenRiskBadge === 'function') {
+      window.updateCitizenRiskBadge();
     }
   }
 
@@ -569,8 +555,7 @@ class HazardEngine {
           }
         });
         bucket.zones.push(labelMarker);
-        if (this.visible.zones) this.group.addLayer(labelMarker);
-        this.renderedZoneLayers.push({ labelMarker, zone: z, hazard: h });
+        this.renderedZoneLayers.push({ labelMarker, zone: z, hazard: h, level: 'GREEN' });
         return; // Skip individual green polygon — will be merged below
       }
 
@@ -579,7 +564,11 @@ class HazardEngine {
 
       // Collect danger polygon geometry for carving out of the green hull later
       if (typeof window !== 'undefined' && window.turf) {
-        try { dangerPolygons.push(window.turf.polygon([polygonCoords])); } catch (e) {}
+        try {
+          const dpPoly = window.turf.polygon([polygonCoords]);
+          dpPoly.properties = { level: activeTier, name: z.name, zone: z };
+          dangerPolygons.push(dpPoly);
+        } catch (e) {}
       }
 
       let geojsonFeature = {
@@ -598,17 +587,21 @@ class HazardEngine {
         }
       };
 
-      // Clip against Andhra Pradesh operational boundary
-      if (window.APBoundaryService && window.APBoundaryService.isReady()) {
+      // Clip against Andhra Pradesh operational boundary (Strict fail-closed enforcement)
+      if (window.APBoundaryService) {
+        if (!window.APBoundaryService.isReady()) {
+          return; // Boundary loading: fail-closed to prevent flash of unclipped/out-of-AP zones
+        }
         try {
           const turfPoly = window.turf.polygon([polygonCoords]);
           const clipped = window.APBoundaryService.clipPolygon(turfPoly);
-          if (!clipped) {
+          if (!clipped || !clipped.geometry) {
             return; // Completely outside AP, skip rendering
           }
           geojsonFeature.geometry = clipped.geometry;
         } catch (e) {
           console.warn('[HazardEngine] AP boundary clipping failed for zone:', z.name, e);
+          return;
         }
       }
 
@@ -630,7 +623,6 @@ class HazardEngine {
         }
       });
       bucket.zones.push(polygonLayer);
-      if (this.visible.zones) this.group.addLayer(polygonLayer);
 
       const labelIcon = this.zoneLabelIcon({ ...z, level: activeTier });
       const labelMarker = L.marker([lat, lng], { icon: labelIcon, interactive: true });
@@ -641,12 +633,12 @@ class HazardEngine {
         }
       });
       bucket.zones.push(labelMarker);
-      if (this.visible.zones) this.group.addLayer(labelMarker);
 
-      this.renderedZoneLayers.push({ polygonLayer, labelMarker, zone: z, hazard: h });
+      this.renderedZoneLayers.push({ polygonLayer, geojson: geojsonFeature, labelMarker, zone: z, hazard: h, level: activeTier });
     });
 
     // ── Merge all GREEN zones into a single convex hull polygon ──
+    let greenLayer = null;
     if (greenZoneData.length > 2 && typeof window !== 'undefined' && window.turf) {
       try {
         const greenPts = greenZoneData.map(g => window.turf.point([g.lng, g.lat]));
@@ -655,32 +647,14 @@ class HazardEngine {
           // Buffer outward by 5 km so the hull fully encloses the habitation areas
           greenHull = window.turf.buffer(greenHull, 5, { units: 'kilometers' });
 
-          // Carve out (subtract) each danger zone so red/yellow/orange never overlap green
-          dangerPolygons.forEach(dp => {
-            try {
-              // Buffer each danger polygon slightly so there's a visible gap
-              const bufferedDanger = window.turf.buffer(dp, 1, { units: 'kilometers' });
-              const diff = window.turf.difference(
-                window.turf.featureCollection([greenHull, bufferedDanger])
-              );
-              if (diff) greenHull = diff;
-            } catch (e) {
-              // Fallback: try the legacy 2-arg difference API (Turf v5/v6 compat)
-              try {
-                const diff2 = window.turf.difference(greenHull, dp);
-                if (diff2) greenHull = diff2;
-              } catch (e2) {}
-            }
-          });
-
-          // Clip against land boundary so green zone doesn't extend over water
+          // 1. Clip against land boundary FIRST so green zone stays on land before carving
           if (window.LandBoundaryService && window.LandBoundaryService.clipPolygonCoords) {
             try {
               const coords = greenHull.geometry.coordinates;
               const outerRing = greenHull.geometry.type === 'MultiPolygon'
                 ? coords[0][0] : coords[0];
               const clipped = window.LandBoundaryService.clipPolygonCoords(outerRing, {
-                name: 'Merged Safe Zone', hazardType: 'cyclone',
+                name: `Merged_Safe_Zone_${greenZoneData.length}_pts`, hazardType: 'cyclone',
                 lat: greenZoneData[0].lat, lng: greenZoneData[0].lng, radiusMeters: 50000
               });
               if (clipped && clipped.coordinates) {
@@ -693,27 +667,138 @@ class HazardEngine {
             } catch (clipErr) {}
           }
 
-          const gs = RISK_STYLE.GREEN;
-          const greenLayer = L.geoJSON(greenHull, {
-            style: () => ({
-              fillColor: gs.fill,
-              fillOpacity: 0.14,
-              color: gs.stroke,
-              weight: 2,
-              opacity: 0.7,
-              dashArray: '6 4',
-              className: 'hazard-polygon level-green merged-safe-zone'
-            }),
-            interactive: false
-          });
+          // 2. Carve out (subtract) each danger zone with a 2km buffer so red/yellow/orange never overlap green
+          // Doing this after land clipping ensures all carved holes & cutouts are fully preserved!
+          let greenHullValid = true;
 
-          bucket.zones.unshift(greenLayer);  // Add FIRST so it renders behind danger zones
-          if (this.visible.zones) this.group.addLayer(greenLayer);
-          this.renderedZoneLayers.push({ polygonLayer: greenLayer, zone: { level: 'GREEN', name: 'Andhra Pradesh Safe Perimeter' }, hazard: h });
+          for (let i = 0; i < dangerPolygons.length; i++) {
+            const dp = dangerPolygons[i];
+            const dpName = dp?.properties?.name || `Danger Zone #${i + 1}`;
+            let carvedResult = null;
+            let carveSuccess = false;
+
+            const bufferedDanger = (typeof window.turf.buffer === 'function')
+              ? (window.turf.buffer(dp, 2, { units: 'kilometers' }) || dp)
+              : dp;
+
+            // 1. Primary difference: 2-arg difference with 2km buffered danger (Turf v5/v6)
+            try {
+              carvedResult = window.turf.difference(greenHull, bufferedDanger);
+              carveSuccess = true;
+            } catch (e1) {
+              // 2. Fallback: try FeatureCollection format (Turf v7+) or per-polygon MultiPolygon difference
+              try {
+                carvedResult = window.turf.difference(
+                  window.turf.featureCollection([greenHull, bufferedDanger])
+                );
+                carveSuccess = true;
+              } catch (e2) {
+                // If MultiPolygon, difference each component polygon
+                if (greenHull && greenHull.geometry && greenHull.geometry.type === 'MultiPolygon') {
+                  try {
+                    const polys = greenHull.geometry.coordinates.map(c => window.turf.polygon(c));
+                    const remaining = [];
+                    polys.forEach(p => {
+                      try {
+                        const subDiff = window.turf.difference(p, bufferedDanger);
+                        if (subDiff) remaining.push(subDiff);
+                      } catch (subErr) {
+                        remaining.push(p);
+                      }
+                    });
+                    if (remaining.length > 0) {
+                      carvedResult = (remaining.length === 1) ? remaining[0] : {
+                        type: 'Feature',
+                        properties: greenHull.properties || {},
+                        geometry: {
+                          type: 'MultiPolygon',
+                          coordinates: remaining.map(p => p.geometry.type === 'MultiPolygon' ? p.geometry.coordinates[0] : p.geometry.coordinates)
+                        }
+                      };
+                      carveSuccess = true;
+                    }
+                  } catch (e3) {
+                    console.error('[HazardEngine] Failed to carve danger zone from green hull:', dpName, e3);
+                    carveSuccess = false;
+                  }
+                } else {
+                  console.error('[HazardEngine] Failed to carve danger zone from green hull:', dpName, e2);
+                  carveSuccess = false;
+                }
+              }
+            }
+
+            if (!carveSuccess) {
+              // Primary and fallback both failed
+              let doesIntersect = true;
+              try {
+                if (typeof window.turf.booleanIntersects === 'function') {
+                  doesIntersect = window.turf.booleanIntersects(greenHull, dp);
+                }
+              } catch (intErr) {
+                doesIntersect = true;
+              }
+
+              if (doesIntersect) {
+                console.warn(`[HazardEngine] Carving failed and danger zone "${dpName}" intersects green hull. Skipping green hull for this render pass to prevent visual overlap.`);
+                greenHullValid = false;
+                break;
+              }
+            } else {
+              if (carvedResult) {
+                greenHull = carvedResult;
+              } else {
+                // Difference returned null, meaning green hull was completely consumed
+                console.log(`[HazardEngine] Green hull fully consumed by danger zone: ${dpName}`);
+                greenHull = null;
+                break;
+              }
+            }
+          }
+
+          if (greenHull && greenHullValid) {
+            const gs = RISK_STYLE.GREEN;
+            greenLayer = L.geoJSON(greenHull, {
+              style: () => ({
+                fillColor: gs.fill,
+                fillOpacity: 0.14,
+                color: gs.stroke,
+                weight: 2,
+                opacity: 0.7,
+                dashArray: '6 4',
+                className: 'hazard-polygon level-green merged-safe-zone'
+              }),
+              interactive: false
+            });
+
+            bucket.zones.unshift(greenLayer);  // Add FIRST in array so it renders behind danger zones
+            this.renderedZoneLayers.push({ polygonLayer: greenLayer, geojson: greenHull, zone: { level: 'GREEN', name: 'Andhra Pradesh Safe Perimeter' }, hazard: h, level: 'GREEN' });
+          } else if (!greenHullValid) {
+            console.warn('[HazardEngine] Green hull omitted due to carving failure against danger zones.');
+          }
         }
       } catch (e) {
         console.warn('[HazardManager] Failed to merge green zones into hull:', e);
       }
+    }
+
+    // Add all zone layers to this.group in strictly controlled z-order:
+    // Green hull first (lowest), danger polygons next, label markers on top
+    if (this.visible.zones) {
+      bucket.zones.forEach(l => {
+        if (!this.group.hasLayer(l)) {
+          this.group.addLayer(l);
+        }
+      });
+      // Defensive z-order enforcement
+      if (greenLayer && typeof greenLayer.bringToBack === 'function') {
+        greenLayer.bringToBack();
+      }
+      this.renderedZoneLayers.forEach(item => {
+        if (item.polygonLayer && item.polygonLayer !== greenLayer && typeof item.polygonLayer.bringToFront === 'function') {
+          item.polygonLayer.bringToFront();
+        }
+      });
     }
 
     // 2. Designated Safe Shelters
@@ -821,6 +906,28 @@ class HazardEngine {
           ], 'Designated primary receiving hospital for disaster casualties.'), { className: 'custom-popup' });
         bucket.hospitals.push(marker);
         if (this.visible.hospitals) this.group.addLayer(marker);
+      });
+    }
+
+    // Apply active status visibility filter if one is active
+    if (typeof window !== 'undefined' && window.currentHazardStatusFilter && window.currentHazardStatusFilter !== 'ALL') {
+      const status = window.currentHazardStatusFilter;
+      this.renderedZoneLayers.forEach(item => {
+        const zTier = (item.level || (item.zone && (item.zone.level || item.zone.current_tier)) || '').toUpperCase();
+        let matches = true;
+        if (status === 'Active') {
+          matches = (zTier === 'RED' || zTier === 'CRITICAL');
+        } else if (status === 'Monitoring') {
+          matches = (zTier === 'YELLOW' || zTier === 'ORANGE' || zTier === 'MODERATE' || zTier === 'HIGH' || zTier === 'HIGH ALERT');
+        } else if (status === 'Normal') {
+          matches = (zTier === 'GREEN' || zTier === 'SAFE' || zTier === 'LOW RISK');
+        }
+        const poly = item.polygonLayer;
+        const marker = item.labelMarker;
+        if (!matches) {
+          if (poly && this.group.hasLayer(poly)) this.group.removeLayer(poly);
+          if (marker && this.group.hasLayer(marker)) this.group.removeLayer(marker);
+        }
       });
     }
 
@@ -1102,3 +1209,387 @@ class HazardEngine {
 if (typeof window !== 'undefined') {
   window.HazardEngine = HazardEngine;
 }
+
+// ================================================================
+// CANONICAL ZONE STATUS & POINT-IN-POLYGON RESOLUTION ENGINE
+// Single Source of Truth for Zone Status across Search & Maps
+// ================================================================
+
+function _hazardDistanceKm(a1, b1, a2, b2) {
+  const R = 6371;
+  const dLat = (a2 - a1) * Math.PI / 180;
+  const dLng = (b2 - b1) * Math.PI / 180;
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(a1 * Math.PI / 180) * Math.cos(a2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(x));
+}
+
+function _pointInPolygonCoords(point, vs) {
+  if (!vs || vs.length < 3) return false;
+  const x = point[0], y = point[1];
+  let inside = false;
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i][0], yi = vs[i][1];
+    const xj = vs[j][0], yj = vs[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function checkPointInsideGeometry(ptLng, ptLat, geomOrFeature) {
+  if (!geomOrFeature) return false;
+  if (typeof window !== 'undefined' && window.turf && typeof window.turf.booleanPointInPolygon === 'function') {
+    try {
+      const pt = window.turf.point([ptLng, ptLat]);
+      return window.turf.booleanPointInPolygon(pt, geomOrFeature);
+    } catch (e) {}
+  }
+  const geom = geomOrFeature.geometry || geomOrFeature;
+  if (!geom || !geom.coordinates) return false;
+  const pt = [ptLng, ptLat];
+  if (geom.type === 'Polygon') {
+    return _pointInPolygonCoords(pt, geom.coordinates[0]);
+  } else if (geom.type === 'MultiPolygon') {
+    return geom.coordinates.some(poly => _pointInPolygonCoords(pt, poly[0]));
+  }
+  return false;
+}
+
+function getZoneForCoordinates(lat, lng) {
+  const nLat = Number(lat);
+  const nLng = Number(lng);
+  if (!Number.isFinite(nLat) || !Number.isFinite(nLng) || isNaN(nLat) || isNaN(nLng)) {
+    return {
+      level: 'GREEN',
+      status: 'NORMAL',
+      label: 'NORMAL / GREEN',
+      color: '#22c55e',
+      badgeBg: 'rgba(34, 197, 94, 0.15)',
+      badgeColor: '#15803d',
+      badgeBorder: 'rgba(34, 197, 94, 0.35)',
+      zone: null,
+      source: 'default'
+    };
+  }
+
+  const rankMap = {
+    'RED': 4, 'CRITICAL': 4,
+    'ORANGE': 3, 'HIGH': 3,
+    'YELLOW': 2, 'MODERATE': 2, 'MONITORING': 2, 'ADVISORY': 2,
+    'GREEN': 1, 'NORMAL': 1, 'SAFE': 1, 'LOW': 1
+  };
+
+  let maxRank = 0;
+  let bestLevel = null;
+  let bestZone = null;
+  let bestSource = null;
+
+  const considerZone = (rawLevel, zoneObj, source) => {
+    if (!rawLevel) return;
+    let normLevel = String(rawLevel).toUpperCase();
+    if (normLevel.includes('RED') || normLevel.includes('CRIT')) normLevel = 'RED';
+    else if (normLevel.includes('ORANGE') || normLevel.includes('HIGH')) normLevel = 'ORANGE';
+    else if (normLevel.includes('YELLOW') || normLevel.includes('MODERATE') || normLevel.includes('MONITOR')) normLevel = 'YELLOW';
+    else normLevel = 'GREEN';
+
+    const rank = rankMap[normLevel] || 1;
+    if (rank > maxRank) {
+      maxRank = rank;
+      bestLevel = normLevel;
+      bestZone = zoneObj;
+      bestSource = source;
+    }
+  };
+
+  // 1. Check visually rendered polygons in HazardEngine (The active map hazard polygons)
+  const engine = (typeof window !== 'undefined') ? (window.hazardEngine || window.authHazardEngine) : null;
+  if (engine && Array.isArray(engine.renderedZoneLayers)) {
+    engine.renderedZoneLayers.forEach(rz => {
+      const z = rz.zone;
+      const zLevel = rz.level || z?.current_tier || z?.level;
+      if (rz.geojson && checkPointInsideGeometry(nLng, nLat, rz.geojson)) {
+        considerZone(zLevel, z, 'rendered_geojson');
+      } else if (rz.polygonLayer && typeof rz.polygonLayer.toGeoJSON === 'function') {
+        try {
+          const gj = rz.polygonLayer.toGeoJSON();
+          const features = gj.type === 'FeatureCollection' ? gj.features : [gj];
+          for (const f of features) {
+            if (checkPointInsideGeometry(nLng, nLat, f)) {
+              considerZone(zLevel, z, 'rendered_layer');
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+    });
+  }
+
+  // 2. Check DisasterMap.hazardPolygons (if present)
+  const mapInst = (typeof window !== 'undefined') ? (window.authMapInstance || window.disasterMap) : null;
+  if (mapInst && Array.isArray(mapInst.hazardPolygons)) {
+    mapInst.hazardPolygons.forEach(hp => {
+      if (checkPointInsideGeometry(nLng, nLat, hp.polygon)) {
+        considerZone(hp.level, hp, 'map_hazard_polygon');
+      }
+    });
+  }
+
+  // 3. Check all active HAZARD_INTEL zones
+  if (typeof HAZARD_INTEL !== 'undefined') {
+    Object.values(HAZARD_INTEL).forEach(h => {
+      if (Array.isArray(h.zones)) {
+        h.zones.forEach(z => {
+          const zLat = z.epicenter ? z.epicenter.lat : z.lat;
+          const zLng = z.epicenter ? z.epicenter.lng : z.lng;
+          const baseRadius = z.baseRadius || z.radius || 28000;
+          const zLevel = z.current_tier || z.level || 'GREEN';
+
+          if (typeof generateOrganicZonePolygon === 'function' && typeof zLat === 'number' && typeof zLng === 'number') {
+            try {
+              const polyCoords = generateOrganicZonePolygon(zLat, zLng, baseRadius, z.name, z.hazardType || 'cyclone');
+              if (_pointInPolygonCoords([nLng, nLat], polyCoords)) {
+                considerZone(zLevel, z, 'hazard_intel_organic_polygon');
+                return;
+              }
+            } catch (e) {}
+          }
+
+          if (typeof zLat === 'number' && typeof zLng === 'number') {
+            const d = _hazardDistanceKm(nLat, nLng, zLat, zLng);
+            if (d * 1000 <= baseRadius * 1.1) {
+              considerZone(zLevel, z, 'hazard_intel_radius');
+            }
+          }
+        });
+      }
+    });
+  }
+
+  // 4. Check APP_DATA.riskZones
+  if (typeof APP_DATA !== 'undefined' && Array.isArray(APP_DATA.riskZones)) {
+    APP_DATA.riskZones.forEach(rz => {
+      if (typeof rz.lat === 'number' && typeof rz.lng === 'number') {
+        const d = _hazardDistanceKm(nLat, nLng, rz.lat, rz.lng);
+        const radiusMeters = rz.radius || 28000;
+        if (d * 1000 <= radiusMeters * 1.1) {
+          considerZone(rz.level, rz, 'app_data_risk_zone');
+        }
+      }
+    });
+  }
+
+  // 5. Check APP_DATA.habitations (for known habitations with pre-configured risk)
+  if (typeof APP_DATA !== 'undefined' && Array.isArray(APP_DATA.habitations)) {
+    APP_DATA.habitations.forEach(hab => {
+      const hLng = hab.lng || hab.lon;
+      if (typeof hab.lat === 'number' && typeof hLng === 'number') {
+        const d = _hazardDistanceKm(nLat, nLng, hab.lat, hLng);
+        if (d <= 8) {
+          considerZone(hab.risk, hab, 'app_data_habitation');
+        }
+      }
+    });
+  }
+
+  const finalLevel = bestLevel || 'GREEN';
+  let statusText = 'NORMAL';
+  let color = '#22c55e';
+  let badgeText = '🟢 GREEN / NORMAL';
+  let badgeBg = 'rgba(34, 197, 94, 0.15)';
+  let badgeColor = '#15803d';
+  let badgeBorder = 'rgba(34, 197, 94, 0.35)';
+
+  if (finalLevel === 'RED') {
+    statusText = 'RED ZONE';
+    color = '#ef4444';
+    badgeText = '🔴 RED RISK';
+    badgeBg = 'rgba(239, 68, 68, 0.15)';
+    badgeColor = '#dc2626';
+    badgeBorder = 'rgba(239, 68, 68, 0.35)';
+  } else if (finalLevel === 'ORANGE') {
+    statusText = 'HIGH ALERT';
+    color = '#f97316';
+    badgeText = '🟠 ORANGE RISK';
+    badgeBg = 'rgba(249, 115, 22, 0.15)';
+    badgeColor = '#ea580c';
+    badgeBorder = 'rgba(249, 115, 22, 0.35)';
+  } else if (finalLevel === 'YELLOW') {
+    statusText = 'MONITORING';
+    color = '#eab308';
+    badgeText = '🟡 YELLOW RISK';
+    badgeBg = 'rgba(234, 179, 8, 0.18)';
+    badgeColor = '#a16207';
+    badgeBorder = 'rgba(234, 179, 8, 0.4)';
+  }
+
+  return {
+    level: finalLevel,
+    status: statusText,
+    label: badgeText,
+    color: color,
+    badgeBg: badgeBg,
+    badgeColor: badgeColor,
+    badgeBorder: badgeBorder,
+    zone: bestZone,
+    source: bestSource,
+    outsideZones: !bestZone
+  };
+}
+
+// ================================================================
+// CANONICAL LOCATION CLASSIFICATION & SEARCH RANKING ENGINE
+// Authoritatively prioritizes true geographic entities over POIs/roads
+// ================================================================
+
+function classifyLocationType(item) {
+  if (!item) return { tier: 4, type: 'Location' };
+
+  const rawType = (item.type || item.addresstype || item.class || '').toLowerCase();
+  const rawCategory = (item.category || item.source || '').toLowerCase();
+  const rawName = (item.name || '').toLowerCase();
+  const rawSub = (item.subtitle || item.region || '').toLowerCase();
+
+  // Tier 1: Major administrative / geographic places (Cities, Towns, Villages, Mandals, Districts)
+  const isMajorPlace =
+    rawType === 'city' || rawType === 'town' || rawType === 'village' ||
+    rawType === 'municipality' || rawType === 'locality' || rawType === 'mandal' ||
+    rawType === 'district' || rawType === 'state' || rawType === 'county' ||
+    rawType === 'administrative' || rawType === 'island' ||
+    item.class === 'boundary' ||
+    (item.class === 'place' && !['house', 'building', 'postcode', 'amenity'].includes(rawType));
+
+  if (isMajorPlace) {
+    let displayType = 'City / Locality';
+    if (rawType === 'district' || rawSub.includes('district')) displayType = 'District';
+    else if (rawType === 'mandal' || rawSub.includes('mandal')) displayType = 'Mandal';
+    else if (rawType === 'village' || rawType.includes('village')) displayType = 'Village';
+    else if (rawType === 'city') displayType = 'City';
+    else if (rawType === 'town') displayType = 'Town';
+    return { tier: 1, type: item.type && item.type !== 'OpenStreetMap' ? item.type : displayType };
+  }
+
+  // Tier 2: Sub-localities, Habitations, Sub-zones, Neighborhoods
+  const isSubLocality =
+    rawType === 'suburb' || rawType === 'neighbourhood' || rawType === 'neighborhood' ||
+    rawType === 'quarter' || rawType === 'hamlet' || rawType === 'residential' ||
+    rawType.includes('habitation') || rawCategory.includes('habitation') ||
+    rawType.includes('sub-zone') || rawSub.includes('slum') || rawName.includes('slum');
+
+  if (isSubLocality) {
+    return { tier: 2, type: item.type || 'Locality / Habitation' };
+  }
+
+  // Tier 3: Emergency & Hazard facilities (Shelters, Relief Camps, Evacuation Hubs, Hospitals, Hazard Zones)
+  const isEmergency =
+    rawType.includes('shelter') || rawType.includes('relief') || rawType.includes('camp') ||
+    rawType.includes('evacuation') || rawType.includes('hazard') || rawType.includes('danger') ||
+    rawType.includes('hospital') || rawName.includes('relief camp') || rawName.includes('shelter') ||
+    rawSub.includes('shelter') || rawSub.includes('relief');
+
+  if (isEmergency) {
+    let displayType = 'Civil Shelter';
+    if (rawName.includes('relief camp') || rawSub.includes('relief')) displayType = 'Relief Camp';
+    else if (rawType.includes('hospital') || rawName.includes('hospital')) displayType = 'Emergency Hospital';
+    else if (rawType.includes('hazard') || rawType.includes('danger')) displayType = 'Hazard Zone';
+    return { tier: 3, type: item.type || displayType };
+  }
+
+  // Tier 4: General POIs, Amenities, Institutions, Commercial
+  const isPOI =
+    item.class === 'amenity' || item.class === 'tourism' || item.class === 'leisure' ||
+    item.class === 'shop' || item.class === 'office' || item.class === 'commercial' ||
+    rawType.includes('school') || rawType.includes('college') || rawType.includes('university') ||
+    rawType.includes('bank') || rawType.includes('temple') || rawType.includes('church') ||
+    rawType.includes('mosque') || rawType.includes('hotel') || rawType.includes('restaurant');
+
+  if (isPOI) {
+    return { tier: 4, type: item.type || 'Point of Interest' };
+  }
+
+  // Tier 5: Roads, Streets, Highways, Transit
+  const isRoadOrTransit =
+    item.class === 'highway' || item.class === 'railway' ||
+    ['road', 'street', 'highway', 'motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'path', 'track', 'railway', 'station', 'bus_stop', 'stop'].includes(rawType);
+
+  if (isRoadOrTransit) {
+    return { tier: 5, type: item.type || 'Road / Transit' };
+  }
+
+  return { tier: 4, type: item.type || 'Address / Landmark' };
+}
+
+function computeSearchRank(item, query) {
+  if (!item) return 9999;
+  const q = (query || '').toLowerCase().trim();
+  if (!q) return 9999;
+
+  const rawName = (item.name || '').toLowerCase().trim();
+  const rawSub = (item.subtitle || item.region || item.district || '').toLowerCase().trim();
+  const nameWords = rawName.split(/[\s,.-]+/).filter(Boolean);
+  const qWords = q.split(/[\s,.-]+/).filter(Boolean);
+
+  const classification = classifyLocationType(item);
+  const tier = classification.tier; // 1 to 5
+
+  // 1. Exact match with whole query: Tier 1 (10), Tier 2 (20), Tier 3 (30), Tier 4 (40), Tier 5 (50)
+  if (rawName === q) {
+    return (tier * 10);
+  }
+
+  // Check query words match
+  const allQWordsInName = qWords.every(qw => rawName.includes(qw));
+  const allQWordsInItem = qWords.every(qw => rawName.includes(qw) || rawSub.includes(qw));
+
+  // If user searched multiple words, and an item doesn't contain the query words, penalize heavily
+  if (!allQWordsInItem && !rawName.includes(q)) {
+    return 2000 + (tier * 100);
+  }
+
+  let matchScore = 0;
+
+  if (nameWords.length > 0 && nameWords[0] === q) {
+    // First word is exact query (e.g. "Delhi, India" for "delhi", "Kakinada Urban" for "kakinada")
+    matchScore = 20;
+  } else if (rawName.startsWith(q)) {
+    // Starts with query string (e.g. "Amalapuram" for "amala", "Hyderabad" for "hyd")
+    matchScore = 30;
+  } else if (nameWords.some(w => w === q)) {
+    // Any word is exact match (e.g. "New Delhi" for "delhi")
+    matchScore = 40;
+  } else if (nameWords.some(w => w.startsWith(q))) {
+    // Any word starts with query (e.g. "North Delhi" for "del")
+    matchScore = 50;
+  } else if (rawName.includes(q)) {
+    // Name contains query
+    matchScore = 60;
+  } else if (allQWordsInName) {
+    // All query words appear in name in different positions
+    matchScore = 70;
+  } else if (rawSub.includes(q)) {
+    // Subtitle / region contains query
+    matchScore = 90;
+  } else {
+    matchScore = 150;
+  }
+
+  const lengthPenalty = Math.min(rawName.length * 0.2, 10);
+  return (tier * 100) + matchScore + lengthPenalty;
+}
+
+if (typeof window !== 'undefined') {
+  window.getZoneForCoordinates = getZoneForCoordinates;
+  window.determineZoneStatusForPoint = getZoneForCoordinates;
+  window.classifyLocationType = classifyLocationType;
+  window.computeSearchRank = computeSearchRank;
+  if (window.HazardEngine) {
+    window.HazardEngine.getZoneForPoint = getZoneForCoordinates;
+    window.HazardEngine.classifyLocationType = classifyLocationType;
+    window.HazardEngine.computeSearchRank = computeSearchRank;
+  }
+}
+if (typeof global !== 'undefined') {
+  global.getZoneForCoordinates = getZoneForCoordinates;
+  global.classifyLocationType = classifyLocationType;
+  global.computeSearchRank = computeSearchRank;
+}
+

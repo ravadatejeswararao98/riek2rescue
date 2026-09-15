@@ -9,29 +9,179 @@ class EmergencySOSBeacon {
   constructor() {
     this.isActive = false;
     this.beaconSoundTimer = null;
-    this.userCoords = { lat: 16.9891, lng: 82.2475 }; // Default: Kakinada AP coastal zone
+    this.userCoords = null; // No hardcoded fallback
+    this.hasLiveFix = false;
+    this._isLocating = false;
     this.initSOS();
   }
 
   initSOS() {
-    if (navigator.geolocation) {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => {
-          this.userCoords = {
-            lat: Number(pos.coords.latitude.toFixed(4)),
-            lng: Number(pos.coords.longitude.toFixed(4))
-          };
+          if (pos && pos.coords) {
+            this.userCoords = {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: Math.round(pos.coords.accuracy || 0),
+              capturedAt: pos.timestamp || Date.now()
+            };
+            this.hasLiveFix = true;
+            if (typeof window !== 'undefined') {
+              window.citizenGPSLocation = { ...this.userCoords };
+            }
+          }
         },
-        err => console.log("Using default emergency sector coordinates.")
+        err => {
+          // Do not substitute any hardcoded or fake coordinates
+          this.hasLiveFix = false;
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
     }
   }
 
-  triggerSOS() {
+  resolveCoords() {
+    if (this.hasLiveFix && this.userCoords && typeof this.userCoords.latitude === 'number' && typeof this.userCoords.longitude === 'number') {
+      return this.userCoords;
+    }
+    if (typeof window !== 'undefined' && window.citizenGPSLocation && typeof window.citizenGPSLocation.lat === 'number' && typeof window.citizenGPSLocation.lng === 'number' && !window.citizenGPSLocation.default) {
+      return {
+        lat: window.citizenGPSLocation.lat,
+        lng: window.citizenGPSLocation.lng,
+        latitude: window.citizenGPSLocation.lat,
+        longitude: window.citizenGPSLocation.lng,
+        accuracy: window.citizenGPSLocation.accuracy || null
+      };
+    }
+    return null;
+  }
+
+  async triggerSOS() {
+    const toolSos = document.getElementById('tool-sos');
+
+    // Prevent repeated clicks while location retrieval is in progress
+    if (this._isLocating) {
+      if (typeof showToast === 'function') {
+        showToast("Getting your current location... Please wait.", "info");
+      }
+      return;
+    }
+
+    this._isLocating = true;
+    if (toolSos) {
+      toolSos.classList.add('sos-active');
+      toolSos.setAttribute('disabled', 'true');
+    }
+    document.querySelectorAll('.sos-beacon-btn').forEach(b => {
+      b.classList.add('sos-active');
+      b.setAttribute('disabled', 'true');
+    });
+
+    // UX prompt when citizen presses SOS
+    if (typeof showToast === 'function') {
+      showToast("Getting your current location... Allow location access so emergency authorities can locate you.", "warning");
+    }
+
+    // 1. Obtain user's actual current geographic coordinates at the moment of SOS
+    let latitude = null;
+    let longitude = null;
+    let accuracy = null;
+    let capturedAt = Date.now();
+    let hasLocation = false;
+
+    if (typeof navigator !== 'undefined' && 'geolocation' in navigator) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            resolve,
+            reject,
+            {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 0
+            }
+          );
+        });
+
+        if (position && position.coords) {
+          latitude = position.coords.latitude;
+          longitude = position.coords.longitude;
+          accuracy = position.coords.accuracy;
+          capturedAt = position.timestamp || Date.now();
+
+          // Validate coordinates
+          if (typeof latitude === 'number' && typeof longitude === 'number' &&
+              !isNaN(latitude) && !isNaN(longitude) &&
+              latitude >= -90 && latitude <= 90 &&
+              longitude >= -180 && longitude <= 180) {
+            hasLocation = true;
+            console.log("SOS geolocation captured:", {
+              latitude,
+              longitude,
+              accuracy
+            });
+
+            this.userCoords = {
+              lat: latitude,
+              lng: longitude,
+              latitude,
+              longitude,
+              accuracy: Math.round(accuracy || 0),
+              capturedAt
+            };
+            this.hasLiveFix = true;
+            if (typeof window !== 'undefined') {
+              window.citizenGPSLocation = { lat: latitude, lng: longitude, accuracy: Math.round(accuracy || 0) };
+            }
+          }
+        }
+      } catch (geoErr) {
+        console.warn("Live SOS GPS acquisition failed:", geoErr);
+        hasLocation = false;
+      }
+    } else {
+      console.warn("Geolocation API not available in navigator.");
+      hasLocation = false;
+    }
+
+    this._isLocating = false;
+    if (toolSos) toolSos.removeAttribute('disabled');
+    document.querySelectorAll('.sos-beacon-btn').forEach(b => b.removeAttribute('disabled'));
+
+    if (!hasLocation) {
+      const warnMsg = "Your current location could not be accessed. Please enable location permission so authorities can locate your SOS.";
+      if (typeof showToast === 'function') {
+        showToast(warnMsg, "warning");
+      }
+
+      // Geolocation failure confirmation dialog
+      const proceedWithoutLocation = confirm(
+        "⚠️ LOCATION ACCESS UNAVAILABLE\n\nYour current location could not be accessed.\n\nDo you want to send the SOS with 'Location unavailable' so authorities are alerted to your emergency?"
+      );
+
+      if (!proceedWithoutLocation) {
+        if (toolSos) toolSos.classList.remove('sos-active');
+        document.querySelectorAll('.sos-beacon-btn').forEach(b => b.classList.remove('sos-active'));
+        return;
+      }
+
+      this.userCoords = {
+        lat: null,
+        lng: null,
+        latitude: null,
+        longitude: null,
+        accuracy: null,
+        capturedAt: Date.now()
+      };
+      this.hasLiveFix = false;
+    }
+
     this.isActive = true;
 
     // Escalate SOS beacon buttons into rapid, urgent pulse
-    const toolSos = document.getElementById('tool-sos');
     if (toolSos) toolSos.classList.add('sos-active');
     document.querySelectorAll('.sos-beacon-btn').forEach(b => b.classList.add('sos-active'));
 
@@ -49,13 +199,63 @@ class EmergencySOSBeacon {
       id: 'SOS-' + Date.now().toString().slice(-6),
       type: '🆘 EMERGENCY SOS DISTRESS',
       category: 'Critical Life Rescue',
-      location: `Lat ${this.userCoords.lat}° N, Lng ${this.userCoords.lng}° E (Citizen Terminal)`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      status: 'HIGH_PRIORITY_URGENT',
-      details: 'Immediate beacon distress signal triggered from citizen terminal. Battery backup activated.',
-      phone: '+91 98765-EMERGENCY'
+      citizenName: 'Citizen in Distress',
+      phone: '+91 98765-EMERGENCY',
+      desc: hasLocation
+        ? `Immediate beacon distress signal from citizen terminal. Verified device GPS acquired.`
+        : `Immediate beacon distress signal from citizen terminal. GPS location was unavailable at transmission.`,
+      details: hasLocation
+        ? `Immediate beacon distress signal from citizen terminal. Verified device GPS acquired.`
+        : `Immediate beacon distress signal from citizen terminal. GPS location was unavailable at transmission.`,
+      lat: hasLocation ? latitude : null,
+      lng: hasLocation ? longitude : null,
+      latitude: hasLocation ? latitude : null,
+      longitude: hasLocation ? longitude : null,
+      locationAccuracy: hasLocation && accuracy ? Math.round(accuracy) : null,
+      locationTimestamp: capturedAt,
+      locationStatus: hasLocation ? 'available' : 'unavailable',
+      location: hasLocation
+        ? `Lat ${latitude.toFixed(5)}° N, Lng ${longitude.toFixed(5)}° E (±${Math.round(accuracy || 0)}m)`
+        : 'Location unavailable',
+      locationCoords: hasLocation ? {
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: Math.round(accuracy || 0),
+        capturedAt: capturedAt
+      } : null,
+      severity: 'Critical',
+      status: 'Pending',
+      isSos: true,
+      sosStatus: 'HIGH_PRIORITY_URGENT',
+      upvotes: 99,
+      time: 'Just now',
+      timestamp: Date.now()
     };
 
+    // 1. Immediately store in localStorage so all tabs / portals have instant access
+    try {
+      const existing = JSON.parse(localStorage.getItem('rzi_citizen_reports') || '[]');
+      const idx = existing.findIndex(r => r.id === distressPayload.id);
+      if (idx === -1) {
+        existing.unshift(distressPayload);
+      } else {
+        existing[idx] = distressPayload;
+      }
+      localStorage.setItem('rzi_citizen_reports', JSON.stringify(existing));
+    } catch (e) {
+      console.warn("Storage write error for SOS:", e);
+    }
+
+    // 2. Broadcast via BroadcastChannel 'rzi_mesh_sync' (used by FirebaseLive & cross-tab sync)
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('rzi_mesh_sync');
+        bc.postMessage({ type: 'NEW_REPORT', payload: distressPayload });
+        setTimeout(() => { try { bc.close(); } catch(e){} }, 1000);
+      }
+    } catch (e) {}
+
+    // 3. Offline submission queue or Firebase submission
     if (!navigator.onLine) {
       if (typeof window.queueOfflineSubmission === 'function') {
         window.queueOfflineSubmission(distressPayload);
@@ -64,7 +264,7 @@ class EmergencySOSBeacon {
           const q = JSON.parse(localStorage.getItem('rzi_offline_queue') || '[]');
           q.push({ ...distressPayload, queuedAt: Date.now() });
           localStorage.setItem('rzi_offline_queue', JSON.stringify(q));
-        } catch (e) {}
+        } catch (e) { }
       }
       if (typeof showToast === 'function') {
         showToast("🆘 EMERGENCY SOS QUEUED LOCALLY — TRANSMITTING WHEN CONNECTED", "warning");
@@ -78,7 +278,11 @@ class EmergencySOSBeacon {
         });
       }
       if (typeof showToast === 'function') {
-        showToast("🆘 EMERGENCY SOS TRANSMITTED TO COMMAND CENTER", "danger");
+        if (hasLocation) {
+          showToast("SOS sent successfully. Your current location was shared with the authority.", "success");
+        } else {
+          showToast("🆘 Emergency SOS transmitted (Location unavailable)", "danger");
+        }
       }
     }
   }
@@ -106,6 +310,19 @@ class EmergencySOSBeacon {
       document.body.appendChild(modal);
     }
 
+    const shelterInfo = (typeof nearestShelterText === 'function')
+      ? nearestShelterText()
+      : 'Nearest Designated Relief Shelter';
+
+    const hasCoords = this.userCoords &&
+                      typeof this.userCoords.latitude === 'number' &&
+                      typeof this.userCoords.longitude === 'number' &&
+                      !isNaN(this.userCoords.latitude);
+
+    const coordsDisplay = hasCoords
+      ? `${this.userCoords.latitude.toFixed(5)}° N, ${this.userCoords.longitude.toFixed(5)}° E (Accuracy: ±${this.userCoords.accuracy || 'N/A'}m)`
+      : '<span style="color:#f87171;">Location unavailable (GPS access was denied or unavailable)</span>';
+
     modal.innerHTML = `
       <div class="modal-box" style="border: 2px solid #ef4444; box-shadow: 0 0 50px rgba(239,68,68,0.5); max-width: 480px; text-align: center;">
         <div style="font-size: 54px; animation: beaconGlow 1s infinite alternate;">🚨</div>
@@ -114,16 +331,16 @@ class EmergencySOSBeacon {
           EMERGENCY RESCUE BEACON ACTIVE
         </h2>
         <p style="color: #cbd5e1; font-size: 13px; margin: 8px 0 16px;">
-          Your high-priority coordinates have been transmitted to the NDRF & SDMA Incident Command Center. Rescue teams are triaging your sector.
+          ${hasCoords ? 'Your high-priority coordinates have been transmitted to the NDRF & SDMA Incident Command Center. Rescue teams are triaging your sector.' : 'Emergency distress signal dispatched. Incident Command notified that device location was unavailable.'}
         </p>
 
         <div style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 14px; text-align: left; margin-bottom: 16px;">
           <div style="font-size: 11px; color: #f87171; text-transform: uppercase; font-weight: 700;">Transmitted Coordinates</div>
           <div style="font-size: 14px; font-weight: 700; color: #fff; margin-top: 2px;">
-            ${this.userCoords.lat}° N, ${this.userCoords.lng}° E
+            ${coordsDisplay}
           </div>
           <div style="font-size: 12px; color: #94a3b8; margin-top: 6px;">
-            Nearest Shelter: <strong>Kakinada Port Cyclone Relief Center (2.4 km)</strong>
+            Nearest Shelter: <strong>${shelterInfo}</strong>
           </div>
         </div>
 

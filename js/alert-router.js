@@ -115,7 +115,7 @@ class AlertRouter {
   async sendEscalationEmail(alert) {
     const toEmail = process.env.ALERT_RECIPIENT_EMAIL || 'incident-commander@ap-sdma.gov.in';
     const fromEmail = process.env.ALERT_SENDER_EMAIL || 'alerts@resend.dev';
-    
+
     const newTier = alert.newTier || alert.level || 'RED';
     const tierColor = newTier === 'RED' ? '#ef4444' : '#f97316';
     const zoneTitle = alert.zoneName || alert.name || 'Hazard Sector';

@@ -82,7 +82,7 @@ self.addEventListener('fetch', (event) => {
         .then((res) => {
           if (res && (res.status === 200 || res.type === 'opaque')) {
             const clone = res.clone();
-            caches.open(DATA_CACHE_NAME).then(c => c.put(request, clone).catch(() => {}));
+            caches.open(DATA_CACHE_NAME).then(c => c.put(request, clone).catch(() => { }));
           }
           return res;
         })
@@ -104,7 +104,7 @@ self.addEventListener('fetch', (event) => {
         .then((res) => {
           if (res && res.status === 200) {
             const clone = res.clone();
-            caches.open(SHELL_CACHE_NAME).then(c => c.put(request, clone).catch(() => {}));
+            caches.open(SHELL_CACHE_NAME).then(c => c.put(request, clone).catch(() => { }));
           }
           return res;
         })
@@ -123,7 +123,7 @@ self.addEventListener('fetch', (event) => {
       .then((res) => {
         if (res && (res.status === 200 || res.type === 'opaque')) {
           const clone = res.clone();
-          caches.open(SHELL_CACHE_NAME).then(c => c.put(request, clone).catch(() => {}));
+          caches.open(SHELL_CACHE_NAME).then(c => c.put(request, clone).catch(() => { }));
         }
         return res;
       })

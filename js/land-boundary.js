@@ -16,11 +16,17 @@
       if (this.data) return this.data;
       if (this.promise) return this.promise;
 
-      this.promise = fetch('data/india_land_boundary.geojson')
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status} loading india_land_boundary.geojson`);
-          return res.json();
-        })
+      const fetchPromise = (typeof process !== 'undefined' && process.versions && process.versions.node && typeof require === 'function')
+        ? Promise.resolve().then(() => {
+            const fs = require('fs');
+            return JSON.parse(fs.readFileSync('data/india_land_boundary.geojson', 'utf8'));
+          })
+        : fetch('data/india_land_boundary.geojson').then(res => {
+            if (!res.ok) throw new Error(`HTTP ${res.status} loading india_land_boundary.geojson`);
+            return res.json();
+          });
+
+      this.promise = fetchPromise
         .then(geojson => {
           this.data = geojson;
           if (geojson && geojson.features) {
@@ -123,10 +129,70 @@
         console.warn(`[LandBoundaryService] Exception during clipping for ${name}:`, err);
         return fallbackGeometry;
       }
+    },
+
+    /**
+     * Authoritative spatial validation: returns true if (lat, lng) is on LAND, false if OCEAN/WATER.
+     * Uses India land boundary GeoJSON (all 37 states/UTs, islands, and coastlines).
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @returns {boolean}
+     */
+    isPointOnLand(lat, lng) {
+      const nLat = Number(lat);
+      const nLng = Number(lng);
+      if (!Number.isFinite(nLat) || !Number.isFinite(nLng)) return false;
+      if (!this.data || !Array.isArray(this.data.features)) return false;
+
+      const pt = [nLng, nLat]; // GeoJSON coordinate order: [longitude, latitude]
+
+      for (let i = 0; i < this.data.features.length; i++) {
+        const f = this.data.features[i];
+        const b = f.bbox;
+        if (b && (nLng < b[0] || nLng > b[2] || nLat < b[1] || nLat > b[3])) {
+          continue; // Quick bounding box rejection
+        }
+        if (typeof window !== 'undefined' && window.turf && typeof window.turf.booleanPointInPolygon === 'function') {
+          try {
+            if (window.turf.booleanPointInPolygon(window.turf.point(pt), f)) {
+              return true;
+            }
+          } catch (e) {}
+        }
+        const geom = f.geometry;
+        if (geom && geom.coordinates) {
+          if (geom.type === 'Polygon') {
+            if (_pointInPolygonFast(pt, geom.coordinates[0])) return true;
+          } else if (geom.type === 'MultiPolygon') {
+            for (let j = 0; j < geom.coordinates.length; j++) {
+              if (_pointInPolygonFast(pt, geom.coordinates[j][0])) return true;
+            }
+          }
+        }
+      }
+      return false;
     }
   };
 
-  window.LandBoundaryService = LandBoundaryService;
+  function _pointInPolygonFast(point, vs) {
+    if (!vs || vs.length < 3) return false;
+    const x = point[0], y = point[1];
+    let inside = false;
+    for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+      const xi = vs[i][0], yi = vs[i][1];
+      const xj = vs[j][0], yj = vs[j][1];
+      const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  if (typeof window !== 'undefined') {
+    window.LandBoundaryService = LandBoundaryService;
+  }
+  if (typeof global !== 'undefined') {
+    global.LandBoundaryService = LandBoundaryService;
+  }
 
   // Auto-init load on script execution
   if (typeof document !== 'undefined') {

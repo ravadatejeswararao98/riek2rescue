@@ -255,8 +255,13 @@
   opacity: 0.9;
 }
 
-.portal-box:nth-child(1) .check-svg { color: #16a34a; }
-.portal-box:nth-child(2) .check-svg { color: #1d4ed8; }
+.portal-box:nth-child(1) .check-svg {
+  color: #16a34a;
+}
+
+.portal-box:nth-child(2) .check-svg {
+  color: #1d4ed8;
+}
 
 /* Action CTA Buttons */
 .portal-cta {
@@ -312,10 +317,12 @@
   .signin-modal-card {
     padding: 24px 18px 20px;
   }
+
   .signin-portal-grid {
     grid-template-columns: 1fr;
     gap: 14px;
   }
+
   .box-description {
     min-height: auto;
   }
@@ -351,8 +358,15 @@
 }
 
 @keyframes locFadeIn {
-  from { opacity: 0; transform: scale(0.94) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .loc-state-panel {
@@ -461,8 +475,15 @@
 }
 
 @keyframes locPulseExpand {
-  0% { transform: scale(0.4); opacity: 1; }
-  100% { transform: scale(1.7); opacity: 0; }
+  0% {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
 }
 
 .loc-text-primary {
@@ -510,9 +531,19 @@
 }
 
 @keyframes locPop {
-  0% { transform: scale(0.5); opacity: 0; }
-  70% { transform: scale(1.18); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+
+  70% {
+    transform: scale(1.18);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .loc-place-highlight {
@@ -638,7 +669,7 @@
 }
 
 @keyframes locSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
-
-

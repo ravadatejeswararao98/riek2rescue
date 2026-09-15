@@ -86,6 +86,14 @@ class ScenarioController {
       window.map.flyTo(sc.center, sc.zoom, { duration: 1.5 });
     }
 
+    // Invalidate hazard cache and trigger full re-render for the selected scenario
+    const engine = window.hazardEngine || window.authHazardEngine;
+    if (engine) {
+      const hazardKey = (sc.hazardType || 'cyclone').toLowerCase();
+      engine.invalidateCache(hazardKey);
+      engine.render(hazardKey, true);
+    }
+
     // Update Topbar Weather and Risk Chip
     const cityEl = document.getElementById('chip-city');
     const windEl = document.getElementById('chip-wind');
@@ -126,30 +134,43 @@ class ScenarioController {
   getDefaultScenarios() {
     return [
       {
-        id: "scenario-cyclone-vayu",
-        name: "Super Cyclone 'Vayu' (Cat 4 Landfall)",
+        id: "scenario-cyclone-gulab",
+        name: "Super Cyclone 'Gulab' (Cat 3 Coastal Landfall)",
         hazardType: "cyclone",
-        region: "Gujarat Coast / Gulf of Khambhat",
-        center: [21.17, 72.83],
-        zoom: 10,
+        region: "Kakinada Coast & Godavari Estuary, Andhra Pradesh",
+        center: [16.9891, 82.2475],
+        zoom: 11,
+        severity: "CRITICAL",
+        windGustsKmH: 145,
+        surgeMeters: 3.4,
+        temperature: "29°C",
+        populationImpacted: 135000
+      },
+      {
+        id: "scenario-godavari-delta-flood",
+        name: "Godavari River Peak Delta Inundation",
+        hazardType: "flood",
+        region: "Konaseema & Amalapuram Delta, Andhra Pradesh",
+        center: [16.5787, 82.0061],
+        zoom: 11,
+        severity: "EXTREME",
+        windGustsKmH: 65,
+        surgeMeters: 4.2,
+        temperature: "27°C",
+        populationImpacted: 185000
+      },
+      {
+        id: "scenario-vizag-cyclone",
+        name: "North-Coastal Cyclone Surge",
+        hazardType: "cyclone",
+        region: "Visakhapatnam & Bheemunipatnam Corridor, Andhra Pradesh",
+        center: [17.6868, 83.2185],
+        zoom: 11,
         severity: "CRITICAL",
         windGustsKmH: 155,
         surgeMeters: 3.8,
-        temperature: "31°C",
-        populationImpacted: 142000
-      },
-      {
-        id: "scenario-brahmaputra-flood",
-        name: "Brahmaputra Major Basin Inundation",
-        hazardType: "flood",
-        region: "Guwahati & Kamrup Basin, Assam",
-        center: [26.18, 91.75],
-        zoom: 11,
-        severity: "EXTREME",
-        windGustsKmH: 45,
-        surgeMeters: 4.5,
-        temperature: "27°C",
-        populationImpacted: 220000
+        temperature: "30°C",
+        populationImpacted: 162000
       }
     ];
   }

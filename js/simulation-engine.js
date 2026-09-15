@@ -142,7 +142,7 @@ class DisasterSimulationEngine {
   startDrill(scenario) {
     this.isActive = true;
     this.currentStep = 0;
-    this.scenario = scenario || { name: "National Rapid Response Drill", habitationsAtRisk: 28 };
+    this.scenario = scenario || { name: "Andhra Pradesh State Disaster Response Drill", habitationsAtRisk: 28 };
     this.casualtiesPrevented = 0;
     this.simulatedTimeMinutes = 0;
 

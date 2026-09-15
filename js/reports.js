@@ -18,7 +18,7 @@ class CitizenReportManager {
     const list = (window.firebaseLive && window.firebaseLive.reports && window.firebaseLive.reports.length > 0)
       ? window.firebaseLive.reports
       : this.reports;
-    return list.filter(r => r.status === 'Pending' || r.status === 'Reviewing');
+    return list.filter(r => r.status === 'Pending' || r.status === 'Reviewing' || r.status === 'HIGH_PRIORITY_URGENT' || r.isSos || (r.type && r.type.toUpperCase().includes('SOS')));
   }
 
   verifyReport(id, officerNotes) {

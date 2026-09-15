@@ -67,7 +67,7 @@
   }
 
   function calculateVulnerability(incident) {
-    let score = incident.vulnerabilityRaw !== undefined ? incident.vulnerabilityRaw : 50; 
+    let score = incident.vulnerabilityRaw !== undefined ? incident.vulnerabilityRaw : 50;
     // Add logic for elderly, isolated, etc if data exists
     if (incident.elderlyPct) score += incident.elderlyPct * 100 * 0.3;
     if (incident.isolated === true) score += 20;
@@ -127,11 +127,11 @@
     const fF = calculateAccessibility(incident);
 
     let rawScore = (fA * WEIGHTS.hazardSeverity) +
-                   (fB * WEIGHTS.populationAtRisk) +
-                   (fC * WEIGHTS.vulnerability) +
-                   (fD * WEIGHTS.immediateLifeRisk) +
-                   (fE * WEIGHTS.responseUrgency) +
-                   (fF * WEIGHTS.accessibility);
+      (fB * WEIGHTS.populationAtRisk) +
+      (fC * WEIGHTS.vulnerability) +
+      (fD * WEIGHTS.immediateLifeRisk) +
+      (fE * WEIGHTS.responseUrgency) +
+      (fF * WEIGHTS.accessibility);
 
     let overrideApplied = false;
     // EMERGENCY OVERRIDE
@@ -219,7 +219,7 @@
       const totalCapacity = Number(s.capacity || s.max_capacity || 0);
       const currentOccupancy = Number(s.current_occupancy || s.occupancy || 0);
       const availableCapacity = totalCapacity - currentOccupancy;
-      
+
       const distInfo = distanceMatrix && distanceMatrix[incident.id] ? distanceMatrix[incident.id][s.id || s.shelter_id] : null;
 
       let status = "REJECTED";

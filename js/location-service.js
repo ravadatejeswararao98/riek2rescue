@@ -37,7 +37,7 @@ const RZILocationService = (() => {
     { name: 'Parvathipuram Manyam',  lat: 18.7850, lng: 83.4280 },
     { name: 'Prakasam',              lat: 15.3540, lng: 79.5743 },
     { name: 'Sri Balaji (Tirupati)', lat: 13.6288, lng: 79.4192 },
-    { name: 'Sri Sathya Sai',        lat: 14.1650, lng: 77.2930 },
+    { name: 'Sri Sathya Sai (Puttaparthi)', lat: 14.1680, lng: 77.8100 },
     { name: 'Srikakulam',            lat: 18.2949, lng: 83.8938 },
     { name: 'Visakhapatnam',         lat: 17.6868, lng: 83.2185 },
     { name: 'Vizianagaram',          lat: 18.1066, lng: 83.3956 },
@@ -49,59 +49,96 @@ const RZILocationService = (() => {
   // Key centers, mandals & coastal habitations from Census dataset
   // ---------------------------------------------------------------
   const AP_MANDALS = [
-    { name: 'Srikakulam Urban', district: 'Srikakulam', lat: 18.2970, lng: 83.8965 },
-    { name: 'Palasa-Kasibugga', district: 'Srikakulam', lat: 18.7667, lng: 84.4167 },
-    { name: 'Sompeta Coastal Reach', district: 'Srikakulam', lat: 18.9333, lng: 84.6000 },
-    { name: 'Kalingapatnam Port Corridor', district: 'Srikakulam', lat: 18.3364, lng: 84.1291 },
-    { name: 'Vizianagaram Urban', district: 'Vizianagaram', lat: 18.1124, lng: 83.4074 },
-    { name: 'Bhogapuram Coastal Belt', district: 'Vizianagaram', lat: 18.0267, lng: 83.4933 },
-    { name: 'Bobbili', district: 'Vizianagaram', lat: 18.5667, lng: 83.3667 },
-    { name: 'Visakhapatnam Urban Agglomeration', district: 'Visakhapatnam', lat: 17.6868, lng: 83.2185 },
-    { name: 'Bheemunipatnam (Bheemili)', district: 'Visakhapatnam', lat: 17.8913, lng: 83.4542 },
-    { name: 'Anakapalle', district: 'Visakhapatnam', lat: 17.6913, lng: 83.0039 },
-    { name: 'Gajuwaka Industrial Belt', district: 'Visakhapatnam', lat: 17.6990, lng: 83.2080 },
-    { name: 'Kakinada Urban', district: 'East Godavari', lat: 16.9891, lng: 82.2475 },
-    { name: 'Rajahmundry Urban Agglomeration', district: 'East Godavari', lat: 17.0005, lng: 81.8040 },
+    { name: 'Srikakulam Urban', district: 'Srikakulam', lat: 18.2970, lng: 83.8965, population: 125939 },
+    { name: 'Palasa-Kasibugga', district: 'Srikakulam', lat: 18.7667, lng: 84.4167, population: 57507 },
+    { name: 'Sompeta Coastal Reach', district: 'Srikakulam', lat: 18.9333, lng: 84.6000, population: 48200 },
+    { name: 'Kalingapatnam Port Corridor', district: 'Srikakulam', lat: 18.3364, lng: 84.1291, population: 36500 },
+    { name: 'Vizianagaram Urban', district: 'Vizianagaram', lat: 18.1124, lng: 83.4074, population: 228025 },
+    { name: 'Bhogapuram Coastal Belt', district: 'Vizianagaram', lat: 18.0267, lng: 83.4933, population: 54200 },
+    { name: 'Bobbili', district: 'Vizianagaram', lat: 18.5667, lng: 83.3667, population: 56819 },
+    { name: 'Visakhapatnam Urban Agglomeration', district: 'Visakhapatnam', lat: 17.6868, lng: 83.2185, population: 1728128 },
+    { name: 'Bheemunipatnam (Bheemili)', district: 'Visakhapatnam', lat: 17.8913, lng: 83.4542, population: 54862 },
+    { name: 'Anakapalle', district: 'Visakhapatnam', lat: 17.6913, lng: 83.0039, population: 86519 },
+    { name: 'Gajuwaka Industrial Belt', district: 'Visakhapatnam', lat: 17.6990, lng: 83.2080, population: 258900 },
+    { name: 'Kakinada Urban', district: 'East Godavari', lat: 16.9891, lng: 82.2475, population: 312538, type: 'Mandal' },
+    { name: 'Kakinada Urban Slums', district: 'East Godavari', mandal: 'Kakinada Urban', lat: 16.9891, lng: 82.2475, population: 8500, type: 'Habitation' },
+    { name: 'Coastal Industrial Park', district: 'Visakhapatnam', mandal: 'Visakhapatnam Urban', lat: 17.6868, lng: 83.2185, population: 2500, type: 'Habitation' },
+    { name: 'Machilipatnam Delta', district: 'Krishna', mandal: 'Machilipatnam', lat: 16.1793, lng: 81.1340, population: 4200, type: 'Habitation' },
+    { name: 'Srikakulam River Catchment', district: 'Srikakulam', mandal: 'Srikakulam', lat: 18.2949, lng: 83.8938, population: 3100, type: 'Habitation' },
+    { name: 'Nellore Coastal Villages', district: 'Nellore', mandal: 'Nellore Urban', lat: 14.4426, lng: 79.9865, population: 1800, type: 'Habitation' },
+    { name: 'Rajahmundry Urban Agglomeration', district: 'East Godavari', lat: 17.0005, lng: 81.8040, population: 341831 },
 
-    { name: 'Tallarevu Mandal', district: 'East Godavari', lat: 16.7800, lng: 82.2700 },
-    { name: 'Uppada Coastal Belt', district: 'East Godavari', lat: 17.0800, lng: 82.3300 },
-    { name: 'Eluru Urban', district: 'West Godavari', lat: 16.7107, lng: 81.0952 },
-    { name: 'Bhimavaram Urban', district: 'West Godavari', lat: 16.5449, lng: 81.5212 },
-    { name: 'Narasapuram Coastal Hub', district: 'West Godavari', lat: 16.4411, lng: 81.6917 },
-    { name: 'Tanuku', district: 'West Godavari', lat: 16.7562, lng: 81.6811 },
-    { name: 'Vijayawada Urban Agglomeration', district: 'Krishna', lat: 16.5062, lng: 80.6480 },
-    { name: 'Machilipatnam Coastal Urban', district: 'Krishna', lat: 16.1875, lng: 81.1389 },
-    { name: 'Gudivada', district: 'Krishna', lat: 16.4410, lng: 80.9926 },
-    { name: 'Avanigadda / Diviseema Island', district: 'Krishna', lat: 16.0200, lng: 80.9200 },
-    { name: 'Guntur Urban', district: 'Guntur', lat: 16.3067, lng: 80.4365 },
-    { name: 'Bapatla Coastal Sector', district: 'Guntur', lat: 15.9042, lng: 80.4674 },
-    { name: 'Tenali', district: 'Guntur', lat: 16.2430, lng: 80.6400 },
-    { name: 'Nizampatnam Fishing Harbour', district: 'Guntur', lat: 15.9083, lng: 80.6722 },
-    { name: 'Repalle Coastal Reach', district: 'Guntur', lat: 16.0200, lng: 80.8500 },
-    { name: 'Ongole Urban', district: 'Prakasam', lat: 15.5057, lng: 80.0499 },
-    { name: 'Chirala Coastal Urban', district: 'Prakasam', lat: 15.8246, lng: 80.3522 },
-    { name: 'Kandukur', district: 'Prakasam', lat: 15.2165, lng: 79.9042 },
-    { name: 'Kothapatnam Coastal Reach', district: 'Prakasam', lat: 15.4500, lng: 80.1200 },
-    { name: 'Nellore Urban', district: 'Sri Potti Sriramulu Nellore', lat: 14.4426, lng: 79.9865 },
-    { name: 'Kavali Coastal Urban', district: 'Sri Potti Sriramulu Nellore', lat: 14.9132, lng: 79.9928 },
-    { name: 'Gudur', district: 'Sri Potti Sriramulu Nellore', lat: 14.1463, lng: 79.8504 },
-    { name: 'Dugarajapatnam / Pulicat Sector', district: 'Sri Potti Sriramulu Nellore', lat: 13.9850, lng: 80.1500 },
-    { name: 'Kadapa Urban', district: 'Y.S.R. (Kadapa)', lat: 14.4673, lng: 78.8242 },
-    { name: 'Proddatur Urban', district: 'Y.S.R. (Kadapa)', lat: 14.7500, lng: 78.5500 },
-    { name: 'Pulivendula', district: 'Y.S.R. (Kadapa)', lat: 14.4167, lng: 78.2333 },
-    { name: 'Rajampet (Cheyyeru Basin)', district: 'Y.S.R. (Kadapa)', lat: 14.1833, lng: 79.1500 },
-    { name: 'Kurnool Urban', district: 'Kurnool', lat: 15.8281, lng: 78.0373 },
-    { name: 'Nandyal Urban', district: 'Kurnool', lat: 15.4800, lng: 78.4800 },
-    { name: 'Adoni Urban', district: 'Kurnool', lat: 15.6300, lng: 77.2800 },
-    { name: 'Yemmiganur', district: 'Kurnool', lat: 15.7333, lng: 77.4833 },
-    { name: 'Anantapur Urban', district: 'Anantapur', lat: 14.6819, lng: 77.6006 },
-    { name: 'Hindupur Urban', district: 'Anantapur', lat: 13.8290, lng: 77.4925 },
-    { name: 'Dharmavaram', district: 'Anantapur', lat: 14.4140, lng: 77.7210 },
-    { name: 'Guntakal Rail Hub', district: 'Anantapur', lat: 15.1700, lng: 77.3800 },
-    { name: 'Tirupati Urban Agglomeration', district: 'Chittoor', lat: 13.6288, lng: 79.4192 },
-    { name: 'Chittoor Urban', district: 'Chittoor', lat: 13.2172, lng: 79.1003 },
-    { name: 'Madanapalle Urban', district: 'Chittoor', lat: 13.5500, lng: 78.5000 },
-    { name: 'Srikalahasti', district: 'Chittoor', lat: 13.7500, lng: 79.7000 }
+    { name: 'Tallarevu Mandal', district: 'East Godavari', lat: 16.7800, lng: 82.2700, population: 18200 },
+    { name: 'Uppada Coastal Belt', district: 'East Godavari', lat: 17.0800, lng: 82.3300, population: 22000 },
+    { name: 'Eluru Urban', district: 'West Godavari', lat: 16.7107, lng: 81.0952, population: 218020 },
+    { name: 'Bhimavaram Urban', district: 'West Godavari', lat: 16.5449, lng: 81.5212, population: 146961 },
+    { name: 'Narasapuram Coastal Hub', district: 'West Godavari', lat: 16.4411, lng: 81.6917, population: 58770 },
+    { name: 'Tanuku', district: 'West Godavari', lat: 16.7562, lng: 81.6811, population: 72342 },
+    { name: 'Vijayawada Urban Agglomeration', district: 'Krishna', lat: 16.5062, lng: 80.6480, population: 1034358 },
+    { name: 'Machilipatnam Coastal Urban', district: 'Krishna', lat: 16.1875, lng: 81.1389, population: 169892 },
+    { name: 'Gudivada', district: 'Krishna', lat: 16.4410, lng: 80.9926, population: 118167 },
+    { name: 'Avanigadda / Diviseema Island', district: 'Krishna', lat: 16.0200, lng: 80.9200, population: 62400 },
+    { name: 'Guntur Urban', district: 'Guntur', lat: 16.3067, lng: 80.4365, population: 670073 },
+    { name: 'Bapatla Coastal Sector', district: 'Guntur', lat: 15.9042, lng: 80.4674, population: 70777 },
+    { name: 'Tenali', district: 'Guntur', lat: 16.2430, lng: 80.6400, population: 164937 },
+    { name: 'Nizampatnam Fishing Harbour', district: 'Guntur', lat: 15.9083, lng: 80.6722, population: 20982 },
+    { name: 'Repalle Coastal Reach', district: 'Guntur', lat: 16.0200, lng: 80.8500, population: 50866 },
+    { name: 'Ongole Urban', district: 'Prakasam', lat: 15.5057, lng: 80.0499, population: 204749 },
+    { name: 'Chirala Coastal Urban', district: 'Prakasam', lat: 15.8246, lng: 80.3522, population: 87200 },
+    { name: 'Kandukur', district: 'Prakasam', lat: 15.2165, lng: 79.9042, population: 57246 },
+    { name: 'Kothapatnam Coastal Reach', district: 'Prakasam', lat: 15.4500, lng: 80.1200, population: 34100 },
+    { name: 'Nellore Urban', district: 'Sri Potti Sriramulu Nellore', lat: 14.4426, lng: 79.9865, population: 499575 },
+    { name: 'Kavali Coastal Urban', district: 'Sri Potti Sriramulu Nellore', lat: 14.9132, lng: 79.9928, population: 90099 },
+    { name: 'Gudur', district: 'Sri Potti Sriramulu Nellore', lat: 14.1463, lng: 79.8504, population: 74037 },
+    { name: 'Dugarajapatnam / Pulicat Sector', district: 'Sri Potti Sriramulu Nellore', lat: 13.9850, lng: 80.1500, population: 38900 },
+    { name: 'Kadapa Urban', district: 'Y.S.R. (Kadapa)', lat: 14.4673, lng: 78.8242, population: 344893 },
+    { name: 'Proddatur Urban', district: 'Y.S.R. (Kadapa)', lat: 14.7500, lng: 78.5500, population: 163970 },
+    { name: 'Pulivendula', district: 'Y.S.R. (Kadapa)', lat: 14.4167, lng: 78.2333, population: 65706 },
+    { name: 'Rajampet (Cheyyeru Basin)', district: 'Y.S.R. (Kadapa)', lat: 14.1833, lng: 79.1500, population: 54200 },
+    { name: 'Kurnool Urban', district: 'Kurnool', lat: 15.8281, lng: 78.0373, population: 457633 },
+    { name: 'Nandyal Urban', district: 'Kurnool', lat: 15.4800, lng: 78.4800, population: 200516 },
+    { name: 'Adoni Urban', district: 'Kurnool', lat: 15.6300, lng: 77.2800, population: 166537 },
+    { name: 'Yemmiganur', district: 'Kurnool', lat: 15.7333, lng: 77.4833, population: 95149 },
+    { name: 'Anantapur Urban', district: 'Anantapur', lat: 14.6819, lng: 77.6006, population: 261004 },
+    { name: 'Hindupur Urban', district: 'Anantapur', lat: 13.8290, lng: 77.4925, population: 151677 },
+    { name: 'Dharmavaram', district: 'Anantapur', lat: 14.4140, lng: 77.7210, population: 121874 },
+    { name: 'Guntakal Rail Hub', district: 'Anantapur', lat: 15.1700, lng: 77.3800, population: 126270 },
+    { name: 'Tirupati Urban Agglomeration', district: 'Chittoor', lat: 13.6288, lng: 79.4192, population: 287482 },
+    { name: 'Chittoor Urban', district: 'Chittoor', lat: 13.2172, lng: 79.1003, population: 153756 },
+    { name: 'Madanapalle Urban', district: 'Chittoor', lat: 13.5500, lng: 78.5000, population: 136414 },
+    { name: 'Srikalahasti', district: 'Chittoor', lat: 13.7500, lng: 79.7000, population: 80056 },
+    { name: 'Amalapuram', district: 'Konaseema', mandal: 'Amalapuram', lat: 16.5787, lng: 82.0061, population: 53231, type: 'Town / Municipality' }
+  ];
+
+  // Prominent Andhra Pradesh cities and major regional centers
+  const MAJOR_AP_CITIES = [
+    { name: 'Visakhapatnam', region: 'Visakhapatnam', state: 'Andhra Pradesh', lat: 17.6868, lng: 83.2185, population: 1728128, type: 'Major Port City' },
+    { name: 'Vijayawada', region: 'NTR', state: 'Andhra Pradesh', lat: 16.5062, lng: 80.6480, population: 1034358, type: 'Commercial Capital' },
+    { name: 'Guntur', region: 'Guntur', state: 'Andhra Pradesh', lat: 16.3067, lng: 80.4365, population: 670073, type: 'Major City' },
+    { name: 'Nellore', region: 'Nellore', state: 'Andhra Pradesh', lat: 14.4426, lng: 79.9865, population: 499575, type: 'Coastal Hub' },
+    { name: 'Kurnool', region: 'Kurnool', state: 'Andhra Pradesh', lat: 15.8281, lng: 78.0373, population: 457633, type: 'Major City' },
+    { name: 'Kakinada', region: 'Kakinada', state: 'Andhra Pradesh', lat: 16.9891, lng: 82.2475, population: 312538, type: 'Port City' },
+    { name: 'Rajahmundry', region: 'East Godavari', state: 'Andhra Pradesh', lat: 17.0005, lng: 81.8040, population: 341831, type: 'Cultural Capital' },
+    { name: 'Tirupati', region: 'Tirupati', state: 'Andhra Pradesh', lat: 13.6288, lng: 79.4192, population: 287482, type: 'Temple City' },
+    { name: 'Kadapa', region: 'YSR Kadapa', state: 'Andhra Pradesh', lat: 14.4673, lng: 78.8242, population: 344893, type: 'Major City' },
+    { name: 'Anantapur', region: 'Ananthapuramu', state: 'Andhra Pradesh', lat: 14.6819, lng: 77.6006, population: 261004, type: 'Major City' },
+    { name: 'Vizianagaram', region: 'Vizianagaram', state: 'Andhra Pradesh', lat: 18.1066, lng: 83.3956, population: 228025, type: 'Historical City' },
+    { name: 'Eluru', region: 'Eluru', state: 'Andhra Pradesh', lat: 16.7107, lng: 81.0952, population: 218020, type: 'Major City' },
+    { name: 'Ongole', region: 'Prakasam', state: 'Andhra Pradesh', lat: 15.5057, lng: 80.0499, population: 204749, type: 'Coastal Hub' },
+    { name: 'Nandyal', region: 'Nandyal', state: 'Andhra Pradesh', lat: 15.4800, lng: 78.4800, population: 200516, type: 'Major Town' },
+    { name: 'Machilipatnam', region: 'Krishna', state: 'Andhra Pradesh', lat: 16.1875, lng: 81.1389, population: 169892, type: 'Port Town' },
+    { name: 'Tenali', region: 'Guntur', state: 'Andhra Pradesh', lat: 16.2430, lng: 80.6400, population: 164937, type: 'Major Town' },
+    { name: 'Proddatur', region: 'YSR Kadapa', state: 'Andhra Pradesh', lat: 14.7500, lng: 78.5500, population: 163970, type: 'Major Town' },
+    { name: 'Adoni', region: 'Kurnool', state: 'Andhra Pradesh', lat: 15.6300, lng: 77.2800, population: 166537, type: 'Major Town' },
+    { name: 'Hindupur', region: 'Sri Sathya Sai', state: 'Andhra Pradesh', lat: 13.8290, lng: 77.4925, population: 151677, type: 'Major Town' },
+    { name: 'Bhimavaram', region: 'West Godavari', state: 'Andhra Pradesh', lat: 16.5449, lng: 81.5212, population: 146961, type: 'Commercial Town' },
+    { name: 'Madanapalle', region: 'Annamayya', state: 'Andhra Pradesh', lat: 13.5500, lng: 78.5000, population: 136414, type: 'Major Town' },
+    { name: 'Guntakal', region: 'Ananthapuramu', state: 'Andhra Pradesh', lat: 15.1700, lng: 77.3800, population: 126270, type: 'Railway Hub' },
+    { name: 'Srikakulam', region: 'Srikakulam', state: 'Andhra Pradesh', lat: 18.2949, lng: 83.8938, population: 125939, type: 'Coastal District HQ' },
+    { name: 'Dharmavaram', region: 'Sri Sathya Sai', state: 'Andhra Pradesh', lat: 14.4140, lng: 77.7210, population: 121874, type: 'Textile Hub' },
+    { name: 'Gudivada', region: 'Krishna', state: 'Andhra Pradesh', lat: 16.4410, lng: 80.9926, population: 118167, type: 'Major Town' },
+    { name: 'Chirala', region: 'Bapatla', state: 'Andhra Pradesh', lat: 15.8246, lng: 80.3522, population: 87200, type: 'Coastal Town' },
+    { name: 'Tadepalligudem', region: 'West Godavari', state: 'Andhra Pradesh', lat: 16.8143, lng: 81.5268, population: 104032, type: 'Major Town' }
   ];
 
   /** Return static AP district list for fallback dropdown */
@@ -114,13 +151,14 @@ const RZILocationService = (() => {
     return [...AP_MANDALS];
   }
 
-  /** Return all Andhra Pradesh static locations (districts + mandals/centers) */
+  /** Return all static locations strictly within Andhra Pradesh */
   function getAllLocations() {
     const list = [];
     AP_DISTRICTS.forEach(d => {
       list.push({
         name: d.name,
         region: 'Andhra Pradesh',
+        district: d.name,
         lat: d.lat,
         lng: d.lng,
         type: 'District',
@@ -131,12 +169,34 @@ const RZILocationService = (() => {
       list.push({
         name: m.name,
         region: m.district,
+        district: m.district,
+        mandal: m.mandal || m.name,
         lat: m.lat,
         lng: m.lng,
-        type: 'Mandal / Center',
+        population: m.population || 0,
+        type: m.type || 'Mandal / Center',
         risk: 'GREEN'
       });
     });
+    MAJOR_AP_CITIES.forEach(c => {
+      if (!list.some(l => l.name.toLowerCase() === c.name.toLowerCase())) {
+        list.push({
+          name: c.name,
+          region: c.region || 'Andhra Pradesh',
+          district: c.region,
+          state: 'Andhra Pradesh',
+          lat: c.lat,
+          lng: c.lng,
+          population: c.population || 0,
+          type: c.type || 'City',
+          risk: 'GREEN'
+        });
+      }
+    });
+
+    if (typeof window !== 'undefined' && typeof window.isInsideAndhraPradesh === 'function') {
+      return list.filter(loc => window.isInsideAndhraPradesh(loc.lat, loc.lng));
+    }
     return list;
   }
 
@@ -276,10 +336,30 @@ const RZILocationService = (() => {
     return null;
   }
 
+  /**
+   * Search all AP districts, mandals, and habitations by query string
+   * @param {string} q
+   * @returns {Array} matching locations
+   */
+  function searchPlaces(q) {
+    if (!q || typeof q !== 'string') return [];
+    const lower = q.trim().toLowerCase();
+    const all = getAllLocations();
+    return all.filter(loc => {
+      if (typeof window !== 'undefined' && typeof window.isInsideAndhraPradesh === 'function') {
+        if (!window.isInsideAndhraPradesh(loc.lat, loc.lng)) return false;
+      }
+      const name = (loc.name || '').toLowerCase();
+      const dist = (loc.district || '').toLowerCase();
+      return name.includes(lower) || dist.includes(lower);
+    });
+  }
+
   const service = {
     getAPDistricts,
     getAPMandals,
     getAllLocations,
+    searchPlaces,
     detectLocation,
     reverseGeocode,
     checkRiskZone,

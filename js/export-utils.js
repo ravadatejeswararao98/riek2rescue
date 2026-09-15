@@ -16,15 +16,15 @@ class SitRepExporter {
     const alertsCount = (window.firebaseLive && window.firebaseLive.alerts) ? window.firebaseLive.alerts.length : 4;
 
     this.reportData = {
-      agency: "NDRF / SDMA Incident Command Center",
-      operation: "OPERATION TEJA SHIELD — NATIONAL MULTI-HAZARD RESPONSE",
+      agency: "AP SDMA / NDRF 10th Battalion Incident Command Center",
+      operation: "OPERATION RISK2RESCUE — ANDHRA PRADESH DISASTER RESPONSE",
       generatedAt: timeNow,
       classification: "OFFICIAL OPERATIONAL BRIEFING",
       threatSummary: {
         activeHazards: 5,
-        prioritySectors: ["Kakinada Coastal Belt, AP", "Guwahati Valley, AS", "Chamoli Ridge, UK"],
+        prioritySectors: ["Kakinada Coastal Corridor", "Godavari Estuary & Delta", "Visakhapatnam Ghat Corridor"],
         redZonesTotal: 24,
-        estimatedPopAtRisk: "385,000 Persons"
+        estimatedPopAtRisk: "285,000 Persons"
       },
       logistics: {
         sheltersActivated: 16,
@@ -36,7 +36,7 @@ class SitRepExporter {
       telemetry: {
         maxWindSpeed: "140 km/h (Doppler Radar)",
         peakStormSurge: "2.8 - 3.8 Meters",
-        riverStatus: "Godavari, Krishna & Brahmaputra Exceeding Warning Mark"
+        riverStatus: "Godavari & Krishna Rivers Exceeding Warning Mark"
       },
       reportsSummary: `${reportsCount} Verified Citizen Reports Triaged`,
       alertsSummary: `${alertsCount} Emergency Broadcasts Dispatched`

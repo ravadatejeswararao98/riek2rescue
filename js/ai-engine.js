@@ -57,11 +57,8 @@ const AP_WEATHER_GRID = [
   { key: 'kurnool', name: 'Kurnool (Tungabhadra Basin)', lat: 15.8281, lng: 78.0373, sector: 'rayalaseema' },
   { key: 'anantapur', name: 'Anantapur Arid Zone', lat: 14.6819, lng: 77.6006, sector: 'rayalaseema' },
   { key: 'tirupati', name: 'Tirupati (Swarnamukhi Basin)', lat: 13.6288, lng: 79.4192, sector: 'rayalaseema' },
-
-  // Regional National Anchors for multi-hazard baseline
-  { key: 'assam_flood', name: 'Brahmaputra Basin (Assam)', lat: 26.18, lng: 91.73, sector: 'national' },
-  { key: 'chamoli_hills', name: 'Himalayan Slope (Chamoli)', lat: 30.55, lng: 79.56, sector: 'national' },
-  { key: 'manipur_seismic', name: 'Indo-Burma Fault (Imphal)', lat: 24.81, lng: 93.98, sector: 'national' }
+  { key: 'araku', name: 'Araku Valley Ghats', lat: 18.3273, lng: 82.8775, sector: 'eastern_ghats' },
+  { key: 'lambasingi', name: 'Lambasingi Highlands', lat: 17.8183, lng: 82.4933, sector: 'eastern_ghats' }
 ];
 
 class AIEngine {
@@ -138,27 +135,27 @@ class AIEngine {
           })));
 
           const alloc = [];
-          let shelterStatus = shelters.map(s => ({...s, current_occupancy: s.current_occupancy || 0}));
+          let shelterStatus = shelters.map(s => ({ ...s, current_occupancy: s.current_occupancy || 0 }));
           const deficitReports = [];
           rankedHabitations.forEach(inc => {
-             const candidates = PriorityEngine.evaluateRelocationCandidates(inc, shelterStatus, null);
-             const best = candidates.find(c => c.status === 'RECOMMENDED');
-             if (best) {
-               inc.allocation_status = 'ALLOCATED';
-               inc.assigned_shelters = [{ shelter_name: best.shelter_name, allocated_pop: inc.population }];
-               const shelterRef = shelterStatus.find(s => (s.id || s.shelter_id) === best.shelter_id);
-               if (shelterRef) shelterRef.current_occupancy += inc.population;
-             } else {
-               inc.allocation_status = 'DEFICIT';
-               inc.assigned_shelters = [];
-               deficitReports.push({ zone_id: inc.name, deficit: inc.population, status: 'NO_CAPACITY' });
-             }
-             alloc.push(inc);
+            const candidates = PriorityEngine.evaluateRelocationCandidates(inc, shelterStatus, null);
+            const best = candidates.find(c => c.status === 'RECOMMENDED');
+            if (best) {
+              inc.allocation_status = 'ALLOCATED';
+              inc.assigned_shelters = [{ shelter_name: best.shelter_name, allocated_pop: inc.population }];
+              const shelterRef = shelterStatus.find(s => (s.id || s.shelter_id) === best.shelter_id);
+              if (shelterRef) shelterRef.current_occupancy += inc.population;
+            } else {
+              inc.allocation_status = 'DEFICIT';
+              inc.assigned_shelters = [];
+              deficitReports.push({ zone_id: inc.name, deficit: inc.population, status: 'NO_CAPACITY' });
+            }
+            alloc.push(inc);
           });
 
           priorityData = {
             habitations: alloc,
-            shelterStatus: shelterStatus.map(s => ({...s, name: s.name || s.shelter_name, new_occupancy: s.current_occupancy, occupancy_pct: Math.round((s.current_occupancy / (s.capacity || s.max_capacity || 1)) * 100)})),
+            shelterStatus: shelterStatus.map(s => ({ ...s, name: s.name || s.shelter_name, new_occupancy: s.current_occupancy, occupancy_pct: Math.round((s.current_occupancy / (s.capacity || s.max_capacity || 1)) * 100) })),
             deficitReports: deficitReports,
             summary: { criticalCount: alloc.filter(a => a.priorityLevel === 'CRITICAL').length, highCount: alloc.filter(a => a.priorityLevel === 'HIGH').length }
           };
@@ -288,14 +285,14 @@ class AIEngine {
       if (typeof this.serverContext.getUSGSEarthquakes === 'function') {
         quakes = await this.serverContext.getUSGSEarthquakes(20);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     let imd = { alerts: [] };
     try {
       if (typeof this.serverContext.getImdAlerts === 'function') {
         imd = await this.serverContext.getImdAlerts();
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // Aggregate summary across the monitored AP weather grid
     const weatherGridSummary = AP_WEATHER_GRID.map(st => {
@@ -348,17 +345,6 @@ class AIEngine {
    */
   getClosestWeather(habitation, weatherMap) {
     if (!weatherMap || Object.keys(weatherMap).length === 0) return {};
-
-    const hType = (habitation.hazard_type || '').toLowerCase();
-    if (hType === 'flood' && habitation.state === 'Assam' && weatherMap['assam_flood']) {
-      return { ...weatherMap['assam_flood'], station: { key: 'assam_flood', name: 'Brahmaputra Basin' } };
-    }
-    if (hType === 'landslide' && habitation.state === 'Uttarakhand' && weatherMap['chamoli_hills']) {
-      return { ...weatherMap['chamoli_hills'], station: { key: 'chamoli_hills', name: 'Chamoli Hills' } };
-    }
-    if (hType === 'earthquake' && (habitation.state === 'Manipur' || habitation.state === 'Nagaland') && weatherMap['manipur_seismic']) {
-      return { ...weatherMap['manipur_seismic'], station: { key: 'manipur_seismic', name: 'Indo-Burma Fault' } };
-    }
 
     let bestStation = null;
     let bestDistSq = Infinity;
@@ -500,7 +486,7 @@ class AIEngine {
 
       TIMELINE_HOUR_OFFSETS.forEach((offset, idx) => {
         const tsIdx = Math.min(offset, (timeSeries.gustKmh?.length || 1) - 1);
-        
+
         let gust = timeSeries.gustKmh ? (timeSeries.gustKmh[tsIdx] ?? currWindGust) : currWindGust;
         let precip = timeSeries.precipMm ? (timeSeries.precipMm[tsIdx] ?? currPrecip) : currPrecip;
         let press = timeSeries.pressure ? (timeSeries.pressure[tsIdx] ?? currPressure) : currPressure;
@@ -703,7 +689,7 @@ class AIEngine {
 - Forecasted Escalation Peak (+12h): ${redIn12h.map(z => `${z.name} (${z.forecast_series?.[3]?.gustKmh ?? 'Forecasted RED'} km/h)`).join(', ') || 'No catastrophic peaks'}
 - Documented Disaster Recurrence Multipliers: ${elevatedRecurrenceZones.map(z => `${z.village_name}: ${z.disaster_recurrence.multiplier}x (${z.disaster_recurrence.count} prior events)`).join('; ') || 'All zones baseline 1.0x'}
 - Top Priority Habitations for Relocation:
-${topHabitations.map((h, i) => `  ${i+1}. ${h.village_name} (${h.hazard_type}): Pop ${h.growth_adjusted_pop}, VPI ${h.vpi_score?.toFixed(3) || 'N/A'}, Status: ${h.allocation_status || 'Assigned'}`).join('\n')}
+${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type}): Pop ${h.growth_adjusted_pop}, VPI ${h.vpi_score?.toFixed(3) || 'N/A'}, Status: ${h.allocation_status || 'Assigned'}`).join('\n')}
 - Deficit Reports: ${deficitReports.length > 0 ? deficitReports.map(d => `Zone ${d.zone_id} deficit: ${d.deficit} persons`).join(', ') : 'Adequate regional capacity'}
 - Shelters Near Capacity (>70%): ${highOccShelters.map(s => `${s.name} (${s.occupancy_pct}%)`).join(', ') || 'None'}
 - Sensor Telemetry: Peak Gusts ${telemetry?.summary?.radar?.maxGustSpeedKmH ?? 'N/A'} km/h | Pressure ${telemetry?.summary?.radar?.corePressureHpa ?? 'N/A'} hPa | Seismic Max M${telemetry?.summary?.seismic?.maxRecordedMagnitude ?? 0}
@@ -950,7 +936,7 @@ ${topHabitations.map((h, i) => `  ${i+1}. ${h.village_name} (${h.hazard_type}): 
       const R = 6371;
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 

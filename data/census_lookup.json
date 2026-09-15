@@ -10,7 +10,8 @@
     "census_2011_pop": 2500,
     "growth_adjusted_pop": 2500,
     "elevation_m": 3,
-    "hazard_type": "cyclone"
+    "hazard_type": "cyclone",
+    "travelTimeMins": 35
   },
   {
     "village_id": "V_STATIC_02",
@@ -23,7 +24,8 @@
     "census_2011_pop": 8500,
     "growth_adjusted_pop": 8500,
     "elevation_m": 1,
-    "hazard_type": "cyclone"
+    "hazard_type": "cyclone",
+    "travelTimeMins": 60
   },
   {
     "village_id": "V_STATIC_03",
@@ -36,7 +38,8 @@
     "census_2011_pop": 4200,
     "growth_adjusted_pop": 4200,
     "elevation_m": 2,
-    "hazard_type": "flood"
+    "hazard_type": "flood",
+    "travelTimeMins": 50
   },
   {
     "village_id": "V_STATIC_04",
@@ -49,7 +52,8 @@
     "census_2011_pop": 3100,
     "growth_adjusted_pop": 3100,
     "elevation_m": 5,
-    "hazard_type": "flood"
+    "hazard_type": "flood",
+    "travelTimeMins": 75
   },
   {
     "village_id": "V_STATIC_05",
@@ -62,6 +66,7 @@
     "census_2011_pop": 1800,
     "growth_adjusted_pop": 1800,
     "elevation_m": 4,
-    "hazard_type": "cyclone"
+    "hazard_type": "cyclone",
+    "travelTimeMins": 45
   }
 ]

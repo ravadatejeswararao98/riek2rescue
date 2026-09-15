@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Risk2Rescue | Disaster Management & Hazard Intelligence Platform</title>
-  <meta name="description" content="Real-time hazard intelligence for a safer, more resilient Andhra Pradesh. Multi-hazard early warning, evacuation routes, and authority command center.">
-  
+  <meta name="description"
+    content="Real-time hazard intelligence for a safer, more resilient Andhra Pradesh. Multi-hazard early warning, evacuation routes, and authority command center.">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/signin-modal.css">
 
@@ -42,7 +46,8 @@
       padding: 0;
     }
 
-    html, body {
+    html,
+    body {
       width: 100%;
       min-height: 100vh;
       background-color: var(--bg-main);
@@ -64,7 +69,7 @@
     .ambient-glow {
       position: fixed;
       inset: 0;
-      background: 
+      background:
         radial-gradient(ellipse 65% 50% at 85% 25%, rgba(37, 99, 235, 0.06) 0%, transparent 60%),
         radial-gradient(ellipse 55% 45% at 20% 80%, rgba(34, 197, 94, 0.05) 0%, transparent 60%),
         var(--bg-main, #f8fafc);
@@ -224,9 +229,17 @@
 
     /* ================= 3. LEFT HERO PANEL ================= */
     @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
     }
 
     .hero-panel {
@@ -246,7 +259,7 @@
     .hero-bg-media {
       position: absolute;
       inset: 0;
-      background: 
+      background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(248, 250, 252, 0.22) 55%, rgba(255, 255, 255, 0.35) 100%),
         linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0%, rgba(241, 245, 249, 0.20) 50%, rgba(255, 255, 255, 0.15) 100%),
         url('assets/coastal-hero.jpg') center top / cover no-repeat;
@@ -420,6 +433,7 @@
         opacity: 0;
         transform: translateY(24px);
       }
+
       to {
         opacity: 1;
         transform: translateY(0);
@@ -430,6 +444,7 @@
       animation: slideUpCard 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
       animation-delay: 0.1s;
     }
+
     .cards-row .portal-box:nth-child(2) {
       animation: slideUpCard 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
       animation-delay: 0.25s;
@@ -565,6 +580,7 @@
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
       text-decoration: none;
     }
+
     .portal-cta:active {
       transform: scale(0.97) !important;
       transition: transform 0.1s ease-out !important;
@@ -636,14 +652,35 @@
     }
 
     @keyframes pulseGreen {
-      0% { transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 6px #22c55e; }
-      50% { transform: scale(1.25); opacity: 1; box-shadow: 0 0 18px rgba(34, 197, 94, 0.8); }
-      100% { transform: scale(0.9); opacity: 0.8; box-shadow: 0 0 6px #22c55e; }
+      0% {
+        transform: scale(0.9);
+        opacity: 0.8;
+        box-shadow: 0 0 6px #22c55e;
+      }
+
+      50% {
+        transform: scale(1.25);
+        opacity: 1;
+        box-shadow: 0 0 18px rgba(34, 197, 94, 0.8);
+      }
+
+      100% {
+        transform: scale(0.9);
+        opacity: 0.8;
+        box-shadow: 0 0 6px #22c55e;
+      }
     }
 
     @keyframes dotFloat {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-2.5px); }
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-2.5px);
+      }
     }
 
     .tele-icon-svg {
@@ -797,13 +834,16 @@
         gap: 32px;
         padding: 24px;
       }
+
       .hero-panel {
         min-height: 480px;
       }
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     @media (max-width: 768px) {
@@ -813,24 +853,30 @@
         align-items: flex-start;
         gap: 14px;
       }
+
       .header-right {
         width: 100%;
         justify-content: space-between;
       }
+
       .page-main {
         padding: 16px;
       }
+
       .cards-row {
         grid-template-columns: 1fr;
       }
+
       .telemetry-bar-wrap {
         padding: 0 16px 12px 16px;
       }
+
       .telemetry-strip {
         flex-direction: column;
         align-items: flex-start;
         gap: 14px;
       }
+
       .site-footer {
         padding: 16px 20px;
         flex-direction: column;
@@ -843,103 +889,131 @@
       .site-header {
         padding: 12px 48px;
       }
+
       .page-main {
         padding: 8px 48px;
         gap: 24px;
       }
+
       .hero-panel {
         padding: 22px 24px;
       }
+
       .accent-dash {
         margin-bottom: 8px;
       }
+
       .hero-tagline {
         margin-bottom: 4px;
       }
+
       .hero-title {
         font-size: 26px;
         margin-bottom: 6px;
       }
+
       .hero-lead {
         font-size: 13px;
         margin-bottom: 14px;
         line-height: 1.4;
       }
+
       .features-stack {
         gap: 8px;
       }
+
       .glass-icon-circle {
         width: 32px;
         height: 32px;
       }
+
       .feature-meta strong {
         font-size: 13px;
       }
+
       .feature-meta span {
         font-size: 11.5px;
       }
+
       .hero-stamp-block {
         margin-top: 14px;
         padding-top: 10px;
       }
+
       .portal-box {
         padding: 20px 20px;
       }
+
       .box-top-row {
         margin-bottom: 14px;
       }
+
       .box-title {
         font-size: 18px;
         margin-bottom: 6px;
       }
+
       .box-description {
         font-size: 12.5px;
         margin-bottom: 12px;
         min-height: auto;
         line-height: 1.4;
       }
+
       .checklist-col {
         gap: 8px;
         margin-bottom: 16px;
       }
+
       .checklist-row {
         font-size: 12px;
       }
+
       .portal-cta {
         padding: 10px 18px;
         font-size: 13px;
       }
+
       .box-footnote {
         margin-top: 6px;
         font-size: 10.5px;
       }
+
       .telemetry-bar-wrap {
         padding: 0 48px 8px 48px;
       }
+
       .telemetry-strip {
         padding: 9px 24px;
       }
+
       .site-footer {
         padding: 9px 48px;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
+
+      *,
+      *::before,
+      *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
       }
+
       .hero-panel::before {
         animation: none !important;
       }
+
       .tele-pulse-dot {
         animation: none !important;
       }
     }
   </style>
 </head>
+
 <body class="login-page">
 
   <div class="ambient-glow"></div>
@@ -970,11 +1044,11 @@
       <!-- State Partnership Crest -->
       <div class="gov-partnership">
         <svg class="ashoka-svg" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 2L13 7H19L16 2Z" fill="#94a3b8"/>
-          <rect x="10" y="8" width="12" height="14" rx="2" fill="#94a3b8"/>
-          <rect x="7" y="23" width="18" height="3" rx="1.5" fill="#94a3b8"/>
-          <path d="M11 27H21V33C21 34.5 18.8 35.5 16 35.5C13.2 35.5 11 34.5 11 33V27Z" fill="#64748b"/>
-          <circle cx="16" cy="15" r="3.5" stroke="#070d18" stroke-width="1.5"/>
+          <path d="M16 2L13 7H19L16 2Z" fill="#94a3b8" />
+          <rect x="10" y="8" width="12" height="14" rx="2" fill="#94a3b8" />
+          <rect x="7" y="23" width="18" height="3" rx="1.5" fill="#94a3b8" />
+          <path d="M11 27H21V33C21 34.5 18.8 35.5 16 35.5C13.2 35.5 11 34.5 11 33V27Z" fill="#64748b" />
+          <circle cx="16" cy="15" r="3.5" stroke="#070d18" stroke-width="1.5" />
         </svg>
         <div class="gov-texts">
           <span class="gov-sub">In Partnership with</span>
@@ -987,7 +1061,7 @@
 
   <!-- ================= 2. MAIN GRID ================= -->
   <main class="page-main">
-    
+
     <!-- LEFT: Visual Coastal Hero -->
     <section class="hero-panel">
       <div class="hero-bg-media"></div>
@@ -1009,7 +1083,8 @@
             <!-- 1. Live Risk Mapping -->
             <div class="feature-row">
               <div class="glass-icon-circle">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
                   <line x1="8" y1="2" x2="8" y2="18"></line>
                   <line x1="16" y1="6" x2="16" y2="22"></line>
@@ -1024,7 +1099,8 @@
             <!-- 2. Early Warnings -->
             <div class="feature-row">
               <div class="glass-icon-circle">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
@@ -1038,7 +1114,8 @@
             <!-- 3. Better Planning -->
             <div class="feature-row">
               <div class="glass-icon-circle">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                   <circle cx="9" cy="7" r="4"></circle>
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
@@ -1054,7 +1131,8 @@
             <!-- 4. Safer Lives -->
             <div class="feature-row">
               <div class="glass-icon-circle">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                   <polyline points="9 12 11 14 15 10"></polyline>
                 </svg>
@@ -1076,137 +1154,149 @@
 
     <!-- RIGHT: Portal Cards -->
     <div class="cards-row">
-        
-        <!-- CARD 1: AUTHORITY PORTAL (First) -->
-        <div class="portal-box">
-          <div>
-            <div class="box-top-row">
-              <div class="box-badge-icon authority-badge-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 21h18"></path>
-                  <path d="M3 10h18"></path>
-                  <path d="M5 10v11"></path>
-                  <path d="M9 10v11"></path>
-                  <path d="M15 10v11"></path>
-                  <path d="M19 10v11"></path>
-                  <path d="M12 2l10 8H2l10-8z"></path>
-                </svg>
-              </div>
-              <span class="box-target-label label-authority">For Officials</span>
-            </div>
 
-            <h2 class="box-title">Authority Command Center</h2>
-            <p class="box-description">
-              Advanced tools for disaster management officials, emergency responders, and administrators.
-            </p>
-
-            <div class="checklist-col">
-              <div class="checklist-row">
-                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="20" x2="18" y2="10"></line>
-                  <line x1="12" y1="20" x2="12" y2="4"></line>
-                  <line x1="6" y1="20" x2="6" y2="14"></line>
-                </svg>
-                <span>Multi-hazard intelligence & risk analysis</span>
-              </div>
-              <div class="checklist-row">
-                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-                <span>Vulnerability assessment & red zone mapping</span>
-              </div>
-              <div class="checklist-row">
-                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
-                </svg>
-                <span>Evacuation planning & relocation tools</span>
-              </div>
-              <div class="checklist-row">
-                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-                <span>Real-time monitoring & decision support</span>
-              </div>
+      <!-- CARD 1: AUTHORITY PORTAL (First) -->
+      <div class="portal-box">
+        <div>
+          <div class="box-top-row">
+            <div class="box-badge-icon authority-badge-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18"></path>
+                <path d="M3 10h18"></path>
+                <path d="M5 10v11"></path>
+                <path d="M9 10v11"></path>
+                <path d="M15 10v11"></path>
+                <path d="M19 10v11"></path>
+                <path d="M12 2l10 8H2l10-8z"></path>
+              </svg>
             </div>
+            <span class="box-target-label label-authority">For Officials</span>
           </div>
 
-          <div>
-            <a href="authority-login.html" class="portal-cta btn-blue" style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
-              <span>Login as Authority</span>
-              <span>➔</span>
-            </a>
-            <div class="box-footnote">Authorized personnel only</div>
+          <h2 class="box-title">Authority Command Center</h2>
+          <p class="box-description">
+            Advanced tools for disaster management officials, emergency responders, and administrators.
+          </p>
+
+          <div class="checklist-col">
+            <div class="checklist-row">
+              <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              <span>Multi-hazard intelligence & risk analysis</span>
+            </div>
+            <div class="checklist-row">
+              <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>Vulnerability assessment & red zone mapping</span>
+            </div>
+            <div class="checklist-row">
+              <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+              </svg>
+              <span>Evacuation planning & relocation tools</span>
+            </div>
+            <div class="checklist-row">
+              <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span>Real-time monitoring & decision support</span>
+            </div>
           </div>
         </div>
 
-        <!-- CARD 2: CITIZEN PORTAL (Second) -->
-        <div class="portal-box">
-          <div>
-            <div class="box-top-row">
-              <div class="box-badge-icon citizen-badge-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-              </div>
-              <span class="box-target-label label-citizen">For Citizens</span>
-            </div>
+        <div>
+          <a href="authority-login.html" class="portal-cta btn-blue"
+            style="text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px;">
+            <span>Login as Authority</span>
+            <span>➔</span>
+          </a>
+          <div class="box-footnote">Authorized personnel only</div>
+        </div>
+      </div>
 
-            <h2 class="box-title">Citizen & Community Portal</h2>
-            <p class="box-description">
-              Check risks in your area, get alerts, find safe places, and stay prepared.
-            </p>
-
-            <div class="checklist-col">
-              <div class="checklist-row">
-                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                <span>View live risk map</span>
-              </div>
-              <div class="checklist-row">
-                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-                <span>Receive alerts and warnings</span>
-              </div>
-              <div class="checklist-row">
-                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                </svg>
-                <span>Find nearby safe shelters</span>
-              </div>
-              <div class="checklist-row">
-                <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                <span>Learn what to do during emergencies</span>
-              </div>
+      <!-- CARD 2: CITIZEN PORTAL (Second) -->
+      <div class="portal-box">
+        <div>
+          <div class="box-top-row">
+            <div class="box-badge-icon citizen-badge-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
             </div>
+            <span class="box-target-label label-citizen">For Citizens</span>
           </div>
 
-          <div>
-            <button id="enter-citizen-btn" class="portal-cta btn-green" onclick="enterAsCitizen()" style="border:none; cursor:pointer; width:100%;">
-              <span id="cit-btn-text">Enter as Citizen</span>
-              <span id="cit-btn-arrow">➔</span>
-            </button>
-            <div class="box-footnote">No login required &bull; Location-based access</div>
+          <h2 class="box-title">Citizen & Community Portal</h2>
+          <p class="box-description">
+            Check risks in your area, get alerts, find safe places, and stay prepared.
+          </p>
+
+          <div class="checklist-col">
+            <div class="checklist-row">
+              <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <span>View live risk map</span>
+            </div>
+            <div class="checklist-row">
+              <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <span>Receive alerts and warnings</span>
+            </div>
+            <div class="checklist-row">
+              <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+              <span>Find nearby safe shelters</span>
+            </div>
+            <div class="checklist-row">
+              <svg class="check-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              <span>Learn what to do during emergencies</span>
+            </div>
           </div>
         </div>
+
+        <div>
+          <button id="enter-citizen-btn" class="portal-cta btn-green" onclick="enterAsCitizen()"
+            style="border:none; cursor:pointer; width:100%;">
+            <span id="cit-btn-text">Enter as Citizen</span>
+            <span id="cit-btn-arrow">➔</span>
+          </button>
+          <div class="box-footnote">No login required &bull; Location-based access</div>
+        </div>
+      </div>
 
     </div>
   </main>
@@ -1225,7 +1315,8 @@
 
       <!-- 2. Last Updated -->
       <div class="tele-item">
-        <svg class="tele-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="tele-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
@@ -1237,7 +1328,8 @@
 
       <!-- 3. Live Data Sources -->
       <div class="tele-item">
-        <svg class="tele-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="tele-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
           <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
           <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
@@ -1249,8 +1341,10 @@
       </div>
 
       <!-- 4. AI Engine -->
-      <div class="tele-item" style="cursor: pointer;" onclick="window.location.href='authority.html'" title="View AI Engine Diagnostics">
-        <svg class="tele-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="tele-item" style="cursor: pointer;" onclick="window.location.href='authority.html'"
+        title="View AI Engine Diagnostics">
+        <svg class="tele-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
           <polyline points="17 6 23 6 23 12"></polyline>
         </svg>
@@ -1271,10 +1365,14 @@
       <span>Andhra Pradesh</span>
     </div>
     <div class="footer-links">
-      <a class="footer-anchor" onclick="showPopup('About', 'Risk2Rescue is an AI-powered disaster management and multi-hazard early warning platform developed for Andhra Pradesh.')">About</a>
-      <a class="footer-anchor" onclick="showPopup('Privacy', 'All citizen telemetry is completely anonymized. Geolocation data is processed client-side.')">Privacy</a>
-      <a class="footer-anchor" onclick="showPopup('Help', 'National Disaster Helpline: 1078 (NDRF) | State Emergency Response: 112')">Help</a>
-      <a class="footer-anchor" onclick="showPopup('Contact', 'AP SDMA Emergency Operation Centre &bull; command@sdma.ap.gov.in')">Contact</a>
+      <a class="footer-anchor"
+        onclick="showPopup('About', 'Risk2Rescue is an AI-powered disaster management and multi-hazard early warning platform developed for Andhra Pradesh.')">About</a>
+      <a class="footer-anchor"
+        onclick="showPopup('Privacy', 'All citizen telemetry is completely anonymized. Geolocation data is processed client-side.')">Privacy</a>
+      <a class="footer-anchor"
+        onclick="showPopup('Help', 'National Disaster Helpline: 1078 (NDRF) | State Emergency Response: 112')">Help</a>
+      <a class="footer-anchor"
+        onclick="showPopup('Contact', 'AP SDMA Emergency Operation Centre &bull; command@sdma.ap.gov.in')">Contact</a>
     </div>
   </footer>
 
@@ -1284,7 +1382,8 @@
       <!-- Header -->
       <div class="loc-modal-header">
         <div class="loc-modal-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
             <circle cx="12" cy="10" r="3"></circle>
           </svg>
@@ -1303,7 +1402,8 @@
           <div class="loc-pulse-ring"></div>
           <div class="loc-pulse-ring"></div>
           <div class="loc-pulse-core">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="2"></circle>
               <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path>
               <path d="M7.8 7.8c-2.3 2.3-2.3 6.1 0 8.5"></path>
@@ -1323,17 +1423,20 @@
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
         </div>
-        <h4 class="loc-text-primary">Location found: <span id="loc-place-name" class="loc-place-highlight">Detecting...</span></h4>
+        <h4 class="loc-text-primary">Location found: <span id="loc-place-name"
+            class="loc-place-highlight">Detecting...</span></h4>
         <p class="loc-text-secondary">Connecting to live hazard sensors & risk zone feeds...</p>
         <div>
-          <a href="javascript:void(0)" class="loc-diff-link" onclick="switchToManualSelection()">Use a different location</a>
+          <a href="javascript:void(0)" class="loc-diff-link" onclick="switchToManualSelection()">Use a different
+            location</a>
         </div>
       </div>
 
       <!-- STATE 3: Fallback / Manual District Dropdown -->
       <div id="loc-state-fallback" class="loc-state-panel loc-fallback-wrap" style="display:none;">
         <div id="loc-error-msg" class="loc-fallback-alert">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -1346,13 +1449,15 @@
         </select>
         <button type="button" class="loc-continue-btn" onclick="useManualLocation()">
           <span>Continue</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
             <polyline points="12 5 19 12 12 19"></polyline>
           </svg>
         </button>
         <button type="button" class="loc-retry-btn" onclick="retryGeolocation()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"></polyline>
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
           </svg>
@@ -1392,4 +1497,5 @@
     }
   </script>
 </body>
+
 </html>

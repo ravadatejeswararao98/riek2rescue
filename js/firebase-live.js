@@ -82,7 +82,7 @@ class FirebaseLiveService {
           }
         });
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   handleMeshMessage(data) {
@@ -110,6 +110,73 @@ class FirebaseLiveService {
         this.persistLocalCache();
         this.notifyAlertListeners(this.alerts, { added: data.payload });
       }
+    } else if (data.type === 'REMOVE_ZONE') {
+      if (typeof window !== 'undefined') {
+        this.forceRemoveZoneFromMemory(data.payload.zoneId);
+        this.redrawAllMaps();
+        if (typeof renderZoneManager === 'function') {
+          renderZoneManager();
+        }
+      }
+    } else if (data.type === 'NEW_ZONE') {
+      if (typeof window !== 'undefined') {
+        this.forceAddZoneToMemory(data.payload);
+        this.redrawAllMaps();
+        if (typeof renderZoneManager === 'function') {
+          renderZoneManager();
+        }
+      }
+    }
+  }
+
+  forceRemoveZoneFromMemory(zoneId) {
+    if (typeof window === 'undefined') return;
+    if (window.APP_DATA && window.APP_DATA.riskZones) {
+      window.APP_DATA.riskZones = window.APP_DATA.riskZones.filter(z => z.id !== zoneId);
+    }
+    if (window.HAZARD_INTEL) {
+      Object.keys(window.HAZARD_INTEL).forEach(key => {
+        if (window.HAZARD_INTEL[key].zones) {
+          window.HAZARD_INTEL[key].zones = window.HAZARD_INTEL[key].zones.filter(z => z.id !== zoneId);
+        }
+      });
+    }
+    if (window.hazardEngine && window.hazardEngine.aiState) {
+      if (window.hazardEngine.aiState.allZones) {
+        window.hazardEngine.aiState.allZones = window.hazardEngine.aiState.allZones.filter(z => z.id !== zoneId);
+      }
+      if (window.hazardEngine.aiState.zonesByHazard) {
+        Object.keys(window.hazardEngine.aiState.zonesByHazard).forEach(key => {
+          window.hazardEngine.aiState.zonesByHazard[key] = window.hazardEngine.aiState.zonesByHazard[key].filter(z => z.id !== zoneId);
+        });
+      }
+    }
+  }
+
+  forceAddZoneToMemory(zone) {
+    if (typeof window === 'undefined') return;
+    if (window.APP_DATA && window.APP_DATA.riskZones) {
+      const exists = window.APP_DATA.riskZones.some(z => z.id === zone.id);
+      if (!exists) window.APP_DATA.riskZones.push(zone);
+    }
+    if (window.HAZARD_INTEL) {
+      const normHazard = zone.hazardType || 'cyclone';
+      if (window.HAZARD_INTEL[normHazard] && window.HAZARD_INTEL[normHazard].zones) {
+        const exists = window.HAZARD_INTEL[normHazard].zones.some(z => z.id === zone.id);
+        if (!exists) window.HAZARD_INTEL[normHazard].zones.push(zone);
+      }
+    }
+  }
+
+  redrawAllMaps() {
+    if (typeof window === 'undefined') return;
+    if (window.mapApp && typeof window.mapApp.drawRiskZones === 'function') window.mapApp.drawRiskZones();
+    if (window.authMapInstance && typeof window.authMapInstance.drawRiskZones === 'function') window.authMapInstance.drawRiskZones();
+    if (window.disasterMap && typeof window.disasterMap.drawRiskZones === 'function') window.disasterMap.drawRiskZones();
+    if (window.hazardEngine) {
+      const activeKey = window.hazardEngine.activeKey || 'cyclone';
+      window.hazardEngine.invalidateCache(activeKey);
+      window.hazardEngine.render(activeKey, true);
     }
   }
 
@@ -217,6 +284,60 @@ class FirebaseLiveService {
         this.setConnectionStatus('mesh', 'Local Mesh Active');
       });
 
+    // Listen to Risk Zones collection
+    this.db.collection('risk_zones')
+      .onSnapshot((snapshot) => {
+        if (!snapshot.empty) {
+          const cloudZones = [];
+          snapshot.forEach(doc => {
+            cloudZones.push({ id: doc.id, ...doc.data() });
+          });
+          
+          if (typeof window !== 'undefined' && window.APP_DATA) {
+            window.APP_DATA.riskZones = cloudZones;
+            
+            // Reconcile with HAZARD_INTEL by replacing all existing zones with cloud zones
+            if (window.HAZARD_INTEL) {
+              Object.keys(window.HAZARD_INTEL).forEach(key => {
+                if (window.HAZARD_INTEL[key].zones) {
+                  // Only keep zones that are actually in cloudZones
+                  window.HAZARD_INTEL[key].zones = window.HAZARD_INTEL[key].zones.filter(hz => cloudZones.some(cz => cz.id === hz.id));
+                }
+              });
+              cloudZones.forEach(zone => {
+                 const nh = zone.hazardType || 'cyclone';
+                 if (window.HAZARD_INTEL[nh] && window.HAZARD_INTEL[nh].zones) {
+                    if (!window.HAZARD_INTEL[nh].zones.some(z => z.id === zone.id)) {
+                      window.HAZARD_INTEL[nh].zones.push(zone);
+                    }
+                 }
+              });
+            }
+
+            this.redrawAllMaps();
+            
+            // Re-render Zone Manager UI
+            if (typeof renderZoneManager === 'function') {
+              renderZoneManager();
+            }
+          }
+        } else {
+          // If the cloud collection is explicitly empty, we should wipe local zones (after seeding if necessary)
+          const fromServer = snapshot.metadata && !snapshot.metadata.fromCache;
+          if (fromServer && !config.isCustom) {
+            if (typeof window !== 'undefined' && window.APP_DATA) {
+               window.APP_DATA.riskZones = [];
+               this.redrawAllMaps();
+               if (typeof renderZoneManager === 'function') {
+                 renderZoneManager();
+               }
+            }
+          }
+        }
+      }, (error) => {
+        console.warn('Firestore risk_zones listener notice:', error.message);
+      });
+
     // Active server ping probe to verify whether backend Firestore is genuinely reachable
     this.checkCloudConnectivity();
   }
@@ -245,7 +366,7 @@ class FirebaseLiveService {
   setConnectionStatus(mode, label) {
     this.connectionMode = mode;
     this.statusListeners.forEach(fn => {
-      try { fn(mode, label); } catch (e) {}
+      try { fn(mode, label); } catch (e) { }
     });
     this.updateDOMIndicator();
   }
@@ -273,7 +394,7 @@ class FirebaseLiveService {
     try {
       localStorage.setItem('rzi_synced_reports', JSON.stringify(this.reports));
       localStorage.setItem('rzi_synced_alerts', JSON.stringify(this.alerts));
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // ---- Public Event Subscription Methods ----
@@ -318,18 +439,48 @@ class FirebaseLiveService {
    */
   async submitCitizenReport(reportData) {
     this.ensureInitialData();
-    const id = 'REP-' + Date.now().toString().slice(-6);
+    const id = reportData.id || ('REP-' + Date.now().toString().slice(-6));
+
+    // Validate coordinates: latitude >= -90 && latitude <= 90, longitude >= -180 && longitude <= 180
+    const rawLat = reportData.latitude ?? reportData.lat ?? reportData.locationCoords?.latitude;
+    const rawLng = reportData.longitude ?? reportData.lng ?? reportData.locationCoords?.longitude;
+    const isCoordValid = (
+      rawLat !== null && rawLat !== undefined &&
+      rawLng !== null && rawLng !== undefined &&
+      !isNaN(Number(rawLat)) && !isNaN(Number(rawLng)) &&
+      Number(rawLat) >= -90 && Number(rawLat) <= 90 &&
+      Number(rawLng) >= -180 && Number(rawLng) <= 180
+    );
+
+    const lat = isCoordValid ? Number(rawLat) : null;
+    const lng = isCoordValid ? Number(rawLng) : null;
+    const accuracy = reportData.locationAccuracy ?? reportData.accuracy ?? reportData.locationCoords?.accuracy ?? null;
+    const locStatus = isCoordValid ? (reportData.locationStatus || 'available') : 'unavailable';
+    const locString = reportData.location || (isCoordValid ? `Lat ${lat.toFixed(5)}° N, Lng ${lng.toFixed(5)}° E` : 'Location unavailable');
+
     const fullReport = {
       id,
       type: reportData.type || 'Flood',
       severity: reportData.severity || 'High',
-      status: 'Pending',
-      desc: reportData.desc || '',
-      reporter: reportData.reporter || 'Citizen Reporter',
+      status: reportData.status || 'Pending',
+      desc: reportData.desc || reportData.details || '',
+      category: reportData.category || 'Citizen Field Report',
+      reporter: reportData.reporter || reportData.citizenName || 'Citizen Reporter',
       phone: reportData.phone || '+91-Verified',
-      location: reportData.location || 'Kakinada Coastal Sector',
-      lat: Number(reportData.lat) || 16.9891,
-      lng: Number(reportData.lng) || 82.2475,
+      location: locString,
+      lat: lat,
+      lng: lng,
+      latitude: lat,
+      longitude: lng,
+      locationAccuracy: accuracy ? Math.round(accuracy) : null,
+      locationTimestamp: reportData.locationTimestamp || Date.now(),
+      locationStatus: locStatus,
+      locationCoords: isCoordValid ? {
+        latitude: lat,
+        longitude: lng,
+        accuracy: accuracy ? Math.round(accuracy) : null,
+        capturedAt: reportData.locationTimestamp || Date.now()
+      } : null,
       time: 'Just now',
       timestamp: Date.now(),
       upvotes: 1
@@ -471,9 +622,42 @@ class FirebaseLiveService {
   }
 
   /**
+   * Broadcast zone creation
+   */
+  broadcastZoneCreation(zone) {
+    if (this.meshChannel) {
+      this.meshChannel.postMessage({ type: 'NEW_ZONE', payload: zone });
+    }
+    if (this.db) {
+      this.db.collection('risk_zones').doc(zone.id).set(zone).catch(err => {
+        console.warn('Firestore zone creation broadcast notice:', err.message);
+      });
+    }
+  }
+
+  /**
+   * Broadcast zone removal
+   */
+  broadcastZoneRemoval(zoneId) {
+    if (this.meshChannel) {
+      this.meshChannel.postMessage({ type: 'REMOVE_ZONE', payload: { zoneId } });
+    }
+    if (this.db) {
+      this.db.collection('risk_zones').doc(zoneId).delete().catch(err => {
+        console.warn('Firestore zone deletion broadcast notice:', err.message);
+      });
+    }
+  }
+
+  /**
    * Seeds default Indian disaster scenarios into Cloud Firestore
    */
   async seedCloudReports() {
+    // Strictly gate demo data seeding: never pollute live Firestore unless drill mode is explicitly enabled
+    if (typeof window === 'undefined' || window.SEED_DEMO_DATA !== true) {
+      console.log('[FirebaseLive] Production mode active: skipping demo data seeding.');
+      return;
+    }
     if (!this.db) return;
     try {
       const batch = this.db.batch();
@@ -481,18 +665,27 @@ class FirebaseLiveService {
         ? APP_DATA.citizenReports
         : [];
 
-      initialReports.forEach(rep => {
+      initialReports.forEach((rep, idx) => {
         const docRef = this.db.collection('citizen_reports').doc(rep.id);
-        batch.set(docRef, { ...rep, timestamp: Date.now() - (Math.random() * 3600000) }, { merge: true });
+        batch.set(docRef, { ...rep, timestamp: Date.now() - (idx * 600000) }, { merge: true });
       });
 
       const initialAlerts = (typeof APP_DATA !== 'undefined' && APP_DATA.alerts)
         ? APP_DATA.alerts
         : [];
 
-      initialAlerts.forEach(alt => {
+      initialAlerts.forEach((alt, idx) => {
         const docRef = this.db.collection('emergency_alerts').doc(alt.id);
-        batch.set(docRef, { ...alt, timestamp: Date.now() - (Math.random() * 1800000) }, { merge: true });
+        batch.set(docRef, { ...alt, timestamp: Date.now() - (idx * 300000) }, { merge: true });
+      });
+
+      const initialZones = (typeof APP_DATA !== 'undefined' && APP_DATA.riskZones)
+        ? APP_DATA.riskZones
+        : [];
+        
+      initialZones.forEach(zone => {
+        const docRef = this.db.collection('risk_zones').doc(zone.id);
+        batch.set(docRef, { ...zone }, { merge: true });
       });
 
       await batch.commit();
@@ -502,6 +695,7 @@ class FirebaseLiveService {
     }
   }
 }
+
 
 // Global Singleton Instance
 window.firebaseLive = new FirebaseLiveService();

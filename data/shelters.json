@@ -6,9 +6,9 @@
     "lat": 17.7,
     "lng": 83.22,
     "capacity": 5000,
-    "current_occupancy": 473,
+    "current_occupancy": 3000,
     "status": "open",
-    "last_updated": "2026-09-13T19:28:50.534Z",
+    "last_updated": "2026-09-14T14:36:47.384Z",
     "updated_by": "varma (LEVEL-3 (VERIFIED DISPATCH))"
   },
   {
@@ -27,7 +27,10 @@
     "lat": 16.2,
     "lng": 81.15,
     "capacity": 6000,
-    "current_occupancy": 0
+    "current_occupancy": 600,
+    "status": "open",
+    "last_updated": "2026-09-14T17:29:08.552Z",
+    "updated_by": "varma (LEVEL-3 (VERIFIED DISPATCH))"
   },
   {
     "shelter_id": "S_STATIC_04",

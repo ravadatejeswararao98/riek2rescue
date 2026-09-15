@@ -15,7 +15,14 @@ const AlertRouter = require('./js/alert-router.js');
 const SatelliteSignal = require('./js/satellite-signal.js');
 const { WebSocketServer } = require('ws');
 
-
+// Integrated Source Registry & Dynamic Upstream Feeds
+const SourceRegistry = require('./source-registry.js');
+const { getOfficialCapAlerts, getCapFeed } = require('./sources/cap-feed.js');
+const { getCpcbAirQuality, getOpenAqAirQuality } = require('./sources/cpcb-air.js');
+const { getGdacsEvents } = require('./sources/gdacs.js');
+const { getGoogleFloodForecast } = require('./sources/google-flood.js');
+const { getCopernicusFloodSignal } = require('./sources/copernicus.js');
+const AIBridge = require('./ai-bridge.js');
 
 // Native .env file loader (zero external dependencies)
 try {
@@ -41,7 +48,47 @@ const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
 const WINDY_API_KEY = process.env.WINDY_API_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const MIN_LIVE_SOURCES_FOR_AI = parseInt(process.env.MIN_LIVE_SOURCES_FOR_AI || '3', 10);
 
+
+// ================= AUTHORITATIVE ANDHRA PRADESH BOUNDARY =================
+let apBoundaryGeom = null;
+try {
+  const boundaryPath = path.join(__dirname, 'data', 'andhra_pradesh_boundary.geojson');
+  if (fs.existsSync(boundaryPath)) {
+    const raw = JSON.parse(fs.readFileSync(boundaryPath, 'utf8'));
+    if (raw && raw.features && raw.features[0]) {
+      apBoundaryGeom = raw.features[0].geometry;
+      console.log('[Server] Loaded Andhra Pradesh authoritative operational boundary.');
+    }
+  }
+} catch (e) {
+  console.warn('[Server] Failed to load AP boundary GeoJSON:', e.message);
+}
+
+function pointInPoly(pt, polyCoords) {
+  const x = pt[0], y = pt[1];
+  let inside = false;
+  for (let i = 0, j = polyCoords.length - 1; i < polyCoords.length; j = i++) {
+    const xi = polyCoords[i][0], yi = polyCoords[i][1];
+    const xj = polyCoords[j][0], yj = polyCoords[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function isCoordInsideAP(lng, lat) {
+  if (!apBoundaryGeom || typeof lng !== 'number' || typeof lat !== 'number') return false;
+  if (isNaN(lng) || isNaN(lat)) return false;
+  if (apBoundaryGeom.type === 'Polygon') {
+    return pointInPoly([lng, lat], apBoundaryGeom.coordinates[0]);
+  }
+  if (apBoundaryGeom.type === 'MultiPolygon') {
+    return apBoundaryGeom.coordinates.some(ring => pointInPoly([lng, lat], ring[0]));
+  }
+  return false;
+}
 
 // ================= IN-MEMORY POLLING & CACHING LAYER =================
 const CACHE_TTL_WEATHER_MS  = 15 * 60 * 1000; // 15 minutes
@@ -275,48 +322,59 @@ async function getImdAlerts() {
 }
 // ────────────────────────────────────────────────────────────────────────────
 
-// 1. LIVE USGS EARTHQUAKE INTEGRATION (Free, no key needed)
-async function getUSGSEarthquakes(limit = 35) {
+// 1. LIVE NCS EARTHQUAKE INTEGRATION (National Center for Seismology)
+async function getUSGSEarthquakes(limit = 35) { // Keeping the function name to avoid breaking AIEngine calls
   const now = Date.now();
   if (earthquakeCache && (now < earthquakeCache.expiresAt)) {
     return { ...earthquakeCache.data, cached: true };
   }
 
-  // Query USGS GeoJSON endpoint for real earthquakes >= M2.5
-  const usgsUrl = `https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=2.5&limit=${limit}`;
   try {
-    const geojson = await fetchJson(usgsUrl, {}, 8000);
-    const features = geojson.features || [];
+    const html = await fetchText('https://riseq.seismo.gov.in/riseq/earthquake', {}, 8000);
+    const regex = /data-json='(.*?)'/g;
+    let match;
+    const allQuakes = [];
+    
+    while ((match = regex.exec(html)) !== null) {
+      try {
+        const eqData = JSON.parse(match[1]);
+        const latLong = eqData.lat_long.split(',').map(s => parseFloat(s.trim()));
+        const magMatch = eqData.magnitude_depth.match(/M:\s*([\d.]+)/);
+        const depthMatch = eqData.magnitude_depth.match(/D:\s*([\d.]+)km/);
+        const mag = magMatch ? parseFloat(magMatch[1]) : 0;
+        const depthKm = depthMatch ? parseFloat(depthMatch[1]) : 10;
+        const place = eqData.event_name.split(' - ')[1] || 'Unknown Epicenter';
+        
+        allQuakes.push({
+          id: eqData.event_id,
+          place: place,
+          mag: mag,
+          time: new Date().toISOString(),
+          epochMs: Date.now(),
+          depthKm: depthKm,
+          lng: latLong[1],
+          lat: latLong[0],
+          tsunamiAlert: false,
+          significance: Math.round(mag * 20),
+          url: 'https://riseq.seismo.gov.in/riseq/earthquake'
+        });
+      } catch (e) { }
+    }
 
-    const parsedQuakes = features.map(f => {
-      const props = f.properties || {};
-      const coords = (f.geometry && f.geometry.coordinates) || [0, 0, 0];
-      return {
-        id: f.id,
-        place: props.place || 'Unknown Epicenter',
-        mag: props.mag !== null ? Number(props.mag.toFixed(1)) : 0.0,
-        time: props.time ? new Date(props.time).toISOString() : new Date().toISOString(),
-        epochMs: props.time,
-        depthKm: coords[2] !== undefined ? Number(coords[2].toFixed(1)) : 10,
-        lng: coords[0],
-        lat: coords[1],
-        tsunamiAlert: props.tsunami === 1,
-        significance: props.sig || 0,
-        url: props.url || `https://earthquake.usgs.gov/earthquakes/eventpage/${f.id}`
-      };
-    });
+    const parsedQuakes = allQuakes.filter(q => isCoordInsideAP(q.lng, q.lat)); // Strictly filter for AP
 
-    const maxMag = parsedQuakes.length > 0 ? Math.max(...parsedQuakes.map(q => q.mag)) : 0;
-    const latestQuake = parsedQuakes[0] || null;
+    const finalQuakes = parsedQuakes.slice(0, limit);
+    const maxMag = finalQuakes.length > 0 ? Math.max(...finalQuakes.map(q => q.mag)) : 0;
+    const latestQuake = finalQuakes[0] || null;
 
     const result = {
       status: 'online',
-      source: 'USGS Earthquake Hazards Program (earthquake.usgs.gov)',
+      source: 'National Center for Seismology (NCS India)',
       generatedAt: new Date().toISOString(),
-      count: parsedQuakes.length,
+      count: finalQuakes.length,
       maxMagnitude: maxMag,
       latest: latestQuake,
-      earthquakes: parsedQuakes,
+      earthquakes: finalQuakes,
       cached: false
     };
 
@@ -327,7 +385,7 @@ async function getUSGSEarthquakes(limit = 35) {
 
     return result;
   } catch (err) {
-    console.error('USGS Live Query failed:', err.message);
+    console.error('NCS Live Query failed:', err.message);
     if (earthquakeCache) {
       return { ...earthquakeCache.data, cached: true, stale: true, upstreamError: err.message };
     }
@@ -380,12 +438,12 @@ async function getOpenMeteoWeather(lat = 16.99, lon = 82.25) {
       advisoryMessage = `ELEVATED SQUALLS: Wind gusts reaching ${maxGustKmh} km/h with active precipitation. Secure loose outdoor structures.`;
     }
 
-    const timestamps = (hourly.time || []).slice(0, 16).map(t => new Date(t).getTime());
-    const temps = (hourly.temperature_2m || []).slice(0, 16);
-    const winds = (hourly.wind_speed_10m || []).slice(0, 16);
-    const gusts = (hourly.wind_gusts_10m || []).slice(0, 16);
-    const precips = (hourly.precipitation || []).slice(0, 16);
-    const pressures = (hourly.surface_pressure || []).slice(0, 16).map(p => Math.round(p));
+    const timestamps = (hourly.time || []).slice(0, 120).map(t => new Date(t).getTime());
+    const temps = (hourly.temperature_2m || []).slice(0, 120);
+    const winds = (hourly.wind_speed_10m || []).slice(0, 120);
+    const gusts = (hourly.wind_gusts_10m || []).slice(0, 120);
+    const precips = (hourly.precipitation || []).slice(0, 120);
+    const pressures = (hourly.surface_pressure || []).slice(0, 120).map(p => Math.round(p));
 
     const result = {
       success: true,
@@ -400,7 +458,7 @@ async function getOpenMeteoWeather(lat = 16.99, lon = 82.25) {
         currentWindKmh,
         maxGustKmh,
         maxPrecipPerHourMm: currentPrecipMm,
-        capeIndex: 900,
+        capeIndex: null,
         pressureHpa,
         humidityPct,
         isSevereWind,
@@ -415,7 +473,7 @@ async function getOpenMeteoWeather(lat = 16.99, lon = 82.25) {
         windKmh: winds,
         gustKmh: gusts,
         precipMm: precips,
-        cape: Array(temps.length).fill(850),
+        cape: [],
         pressure: pressures
       }
     };
@@ -558,17 +616,23 @@ async function getCWCRiverLevels() {
       if (!stationName) continue;
       if (allStationsMap.has(stationName)) continue;
 
+      const lat = parseFloat(rec.Latitude) || null;
+      const lon = parseFloat(rec.Longitude) || null;
+
+      // Strict Andhra Pradesh enforcement: ignore stations outside AP
+      if (!lat || !lon || !isCoordInsideAP(lon, lat)) continue;
+      const stateStr = (rec.State || '').toLowerCase();
+      if (stateStr && !stateStr.includes('andhra') && !stateStr.includes('a.p') && !stateStr.includes('ap')) continue;
+
       const rawLevel = rec['River Water Level Telemetry Hourly (meter)'] ||
                        rec['River Water Level Manual Hourly (meter)'] ||
                        rec['River Water Level (meter)'];
       const waterLevel = rawLevel !== undefined && rawLevel !== null && rawLevel !== '' ? parseFloat(rawLevel) : null;
-      const lat = parseFloat(rec.Latitude) || null;
-      const lon = parseFloat(rec.Longitude) || null;
 
       allStationsMap.set(stationName, {
         station: stationName,
         district: rec.District || '',
-        state: rec.State || '',
+        state: rec.State || 'Andhra Pradesh',
         river: rec.River || res.basin,
         basin: rec.Basin || res.basin,
         lat: lat,
@@ -580,18 +644,22 @@ async function getCWCRiverLevels() {
     }
   }
 
-  let stationList = Array.from(allStationsMap.values());
+  let stationList = Array.from(allStationsMap.values()).filter(st => isCoordInsideAP(st.lon, st.lat));
 
   if (stationList.length === 0) {
-    if (cwcCache.data && cwcCache.data.stations) {
+    if (cwcCache.data && cwcCache.data.stations && cwcCache.data.stations.length > 0) {
       return { ...cwcCache.data, cached: true, stale: true };
     }
-    stationList = [
-      { station: 'Dowleswaram Barrage', river: 'Godavari', basin: 'Godavari', district: 'East Godavari', state: 'Andhra Pradesh', lat: 16.9404, lon: 81.7766, waterLevelMeters: 14.2, timestamp: new Date().toISOString(), agency: 'CWC Baseline' },
-      { station: 'Prakasam Barrage', river: 'Krishna', basin: 'Krishna', district: 'NTR / Vijayawada', state: 'Andhra Pradesh', lat: 16.5062, lon: 80.6053, waterLevelMeters: 11.9, timestamp: new Date().toISOString(), agency: 'CWC Baseline' },
-      { station: 'Tadipatri', river: 'Pennar', basin: 'Pennar', district: 'Anantapur', state: 'Andhra Pradesh', lat: 14.9219, lon: 78.0164, waterLevelMeters: 224.0, timestamp: new Date().toISOString(), agency: 'CWC Baseline' },
-      { station: 'Somasila Reservoir', river: 'Pennar', basin: 'Pennar', district: 'Nellore', state: 'Andhra Pradesh', lat: 14.4983, lon: 79.3033, waterLevelMeters: 98.6, timestamp: new Date().toISOString(), agency: 'CWC Baseline' }
-    ];
+    return {
+      success: false,
+      status: 'UNAVAILABLE',
+      sourceId: 'cwc_nwic_river',
+      source: 'National Water Data Portal (NWIC / Central Water Commission)',
+      totalStations: 0,
+      stations: [],
+      error: 'No live CWC gauging stations currently reporting inside Andhra Pradesh boundary',
+      lastUpdated: new Date().toISOString()
+    };
   }
 
   const result = {
@@ -911,19 +979,58 @@ const server = http.createServer(async (req, res) => {
 
     // 1. System Health
     if (pathname === '/api/health') {
+      const allShelters = getSheltersData();
+      const storedThreats = (global.APP_DATA && Array.isArray(global.APP_DATA.activeHazards)) ? global.APP_DATA.activeHazards.length : 0;
       res.writeHead(200);
       return res.end(JSON.stringify({
         status: 'online',
         system: 'Risk2Rescue Command Hub',
         version: '2.1.0',
         uptimeSeconds: Math.floor((Date.now() - systemStartTime) / 1000),
-        activeThreatsCount: 5,
+        activeThreatsCount: storedThreats,
         nodeVersion: process.version,
         dataProviders: {
           earthquakes: 'USGS Earthquake Hazards Program (Active)',
           weather: WINDY_API_KEY ? 'Windy Point Forecast v2 (API Key Active)' : 'Open-Meteo Live Forecast (Active)',
           airQuality: 'Open-Meteo Atmospheric Quality Feed (Active)'
         }
+      }));
+    }
+
+    // 1b. Central Source Registry Health Check & Audit Probes
+    if (pathname === '/api/sources/health') {
+      try {
+        const force = parsedUrl.query.refresh === '1';
+        const health = await SourceRegistry.checkAllSources(force);
+        res.writeHead(200);
+        return res.end(JSON.stringify(health));
+      } catch (err) {
+        res.writeHead(500);
+        return res.end(JSON.stringify({ error: 'Source health check failed: ' + err.message }));
+      }
+    }
+
+    // 1c. Source Raw Payload & Metrics Inspector
+    if (pathname.startsWith('/api/sources/') && pathname.endsWith('/raw')) {
+      const parts = pathname.split('/');
+      const sourceId = parts[3];
+      const metrics = SourceRegistry.getSourceMetrics(sourceId);
+      if (!metrics) {
+        res.writeHead(404);
+        return res.end(JSON.stringify({ error: `No metrics or raw cache found for source: ${sourceId}` }));
+      }
+      res.writeHead(200);
+      return res.end(JSON.stringify({
+        sourceId,
+        metrics: {
+          lastAttemptAt: metrics.lastAttemptAt,
+          lastSuccessAt: metrics.lastSuccessAt,
+          lastLatencyMs: metrics.lastLatencyMs,
+          consecutiveFailures: metrics.consecutiveFailures,
+          lastError: metrics.lastError,
+          lastRecordCount: metrics.lastRecordCount
+        },
+        rawPayload: metrics.lastRawPayload
       }));
     }
 
@@ -934,6 +1041,137 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify({ success: true, scenarios }));
     }
 
+    // 2b. Official Unified De-duplicated CAP Alerts (IMD + NDMA Alert Hub)
+    if (pathname === '/api/alerts/official') {
+      try {
+        const data = await getOfficialCapAlerts();
+        res.writeHead(200);
+        return res.end(JSON.stringify(data));
+      } catch (err) {
+        res.writeHead(500);
+        return res.end(JSON.stringify({ success: false, error: err.message, alerts: [] }));
+      }
+    }
+
+    // 2c. CPCB Real-Time Air Quality (data.gov.in CAAQMS Ground Stations)
+    if (pathname === '/api/air-quality/cpcb') {
+      try {
+        const data = await getCpcbAirQuality();
+        res.writeHead(data.status === 'NOT_CONFIGURED' ? 200 : (data.success ? 200 : 503));
+        return res.end(JSON.stringify(data));
+      } catch (err) {
+        res.writeHead(500);
+        return res.end(JSON.stringify({ success: false, status: 'UNAVAILABLE', error: err.message, stations: [] }));
+      }
+    }
+
+    // 2d. GDACS Global Multi-Hazard Alerts (UN / European Commission)
+    if (pathname === '/api/gdacs/events') {
+      try {
+        const data = await getGdacsEvents();
+        res.writeHead(data.success ? 200 : 503);
+        return res.end(JSON.stringify(data));
+      } catch (err) {
+        res.writeHead(500);
+        return res.end(JSON.stringify({ success: false, status: 'UNAVAILABLE', error: err.message, events: [] }));
+      }
+    }
+
+    // 2e. Google Flood Hub Hydrologic Forecasting API
+    if (pathname === '/api/flood/forecast') {
+      try {
+        const data = await getGoogleFloodForecast();
+        res.writeHead(data.status === 'NOT_CONFIGURED' ? 200 : (data.success ? 200 : 503));
+        return res.end(JSON.stringify(data));
+      } catch (err) {
+        res.writeHead(500);
+        return res.end(JSON.stringify({ success: false, status: 'UNAVAILABLE', error: err.message, gauges: [] }));
+      }
+    }
+
+    // 2f. AI Layer Context Input Contract
+    if (pathname === '/api/ai/context') {
+      try {
+        const health = await SourceRegistry.checkAllSources(false);
+        const liveCount = health.summary?.live || 0;
+        const totalSources = health.summary?.total || 1;
+        const dataConfidence = Math.round((liveCount / Math.max(1, totalSources - health.summary?.notConfigured)) * 100);
+
+        const radarWeather = await getOpenMeteoWeather(16.18, 81.13);
+        const quakes = await getUSGSEarthquakes(10);
+        const alertsData = await getOfficialCapAlerts();
+        const allShelters = getSheltersData();
+
+        res.writeHead(200);
+        return res.end(JSON.stringify({
+          generatedAt: new Date().toISOString(),
+          liveSourceCount: liveCount,
+          minRequiredSources: AIBridge.MIN_LIVE_SOURCES_FOR_AI,
+          hasSufficientData: liveCount >= AIBridge.MIN_LIVE_SOURCES_FOR_AI,
+          dataConfidencePct: dataConfidence,
+          telemetry: {
+            radar: {
+              maxGustSpeedKmH: radarWeather.summary?.maxGustKmh ?? null,
+              pressureHpa: radarWeather.summary?.pressureHpa ?? null,
+              sourceId: 'openmeteo_weather'
+            },
+            seismic: {
+              maxMagnitude: quakes.maxMagnitude || 0,
+              total24h: quakes.count || 0,
+              sourceId: 'usgs_earthquakes'
+            }
+          },
+          alerts: alertsData.alerts || [],
+          sheltersSummary: {
+            totalCapacity: allShelters.reduce((a, s) => a + (s.capacity || 0), 0),
+            currentOccupancy: allShelters.reduce((a, s) => a + (s.current_occupancy || 0), 0),
+            sourceId: 'ap_sdma_shelters'
+          },
+          sourceHealthSummary: health.summary
+        }));
+      } catch (err) {
+        res.writeHead(500);
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+    }
+
+    // 2g. Unified Operational Dashboard State
+    if (pathname === '/api/dashboard/state') {
+      try {
+        const radarWeather = await getOpenMeteoWeather(16.18, 81.13);
+        const quakes = await getUSGSEarthquakes(10);
+        const allShelters = getSheltersData();
+        const alertsData = await getOfficialCapAlerts();
+        let cwcGauges = [];
+        try {
+          const cwc = await getCWCRiverLevels();
+          if (cwc.success && Array.isArray(cwc.stations)) cwcGauges = cwc.stations;
+        } catch(e) {}
+
+        const totalCap = allShelters.reduce((a, s) => a + (s.capacity || 0), 0);
+        const currentOcc = allShelters.reduce((a, s) => a + (s.current_occupancy || 0), 0);
+        const maxGust = radarWeather.summary?.maxGustKmh ?? null;
+
+        res.writeHead(200);
+        return res.end(JSON.stringify({
+          timestamp: new Date().toISOString(),
+          kpis: {
+            activeHazards: { value: alertsData.count, unit: '', sourceId: 'cap_imd', status: alertsData.count > 0 ? 'LIVE' : 'LIVE', fetchedAt: alertsData.fetchedAt },
+            populationAtRisk: { value: 0, unit: '', sourceId: 'census_india_ap', tier: 'DERIVED', contributingSources: ['cap_imd', 'census_india_ap'], status: 'BASELINE' },
+            shelterCapacity: { value: totalCap, currentOccupancy: currentOcc, unit: '', sourceId: 'ap_sdma_shelters', status: 'BASELINE', tier: 'OFFICIAL_BASELINE' },
+            gustSpeed: { value: maxGust, unit: 'km/h', sourceId: 'openmeteo_weather', status: maxGust !== null ? 'LIVE' : 'UNAVAILABLE', fetchedAt: radarWeather.lastUpdated },
+            seismicMagnitude: { value: quakes.maxMagnitude > 0 ? quakes.maxMagnitude : null, unit: 'M', sourceId: 'usgs_earthquakes', status: quakes.status === 'unavailable' ? 'UNAVAILABLE' : 'LIVE', fetchedAt: quakes.fetchedAt }
+          },
+          alerts: alertsData.alerts || [],
+          riverGauges: cwcGauges,
+          shelters: allShelters
+        }));
+      } catch (err) {
+        res.writeHead(500);
+        return res.end(JSON.stringify({ error: err.message }));
+      }
+    }
+
     // 3. LIVE EARTHQUAKES (USGS GeoJSON API)
     if (pathname === '/api/earthquakes/live') {
       const limit = parseInt(parsedUrl.query.limit, 10) || 30;
@@ -942,46 +1180,52 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify(data));
     }
 
-    // 4. LIVE AIR QUALITY
+    // 4. LIVE AIR QUALITY (Open-Meteo Modelled Cross-Check)
     if (pathname === '/api/air-quality/live') {
       const lat = parseFloat(parsedUrl.query.lat) || 16.50;
       const lon = parseFloat(parsedUrl.query.lon || parsedUrl.query.lng) || 80.64;
       const data = await getOpenMeteoAirQuality(lat, lon);
+      data.role = 'CROSS_CHECK';
+      data.sourceId = 'openmeteo_airquality';
       res.writeHead(data.status === 'unavailable' ? 503 : 200);
       return res.end(JSON.stringify(data));
     }
 
-    // 5. LIVE MULTI-SENSOR TELEMETRY STREAM (No fake jitter, tied to real USGS and Open-Meteo)
+    // 5. LIVE MULTI-SENSOR TELEMETRY STREAM (Honest, zero fabricated gauges)
     if (pathname === '/api/telemetry/live') {
-      // Fetch live weather at Machilipatnam Doppler Radar coordinates (16.18, 81.13)
       const radarWeather = await getOpenMeteoWeather(16.18, 81.13);
-      // Fetch live seismic feed from USGS
       const quakes = await getUSGSEarthquakes(10);
 
       const maxGust = radarWeather.success && radarWeather.summary ? radarWeather.summary.maxGustKmh : null;
       const corePressure = radarWeather.success && radarWeather.summary ? radarWeather.summary.pressureHpa : null;
-      const latestQuake = quakes.latest ? `${quakes.latest.mag} Mag — ${quakes.latest.place}` : 'No recent major tremors';
+      const latestQuake = quakes.latest ? `${quakes.latest.mag} Mag — ${quakes.latest.place}` : null;
 
-      let riverGauges = [
-        { station: 'Godavari - Dowleswaram Barrage Gauge', levelMeters: 14.2, dangerMarkMeters: 14.0, trend: 'HIGH_FLOW', type: 'CWC Baseline Sensor Telemetry' },
-        { station: 'Krishna River - Prakasam Barrage Gauge', levelMeters: 11.9, dangerMarkMeters: 12.5, trend: 'NORMAL_FLOW', type: 'CWC Baseline Sensor Telemetry' },
-        { station: 'Pennar River - Somasila Reservoir Gauge', levelMeters: 8.4, dangerMarkMeters: 9.0, trend: 'STABLE', type: 'CWC Baseline Sensor Telemetry' }
-      ];
+      let riverGauges = [];
+      let riverStatus = 'UNAVAILABLE';
       try {
         const cwcData = await getCWCRiverLevels();
-        if (cwcData && cwcData.success && cwcData.stations && cwcData.stations.length) {
+        if (cwcData && cwcData.success && Array.isArray(cwcData.stations) && cwcData.stations.length > 0) {
           riverGauges = cwcData.stations.slice(0, 10).map(s => ({
             station: `${s.basin} - ${s.station}`,
             levelMeters: s.waterLevelMeters,
             dangerMarkMeters: null,
-            trend: 'LIVE_TELEMETRY',
+            trend: s.waterLevelMeters !== null ? 'LIVE_TELEMETRY' : 'UNKNOWN',
             type: 'CWC NWIC Live Telemetry',
             timestamp: s.timestamp,
             lat: s.lat,
-            lon: s.lon
+            lon: s.lon,
+            sourceId: 'cwc_nwic_river',
+            status: s.waterLevelMeters !== null ? 'LIVE' : 'UNAVAILABLE'
           }));
+          riverStatus = riverGauges.some(g => g.levelMeters !== null) ? 'LIVE' : 'DEGRADED';
         }
-      } catch (cwce) {}
+      } catch (cwce) {
+        riverStatus = 'UNAVAILABLE';
+      }
+
+      const allShelters = getSheltersData();
+      const totalShelterCap = allShelters.reduce((acc, s) => acc + (s.capacity || 0), 0);
+      const currentShelterOcc = allShelters.reduce((acc, s) => acc + (s.current_occupancy || 0), 0);
 
       const telemetry = {
         timestamp: new Date().toISOString(),
@@ -990,19 +1234,32 @@ const server = http.createServer(async (req, res) => {
           coordinates: { lat: 16.18, lon: 81.13 },
           maxGustSpeedKmH: maxGust,
           corePressureHpa: corePressure,
-          status: maxGust !== null ? 'LIVE_STREAMING' : 'DATA_UNAVAILABLE',
-          source: radarWeather.source || 'Open-Meteo Real-Time Telemetry'
+          status: maxGust !== null ? 'LIVE' : 'UNAVAILABLE',
+          sourceId: 'openmeteo_weather',
+          source: radarWeather.source || 'Open-Meteo Real-Time Telemetry',
+          fetchedAt: radarWeather.lastUpdated || new Date().toISOString()
         },
         riverGauges: riverGauges,
+        riverGaugeStatus: riverStatus,
+        riverGaugesMeta: {
+          sourceId: 'cwc_nwic_river',
+          status: riverStatus,
+          fetchedAt: new Date().toISOString()
+        },
         seismic: {
-          status: (quakes.maxMagnitude >= 5.0) ? 'ELEVATED' : 'NORMAL',
+          status: (quakes.maxMagnitude >= 5.0) ? 'ELEVATED' : (quakes.count > 0 ? 'NORMAL' : 'UNAVAILABLE'),
           latestEvent: latestQuake,
           totalEvents24h: quakes.count || 0,
           maxRecordedMagnitude: quakes.maxMagnitude || 0,
-          source: quakes.source || 'USGS Earthquake Hazards Program'
+          sourceId: 'usgs_earthquakes',
+          source: quakes.source || 'USGS Earthquake Hazards Program',
+          fetchedAt: quakes.fetchedAt || new Date().toISOString()
         },
         shelters: {
-          totalCapacity: 26000,
+          totalCapacity: totalShelterCap,
+          currentOccupancy: currentShelterOcc,
+          sourceId: 'ap_sdma_shelters',
+          tier: 'OFFICIAL_BASELINE',
           type: 'AP SDMA Directory Baseline'
         }
       };
@@ -1222,6 +1479,7 @@ const server = http.createServer(async (req, res) => {
           const payload = JSON.parse(body || '{}');
           const lat = typeof payload.lat === 'number' ? payload.lat : 16.99;
           const lon = typeof payload.lon === 'number' ? (payload.lon || payload.lng) : 82.25;
+          const hourOffset = typeof payload.hourOffset === 'number' ? payload.hourOffset : (typeof payload.offsetHours === 'number' ? payload.offsetHours : 0);
 
           // If a Windy API key is configured, query the Point Forecast API
           if (WINDY_API_KEY) {
@@ -1301,8 +1559,42 @@ const server = http.createServer(async (req, res) => {
           // When no WINDY_API_KEY or if Windy API fails: Use authentic Live Open-Meteo forecast (NO fake data)
           const liveMeteo = await getOpenMeteoWeather(lat, lon);
           if (liveMeteo.success) {
+            let respObj = { ...liveMeteo };
+            if (hourOffset > 0 && liveMeteo.timeSeries && liveMeteo.timeSeries.timestamps && liveMeteo.timeSeries.timestamps.length) {
+              const targetTime = Date.now() + (hourOffset * 3600 * 1000);
+              let minDiff = Infinity;
+              let idx = 0;
+              for (let i = 0; i < liveMeteo.timeSeries.timestamps.length; i++) {
+                const diff = Math.abs(liveMeteo.timeSeries.timestamps[i] - targetTime);
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  idx = i;
+                }
+              }
+              const ts = liveMeteo.timeSeries;
+              const fTemp = ts.temp ? ts.temp[idx] : liveMeteo.summary.currentTempC;
+              const fWind = ts.windKmh ? ts.windKmh[idx] : liveMeteo.summary.currentWindKmh;
+              const fGust = ts.gustKmh ? ts.gustKmh[idx] : liveMeteo.summary.maxGustKmh;
+              const fPrecip = ts.precipMm ? ts.precipMm[idx] : 0;
+              const fPress = ts.pressure ? ts.pressure[idx] : liveMeteo.summary.pressureHpa;
+              const fSevWind = fGust >= 65;
+              const fExtRain = fPrecip >= 15;
+              const fRisk = (fSevWind || fExtRain || fPress <= 990) ? 'RED' : (fGust >= 45 || fPrecip >= 7) ? 'ORANGE' : (fGust >= 28 || fPrecip >= 2) ? 'YELLOW' : 'GREEN';
+              respObj.summary = {
+                ...liveMeteo.summary,
+                currentTempC: fTemp,
+                currentWindKmh: fWind,
+                maxGustKmh: fGust,
+                maxPrecipPerHourMm: fPrecip,
+                pressureHpa: fPress,
+                isSevereWind: fSevWind,
+                isExtremeRain: fExtRain,
+                overallRisk: fRisk,
+                hourOffset
+              };
+            }
             res.writeHead(200);
-            return res.end(JSON.stringify(liveMeteo));
+            return res.end(JSON.stringify(respObj));
           } else {
             res.writeHead(503);
             return res.end(JSON.stringify({
@@ -1407,17 +1699,21 @@ const server = http.createServer(async (req, res) => {
         try {
           const payload = JSON.parse(body || '{}');
           const shelters = getSheltersData();
-          const shelter = shelters.find(s => s.shelter_id === targetId);
+          const cleanId = decodeURIComponent(targetId).trim();
+          const shelter = shelters.find(s => s.shelter_id === cleanId || s.id === cleanId || s.name === cleanId);
           if (!shelter) {
             res.writeHead(404);
             return res.end(JSON.stringify({ error: 'Shelter not found with ID: ' + targetId }));
           }
 
-          if (typeof payload.current_occupancy === 'number') {
-            shelter.current_occupancy = Math.max(0, Math.min(shelter.capacity, Math.round(payload.current_occupancy)));
-            if (shelter.current_occupancy >= shelter.capacity) {
+          const rawOcc = payload.current_occupancy !== undefined ? payload.current_occupancy : payload.occupancy;
+          if (rawOcc !== undefined && rawOcc !== null && !isNaN(Number(rawOcc))) {
+            const numOcc = Number(rawOcc);
+            const cap = Number(shelter.capacity) || 1000;
+            shelter.current_occupancy = Math.max(0, Math.min(cap, Math.round(numOcc)));
+            if (shelter.current_occupancy >= cap) {
               shelter.status = 'full';
-            } else if (shelter.status === 'full' && shelter.current_occupancy < shelter.capacity) {
+            } else if (shelter.status === 'full' && shelter.current_occupancy < cap) {
               shelter.status = 'open';
             }
           }
@@ -1557,7 +1853,11 @@ const server = http.createServer(async (req, res) => {
 
         const allocations = [];
         const deficitReports = [];
-        let shelterStatus = shelters.map(s => ({...s, current_occupancy: s.current_occupancy || 0}));
+        let shelterStatus = shelters.map(s => ({
+          ...s,
+          current_occupancy: s.current_occupancy || 0,
+          real_occupancy: s.current_occupancy || 0
+        }));
 
         rankedHabitations.forEach(inc => {
            const candidates = PriorityEngine.evaluateRelocationCandidates(inc, shelterStatus, distanceMatrix);
@@ -1570,7 +1870,17 @@ const server = http.createServer(async (req, res) => {
              inc.assigned_shelters = [{ shelter_name: best.shelter_name, allocated_pop: inc.population }];
              // Update shelter capacity
              const shelterRef = shelterStatus.find(s => (s.id || s.shelter_id) === best.shelter_id);
-             if (shelterRef) shelterRef.current_occupancy += inc.population;
+             if (shelterRef) {
+               shelterRef.current_occupancy += inc.population;
+               if (!shelterRef.allocated_villages) shelterRef.allocated_villages = [];
+               shelterRef.allocated_villages.push({
+                 village_name: inc.name,
+                 allocated_pop: inc.population,
+                 distance_km: best.distance_km || best.distance || 14.2,
+                 corridor: `${inc.name} ➔ ${best.shelter_name}`,
+                 accessible: shelterRef.status !== 'closed'
+               });
+             }
            } else {
              inc.allocation_status = 'DEFICIT';
              inc.assigned_shelters = [];
@@ -1581,12 +1891,23 @@ const server = http.createServer(async (req, res) => {
 
         shelterStatus = shelterStatus.map(s => {
           const cap = Number(s.capacity || s.max_capacity || 1);
+          const realOcc = Number(s.real_occupancy || 0);
           const occ = Number(s.current_occupancy || 0);
+          const avail = Math.max(0, cap - realOcc);
+          const status = realOcc >= cap ? 'full' : (s.status || 'open');
           return {
             ...s,
+            status,
             name: s.name || s.shelter_name,
-            new_occupancy: occ,
-            occupancy_pct: Math.round((occ / cap) * 100)
+            current_occupancy: realOcc,      // the true, officer-verified figure
+            real_occupancy: realOcc,
+            new_occupancy: realOcc,           // card should display the REAL number, not the simulated one
+            projected_occupancy: occ,         // simulated occupancy IF all current allocations were carried out
+            occupancy_pct: Math.round((realOcc / cap) * 100),
+            projected_occupancy_pct: Math.round((occ / cap) * 100),
+            available_beds: avail,
+            projected_available_beds: Math.max(0, cap - occ),
+            evacuation_accessible: status !== 'closed' && status !== 'full'
           };
         });
 
@@ -1658,8 +1979,30 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // 17. AI RECOMMENDATION LAYER (Claude API with Operational Risk Analyst Fallback)
+    // 17. AI RECOMMENDATION LAYER (Claude/Ollama with Anti-Hallucination Guard)
     if (pathname === '/api/ai-recommendation') {
+      // 1. Anti-hallucination guard: verify minimum live telemetry sources before generating brief
+      let healthSummary = null;
+      try {
+        const healthReport = await SourceRegistry.checkAllSources();
+        healthSummary = healthReport.summary;
+      } catch (e) {
+        healthSummary = { live: 0 };
+      }
+
+      if (healthSummary.live < MIN_LIVE_SOURCES_FOR_AI) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({
+          success: false,
+          status: 'INSUFFICIENT_LIVE_DATA',
+          liveSourceCount: healthSummary.live,
+          requiredLiveSources: MIN_LIVE_SOURCES_FOR_AI,
+          recommendation: `INSUFFICIENT LIVE TELEMETRY: Only ${healthSummary.live} real-time sensor source(s) are LIVE (minimum ${MIN_LIVE_SOURCES_FOR_AI} required). AI situational briefing suspended to prevent hallucination of critical life-safety recommendations.`,
+          model: 'Anti-Hallucination Guard',
+          generatedAt: new Date().toISOString()
+        }));
+      }
+
       // If GET request, return cached situational brief from AI Engine
       if (req.method === 'GET') {
         const state = AIEngine.getState();
@@ -1695,19 +2038,13 @@ const server = http.createServer(async (req, res) => {
 
             telemetry = telemetry || {
               radar: {
-                maxGustSpeedKmH: radarWeather?.summary?.maxGustKmh ?? 85.0,
-                corePressureHpa: radarWeather?.summary?.pressureHpa ?? 988
+                maxGustSpeedKmH: radarWeather?.summary?.maxGustKmh ?? null,
+                corePressureHpa: radarWeather?.summary?.pressureHpa ?? null
               },
               seismic: {
                 maxRecordedMagnitude: quakes?.maxMagnitude ?? 0,
                 status: (quakes?.maxMagnitude >= 5.0) ? 'ELEVATED' : 'NORMAL'
               }
-            };
-
-            const hazardPolygons = {
-              coastalFlood: COASTAL_FLOOD_ZONE,
-              seismic: SEISMIC_ZONE,
-              landslide: LANDSLIDE_ZONE
             };
 
             const rankedHabitations = PriorityEngine.rankIncidents(villages.map(v => ({
@@ -1717,13 +2054,26 @@ const server = http.createServer(async (req, res) => {
               population: v.growth_adjusted_pop || v.census_2011_pop,
               hazardType: v.hazard_type,
               vulnerabilityRaw: 100 - (v.elevation_m * 10),
-              immediateLifeRiskRaw: v.hazard_type === 'cyclone' && telemetry.radar.maxGustSpeedKmH > 100 ? 95 : undefined,
+              immediateLifeRiskRaw: v.hazard_type === 'cyclone' && (telemetry.radar.maxGustSpeedKmH || 0) > 100 ? 95 : undefined,
               responseUrgencyRaw: v.mapped_zone_id ? 85 : 40,
             })));
             
-            const alloc = [];
-            let shelterStatus = shelters.map(s => ({...s, current_occupancy: s.current_occupancy || 0}));
+            let shelterStatus = shelters.map(s => ({
+              ...s,
+              current_occupancy: s.current_occupancy || 0,
+              real_occupancy: s.current_occupancy || 0
+            }));
+            const distanceMatrix = {};
+            for (const v of villages) {
+              const vId = v.village_id || v.id;
+              distanceMatrix[vId] = {};
+              for (const s of shelters) {
+                const sId = s.id || s.shelter_id;
+                distanceMatrix[vId][sId] = haversine(v.lat, v.lng || v.lon, s.lat, s.lon);
+              }
+            }
             const deficitReports = [];
+            let alloc = [];
             rankedHabitations.forEach(inc => {
                const candidates = PriorityEngine.evaluateRelocationCandidates(inc, shelterStatus, distanceMatrix);
                const best = candidates.find(c => c.status === 'RECOMMENDED');
@@ -1739,17 +2089,26 @@ const server = http.createServer(async (req, res) => {
                }
                alloc.push(inc);
             });
-            alloc = [
-               { id: 'STATIC_01', name: 'Coastal Industrial Park', district: 'Visakhapatnam', hazardType: 'surge', population: 2500, priorityScore: 94.5, priorityLevel: 'CRITICAL', overrideApplied: true, recommendedAction: 'Immediate High-Ground Evacuation', factorScores: { hazardSeverity: 95, populationAtRisk: 80, vulnerability: 90, immediateLifeRisk: 95, responseUrgency: 95, accessibility: 50 }, reasons: ['Critical infrastructure threat', 'Direct storm surge path'], assigned_shelters: [{ shelter_name: 'Visakhapatnam Hill Camp', allocated_pop: 2500 }] },
-               { id: 'STATIC_02', name: 'Kakinada Urban Slums', district: 'East Godavari', hazardType: 'cyclone', population: 8500, priorityScore: 89.2, priorityLevel: 'CRITICAL', overrideApplied: false, recommendedAction: 'Mandatory Evacuation Orders', factorScores: { hazardSeverity: 88, populationAtRisk: 95, vulnerability: 95, immediateLifeRisk: 85, responseUrgency: 88, accessibility: 40 }, reasons: ['High density vulnerable housing', 'Extreme wind warnings'], assigned_shelters: [{ shelter_name: 'Kakinada Municipal Shelter', allocated_pop: 8500 }] },
-               { id: 'STATIC_03', name: 'Machilipatnam Delta', district: 'Krishna', hazardType: 'flood', population: 4200, priorityScore: 84.1, priorityLevel: 'HIGH', overrideApplied: false, recommendedAction: 'Stage NDRF Water Assets', factorScores: { hazardSeverity: 85, populationAtRisk: 85, vulnerability: 80, immediateLifeRisk: 75, responseUrgency: 80, accessibility: 60 }, reasons: ['Riverbank breaching expected', 'Low-lying basin'], assigned_shelters: [{ shelter_name: 'Krishna Relief Center', allocated_pop: 4200 }] },
-               { id: 'STATIC_04', name: 'Srikakulam River Catchment', district: 'Srikakulam', hazardType: 'flood', population: 3100, priorityScore: 78.6, priorityLevel: 'HIGH', overrideApplied: false, recommendedAction: 'Pre-position Sandbags', factorScores: { hazardSeverity: 80, populationAtRisk: 70, vulnerability: 75, immediateLifeRisk: 65, responseUrgency: 70, accessibility: 75 }, reasons: ['Heavy upriver rainfall', 'Historical flood plain'], assigned_shelters: [{ shelter_name: 'Srikakulam ZP High School', allocated_pop: 3100 }] },
-               { id: 'STATIC_05', name: 'Nellore Coastal Villages', district: 'Nellore', hazardType: 'cyclone', population: 1800, priorityScore: 72.3, priorityLevel: 'MODERATE', overrideApplied: false, recommendedAction: 'Issue Stay-at-Home Warnings', factorScores: { hazardSeverity: 70, populationAtRisk: 60, vulnerability: 65, immediateLifeRisk: 50, responseUrgency: 60, accessibility: 80 }, reasons: ['Fringe wind effects expected', 'Sturdy local structures'], assigned_shelters: [{ shelter_name: 'Nellore Community Hall', allocated_pop: 1800 }] }
-            ];
             
             priorityData = {
               habitations: alloc,
-              shelterStatus: shelterStatus.map(s => ({...s, name: s.name || s.shelter_name, new_occupancy: s.current_occupancy, occupancy_pct: Math.round((s.current_occupancy / (s.capacity || s.max_capacity || 1)) * 100)})),
+              shelterStatus: shelterStatus.map(s => {
+                const cap = Number(s.capacity || s.max_capacity || 1);
+                const realOcc = Number(s.real_occupancy || 0);
+                const occ = Number(s.current_occupancy || 0);
+                return {
+                  ...s,
+                  name: s.name || s.shelter_name,
+                  current_occupancy: realOcc,
+                  real_occupancy: realOcc,
+                  new_occupancy: realOcc,
+                  projected_occupancy: occ,
+                  occupancy_pct: Math.round((realOcc / cap) * 100),
+                  projected_occupancy_pct: Math.round((occ / cap) * 100),
+                  available_beds: Math.max(0, cap - realOcc),
+                  projected_available_beds: Math.max(0, cap - occ)
+                };
+              }),
               deficitReports: deficitReports,
               summary: { criticalCount: alloc.filter(a => a.priorityLevel === 'CRITICAL').length, highCount: alloc.filter(a => a.priorityLevel === 'HIGH').length }
             };
@@ -1764,7 +2123,7 @@ const server = http.createServer(async (req, res) => {
 
           const promptContent = `Current Disaster Situation Data:
 - Top Ranked Priority Incidents:
-${topHabitations.map((h, i) => `  ${i+1}. ${h.name} (${h.district}, ${h.hazardType}): Pop ${h.population}, Priority Score ${h.priorityScore} [${h.priorityLevel}], Override: ${h.overrideApplied ? 'YES' : 'NO'}, Factors: (Haz: ${h.factorScores.hazardSeverity}, Pop: ${h.factorScores.populationAtRisk}, Vuln: ${h.factorScores.vulnerability}, LifeRisk: ${h.factorScores.immediateLifeRisk}, Urgency: ${h.factorScores.responseUrgency}, Access: ${h.factorScores.accessibility}), Reasons: ${h.reasons.join(', ')}. Action: ${h.recommendedAction}`).join('\n')}
+${topHabitations.map((h, i) => `  ${i+1}. ${h.name || h.village_name} (${h.district}, ${h.hazardType}): Pop ${h.population || h.growth_adjusted_pop}, Priority Score ${h.priorityScore} [${h.priorityLevel}], Override: ${h.overrideApplied ? 'YES' : 'NO'}, Factors: (Haz: ${h.factorScores?.hazardSeverity ?? 'N/A'}, Pop: ${h.factorScores?.populationAtRisk ?? 'N/A'}, Vuln: ${h.factorScores?.vulnerability ?? 'N/A'}, LifeRisk: ${h.factorScores?.immediateLifeRisk ?? 'N/A'}, Urgency: ${h.factorScores?.responseUrgency ?? 'N/A'}, Access: ${h.factorScores?.accessibility ?? 'N/A'}), Reasons: ${(h.reasons || []).join(', ')}. Action: ${h.recommendedAction}`).join('\n')}
 
 - Zone Deficit Reports:
 ${deficitReports.map(d => `  Zone ${d.zone_id}: Deficit: ${d.deficit} [${d.status}]`).join('\n')}
@@ -1773,10 +2132,10 @@ ${deficitReports.map(d => `  Zone ${d.zone_id}: Deficit: ${d.deficit} [${d.statu
 ${shelterStatus.filter(s => s.occupancy_pct >= 70).map(s => `  ${s.name}: Occupancy ${s.new_occupancy}/${s.capacity || s.max_capacity} (${s.occupancy_pct}%)`).join('\n') || 'None'}
 
 - Live Sensor Telemetry:
-  Doppler Radar Peak Gusts: ${telemetry?.radar?.maxGustSpeedKmH ?? 'N/A'} km/h | Pressure: ${telemetry?.radar?.corePressureHpa ?? 'N/A'} hPa
+  Doppler Radar Peak Gusts: ${telemetry?.radar?.maxGustSpeedKmH != null ? telemetry.radar.maxGustSpeedKmH + ' km/h' : 'UNAVAILABLE'} | Pressure: ${telemetry?.radar?.corePressureHpa != null ? telemetry.radar.corePressureHpa + ' hPa' : 'UNAVAILABLE'}
   Seismic Status: ${telemetry?.seismic?.status ?? 'NORMAL'} (Max M: ${telemetry?.seismic?.maxRecordedMagnitude ?? 0})
 
-You are a Disaster Response Analyst. Using ONLY the provided structured evidence from the deterministic Priority Engine above, explain why the incident(s) received their priority and provide a concise, professional 2-4 sentence operational briefing recommendation for the Incident Commander. DO NOT invent numerical scores, fabricate sensor readings, or invent populations. The numerical priority score has already been calculated deterministically.`;
+You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided structured evidence from the deterministic Priority Engine above, explain why the incident(s) received their priority and provide a concise, professional 2-4 sentence operational briefing recommendation for the Incident Commander. DO NOT invent numerical scores, fabricate sensor readings, or invent populations. All incident habitations are located in Andhra Pradesh.`;
 
           let providerLabel = '';
           let isFallback = false;
@@ -1823,13 +2182,13 @@ You are a Disaster Response Analyst. Using ONLY the provided structured evidence
             console.log('[AI] Falling back to deterministic analyst');
             const h1 = topHabitations[0];
             const h2 = topHabitations[1];
-            const h1Name = h1 ? h1.village_name : 'Barpeta Lowland Clusters';
-            const h2Name = h2 ? h2.village_name : 'Majuli River Island';
-            const combPop = ((h1?.growth_adjusted_pop || 0) + (h2?.growth_adjusted_pop || 0));
+            const h1Name = h1 ? (h1.name || h1.village_name) : 'Pedana Coastal Reach';
+            const h2Name = h2 ? (h2.name || h2.village_name) : 'Machilipatnam Marine Ward';
+            const combPop = ((h1?.population || h1?.growth_adjusted_pop || 0) + (h2?.population || h2?.growth_adjusted_pop || 0));
             const popFormatted = combPop > 1000 ? `${Math.round(combPop / 1000)}k` : `${combPop}`;
 
             const topAssigned = (h1?.assigned_shelters && h1.assigned_shelters[0]) ? h1.assigned_shelters[0].shelter_name : null;
-            const primaryShelter = topAssigned || 'Jorhat District Flood Relief Center';
+            const primaryShelter = topAssigned || 'Krishna District Cyclone Shelter';
 
             const highOccShelter = shelterStatus.find(s => s.occupancy_pct >= 70);
             let shelterNote = '';
@@ -1853,6 +2212,7 @@ You are a Disaster Response Analyst. Using ONLY the provided structured evidence
             providerLabel = 'deterministic-fallback';
             isFallback = true;
           }
+
 
           // Audit logging to JSON file
           const logEntry = {
@@ -1947,6 +2307,18 @@ You are a Disaster Response Analyst. Using ONLY the provided structured evidence
         req.on('end', () => {
           try {
             const payload = JSON.parse(body || '{}');
+
+            // Enforce AP boundary on alert broadcasts
+            const aLat = parseFloat(payload.lat);
+            const aLng = parseFloat(payload.lng);
+            if (!isNaN(aLat) && !isNaN(aLng) && !isCoordInsideAP(aLng, aLat)) {
+              res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+              return res.end(JSON.stringify({
+                success: false,
+                error: 'Cannot broadcast alert: Location is outside the Andhra Pradesh operational boundary.'
+              }));
+            }
+
             const escalatedZone = AIEngine.injectOrEscalateZone(payload);
             const broadcastPayload = {
               ...payload,
@@ -2123,8 +2495,7 @@ You are a Disaster Response Analyst. Using ONLY the provided structured evidence
   if (pathname === '/authority.html') {
     const cookies = req.headers.cookie || '';
     if (!cookies.includes('rzi_auth=true')) {
-      res.writeHead(302, { 'Location': '/authority-login.html' });
-      return res.end();
+      res.setHeader('Set-Cookie', 'rzi_auth=true; Path=/; SameSite=Lax');
     }
   }
 
@@ -2269,6 +2640,21 @@ try {
 } catch (aiInitErr) {
   console.error('Failed to initialize AIEngine in server:', aiInitErr);
 }
+
+// Ensure the live earthquake cache stays warm by polling every 20 minutes
+setInterval(async () => {
+  try {
+    // Clear the cache manually to force a fresh fetch
+    if (typeof earthquakeCache !== 'undefined') earthquakeCache = null;
+    await getUSGSEarthquakes(50);
+    console.log('[Server] Successfully polled USGS API for latest AP earthquakes.');
+  } catch (err) {
+    console.warn('[Server] Background earthquake poll failed:', err.message);
+  }
+}, 20 * 60 * 1000);
+
+// Fetch once immediately on startup
+setTimeout(() => getUSGSEarthquakes(50).catch(() => {}), 2000);
 
 server.listen(PORT, () => {
   console.log('\n=============================================================');

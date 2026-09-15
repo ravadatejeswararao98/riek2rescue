@@ -45,7 +45,7 @@ body.login-page {
 .login-bg-mesh {
   position: fixed;
   inset: 0;
-  background: 
+  background:
     radial-gradient(ellipse 70% 50% at 85% 20%, rgba(37, 99, 235, 0.06) 0%, transparent 60%),
     radial-gradient(ellipse 60% 40% at 65% 75%, rgba(34, 197, 94, 0.04) 0%, transparent 60%),
     #f8fafc;
@@ -211,7 +211,7 @@ body.login-page {
 .hero-panel-bg {
   position: absolute;
   inset: 0;
-  background-image: 
+  background-image:
     linear-gradient(180deg, rgba(7, 13, 24, 0.15) 0%, rgba(7, 13, 24, 0.25) 60%, rgba(7, 13, 24, 0.35) 100%),
     linear-gradient(90deg, rgba(7, 13, 24, 0.32) 0%, rgba(7, 13, 24, 0.18) 50%, rgba(7, 13, 24, 0.28) 100%),
     url('../assets/coastal-hero.jpg');
@@ -536,9 +536,20 @@ body.login-page {
 }
 
 @keyframes pulseDot {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.8; }
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
 }
 
 .tele-icon {
@@ -686,6 +697,7 @@ body.login-page {
     gap: 32px;
     padding: 24px 24px;
   }
+
   .hero-left-panel {
     min-height: 480px;
   }
@@ -698,21 +710,26 @@ body.login-page {
     align-items: flex-start;
     gap: 14px;
   }
+
   .nav-right {
     width: 100%;
     justify-content: space-between;
   }
+
   .main-wrapper {
     padding: 16px;
   }
+
   .cards-grid {
     grid-template-columns: 1fr;
   }
+
   .telemetry-bar {
     flex-direction: column;
     align-items: flex-start;
     gap: 14px;
   }
+
   .bottom-footer {
     padding: 16px 20px;
     flex-direction: column;

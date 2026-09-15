@@ -206,7 +206,7 @@
             district: d.name,
             manual: true
           }));
-        } catch (_) {}
+        } catch (_) { }
 
         // Redirect to citizen.html with query parameters
         window.location.href = locService.buildCitizenUrl(d.lat, d.lng, d.name);
@@ -238,18 +238,18 @@
     clearLocRedirect();
 
     const sDetecting = document.getElementById('loc-state-detecting');
-    const sSuccess   = document.getElementById('loc-state-success');
-    const sFallback  = document.getElementById('loc-state-fallback');
-    const errorText  = document.getElementById('loc-error-text');
-    const placeName  = document.getElementById('loc-place-name');
+    const sSuccess = document.getElementById('loc-state-success');
+    const sFallback = document.getElementById('loc-state-fallback');
+    const errorText = document.getElementById('loc-error-text');
+    const placeName = document.getElementById('loc-place-name');
     const distSelect = document.getElementById('loc-district-select');
 
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
 
     if (sDetecting) sDetecting.style.display = 'none';
-    if (sSuccess)   sSuccess.style.display   = 'none';
-    if (sFallback)  sFallback.style.display  = 'none';
+    if (sSuccess) sSuccess.style.display = 'none';
+    if (sFallback) sFallback.style.display = 'none';
 
     // 1. Requesting state
     if (state === 'detecting') {
@@ -277,7 +277,7 @@
           district: info.districtName,
           manual: false
         }));
-      } catch (_) {}
+      } catch (_) { }
 
       const locService = getLocationService();
       const targetUrl = (locService && typeof locService.buildCitizenUrl === 'function')

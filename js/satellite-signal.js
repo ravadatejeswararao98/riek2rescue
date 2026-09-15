@@ -139,80 +139,68 @@ class SatelliteSignal {
       return this.firmsCache;
 
     } catch (err) {
-      console.warn('[SatelliteSignal] NASA FIRMS live fetch failed, using cached or fallback signal:', err.message);
-      if (this.firmsCache.hotspots.length > 0) return this.firmsCache;
+      console.warn('[SatelliteSignal] NASA FIRMS live fetch failed:', err.message);
+      if (this.firmsCache.hotspots && this.firmsCache.hotspots.length > 0) return this.firmsCache;
 
-      // Deterministic synthetic baseline if FIRMS endpoint is temporarily unreachable
+      // Honest status: never invent synthetic fire points
       return {
-        hotspots: [
-          { lat: 16.98, lon: 82.23, frp: 7.8, confidence: 'nominal', brightness: 326.4, date: new Date().toISOString().split('T')[0], time: '0630' },
-          { lat: 17.02, lon: 82.26, frp: 12.4, confidence: 'high', brightness: 341.2, date: new Date().toISOString().split('T')[0], time: '0632' },
-          { lat: 26.22, lon: 91.80, frp: 5.1, confidence: 'nominal', brightness: 318.5, date: new Date().toISOString().split('T')[0], time: '0715' }
-        ],
-        rawCount: 3,
+        status: 'UNAVAILABLE',
+        hotspots: [],
+        rawCount: 0,
         fetchedAt: now,
-        isFallback: true
+        isFallback: false,
+        error: err.message
       };
     }
   }
 
   /**
-   * 2. Sentinel Hub Free-Tier Processing API / Flood Composite Ingestion
+   * 2. Real Copernicus Data Space Ecosystem (Sentinel-1 SAR Flood Ingestion)
    */
   async fetchSentinelFloodSignals(focalPoints = []) {
-    const clientId = process.env.SENTINEL_HUB_CLIENT_ID;
-    const clientSecret = process.env.SENTINEL_HUB_CLIENT_SECRET;
-
-    // If credentials exist, query the real Sentinel Hub Processing API
-    if (clientId && clientSecret) {
-      try {
-        const token = await this.getSentinelAuthToken(clientId, clientSecret);
-        if (token) {
-          const remoteResults = await this.callSentinelProcessingApi(token, focalPoints);
-          if (remoteResults) return remoteResults;
+    try {
+      const { getCopernicusFloodSignal } = require('../sources/copernicus.js');
+      if (typeof getCopernicusFloodSignal === 'function') {
+        const copernicusRes = await getCopernicusFloodSignal(focalPoints);
+        if (copernicusRes && copernicusRes.signals && copernicusRes.signals.length > 0) {
+          return {
+            provider: 'Copernicus Data Space Ecosystem (Sentinel-1 SAR GRD)',
+            isLiveAuthenticated: true,
+            status: copernicusRes.status || 'LIVE',
+            composites: copernicusRes.signals.map(s => ({
+              locationKey: s.locationKey || `${s.lat.toFixed(2)},${s.lng.toFixed(2)}`,
+              lat: s.lat,
+              lng: s.lng,
+              waterIndexExpansionPct: Math.round((s.waterPixelFraction || 0) * 1000) / 10,
+              floodRiskStatus: s.waterPixelFraction > 0.2 ? 'HIGH_INUNDATION' : (s.waterPixelFraction > 0.1 ? 'ELEVATED_INUNDATION' : 'NORMAL'),
+              satelliteSensor: s.sensor || 'Sentinel-1 SAR GRD',
+              sceneId: s.sceneId || 'N/A',
+              acquiredAt: s.acquiredAt || new Date().toISOString(),
+              observedAt: new Date().toISOString()
+            }))
+          };
         }
-      } catch (e) {
-        console.warn('[SatelliteSignal] Sentinel Hub Processing API failed, using composited proxy:', e.message);
+        if (copernicusRes && copernicusRes.status === 'NOT_CONFIGURED') {
+          return {
+            provider: 'Copernicus Data Space Ecosystem (Sentinel-1 SAR GRD)',
+            isLiveAuthenticated: false,
+            status: 'NOT_CONFIGURED',
+            detail: 'Add COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET to .env',
+            composites: []
+          };
+        }
       }
+    } catch (e) {
+      console.warn('[SatelliteSignal] Copernicus integration error:', e.message);
     }
 
-    // Default: High-fidelity Sentinel-2 NDWI / SAR Flood Composite
-    // Computes server-side surface water delta based on focal point coastal distance & precipitation
-    const results = focalPoints.map(pt => {
-      const isCoastal = Math.abs(pt.lat - 16.98) < 1.0 && Math.abs(pt.lng - 82.25) < 1.0;
-      const isAssam = Math.abs(pt.lat - 26.18) < 1.5;
-      
-      let waterIndexExpansionPct = 0;
-      let floodRiskStatus = 'NORMAL';
-      let satelliteSensor = 'Sentinel-2 L2A (10m Multi-spectral)';
-
-      if (isCoastal) {
-        waterIndexExpansionPct = 18.6; // High tidal surge / coastal inundation expansion
-        floodRiskStatus = 'ELEVATED_INUNDATION';
-        satelliteSensor = 'Sentinel-1 SAR GRD + Sentinel-2 NDWI Composite';
-      } else if (isAssam) {
-        waterIndexExpansionPct = 24.2; // Riverine basin flood overflow
-        floodRiskStatus = 'HIGH_INUNDATION';
-        satelliteSensor = 'Sentinel-1 SAR GRD (All-Weather Flood Penetration)';
-      }
-
-      return {
-        locationKey: pt.key || `${pt.lat.toFixed(2)},${pt.lng.toFixed(2)}`,
-        lat: pt.lat,
-        lng: pt.lng,
-        waterIndexExpansionPct,
-        floodRiskStatus,
-        satelliteSensor,
-        cloudCoverPct: 12.0,
-        evalscriptVersion: 'v3-ndwi-mndwi-flood-ratio',
-        observedAt: new Date().toISOString()
-      };
-    });
-
+    // Default when credentials are unset: NOT_CONFIGURED, zero fabricated values
     return {
-      provider: 'Sentinel Hub Processing API (Composite Model)',
+      provider: 'Copernicus Data Space Ecosystem (Sentinel-1 SAR GRD)',
       isLiveAuthenticated: false,
-      composites: results
+      status: (process.env.COPERNICUS_CLIENT_ID && process.env.COPERNICUS_CLIENT_SECRET) ? 'UNAVAILABLE' : 'NOT_CONFIGURED',
+      detail: (process.env.COPERNICUS_CLIENT_ID && process.env.COPERNICUS_CLIENT_SECRET) ? 'Copernicus upstream unavailable' : 'Add COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET to .env',
+      composites: []
     };
   }
 
@@ -340,9 +328,9 @@ function evaluatePixel(sample) {
     const firmsData = await this.fetchNasaFirmsHotspots();
     const focalPoints = [
       { key: 'kakinada_uppada', lat: 16.98, lng: 82.25, name: 'Kakinada-Uppada Coast' },
-      { key: 'assam_brahmaputra', lat: 26.18, lng: 91.73, name: 'Assam Flood Corridor' },
-      { key: 'chamoli_hills', lat: 30.55, lng: 79.56, name: 'Chamoli Landslide Sector' },
-      { key: 'manipur_belt', lat: 24.81, lng: 93.98, name: 'Manipur Fault Line Corridor' }
+      { key: 'godavari_delta', lat: 16.58, lng: 82.01, name: 'Godavari Delta Inundation Corridor' },
+      { key: 'krishna_diviseema', lat: 16.02, lng: 80.92, name: 'Diviseema Coastal Reach' },
+      { key: 'araku_ghats', lat: 18.33, lng: 82.88, name: 'Araku Valley Landslide Belt' }
     ];
 
     const sentinelData = await this.fetchSentinelFloodSignals(focalPoints);
@@ -370,14 +358,16 @@ function evaluatePixel(sample) {
         }
       }
 
-      // Match closest Sentinel composite
-      let matchedSentinel = sentinelData.composites[0];
+      // Match closest Sentinel composite if available
+      let matchedSentinel = (sentinelData.composites && sentinelData.composites.length > 0) ? sentinelData.composites[0] : null;
       let closestDist = Infinity;
-      for (const comp of sentinelData.composites) {
-        const d = this.calcDistanceKm(zLat, zLng, comp.lat, comp.lng);
-        if (d < closestDist) {
-          closestDist = d;
-          matchedSentinel = comp;
+      if (sentinelData.composites && sentinelData.composites.length > 0) {
+        for (const comp of sentinelData.composites) {
+          const d = this.calcDistanceKm(zLat, zLng, comp.lat, comp.lng);
+          if (d < closestDist) {
+            closestDist = d;
+            matchedSentinel = comp;
+          }
         }
       }
 
@@ -389,41 +379,47 @@ function evaluatePixel(sample) {
         activeHotspotCount: nearbyHotspots.length,
         maxFrpMw: Math.round(maxFrp * 10) / 10,
         nearbyHotspots: nearbyHotspots.slice(0, 5),
-        floodExpansionPct: matchedSentinel ? matchedSentinel.waterIndexExpansionPct : 0,
-        floodRiskStatus: matchedSentinel ? matchedSentinel.floodRiskStatus : 'NORMAL',
-        sensor: matchedSentinel ? matchedSentinel.satelliteSensor : 'Sentinel-2 L2A'
+        floodExpansionPct: matchedSentinel ? matchedSentinel.waterIndexExpansionPct : null,
+        floodRiskStatus: matchedSentinel ? matchedSentinel.floodRiskStatus : (sentinelData.status || 'NOT_CONFIGURED'),
+        sensor: matchedSentinel ? matchedSentinel.satelliteSensor : 'Copernicus Sentinel-1 SAR (Not Configured)'
       };
     });
 
     // Total subcontinental and regional summary
     const totalMonitoredHotspots = zoneSignals.reduce((acc, z) => acc + z.activeHotspotCount, 0);
     const zonesWithFires = zoneSignals.filter(z => z.activeHotspotCount > 0);
-    const zonesWithFloods = zoneSignals.filter(z => z.floodExpansionPct >= 15);
+    const zonesWithFloods = zoneSignals.filter(z => z.floodExpansionPct !== null && z.floodExpansionPct >= 15);
 
     const briefingStatements = [];
-    if (zonesWithFires.length > 0) {
+    if (firmsData.status === 'UNAVAILABLE') {
+      briefingStatements.push('NASA VIIRS thermal anomaly feed currently unavailable from upstream.');
+    } else if (zonesWithFires.length > 0) {
       const topFireZone = zonesWithFires[0];
       briefingStatements.push(`NASA VIIRS detected ${topFireZone.activeHotspotCount} active fire hotspot(s) (peak FRP ${topFireZone.maxFrpMw} MW) within 35km of ${topFireZone.zoneName}.`);
     } else {
       briefingStatements.push('NASA VIIRS thermal anomaly sweep confirms zero active fire clusters in monitored habitations.');
     }
 
-    if (zonesWithFloods.length > 0) {
+    if (sentinelData.status === 'NOT_CONFIGURED') {
+      briefingStatements.push('Copernicus Sentinel-1 SAR radar flood layer not configured (add credentials to .env).');
+    } else if (zonesWithFloods.length > 0) {
       const topFloodZone = zonesWithFloods[0];
-      briefingStatements.push(`Sentinel-2 / SAR composite reveals +${topFloodZone.floodExpansionPct}% surface-water inundation expansion across ${topFloodZone.zoneName}.`);
+      briefingStatements.push(`Sentinel-1 SAR radar reveals +${topFloodZone.floodExpansionPct}% surface-water inundation expansion across ${topFloodZone.zoneName}.`);
     }
 
     return {
       fetchedAt: new Date().toISOString(),
-      firmsSubcontinentTotal: firmsData.rawCount,
+      firmsSubcontinentTotal: firmsData.rawCount || 0,
       totalMonitoredHotspots,
       zonesWithFiresCount: zonesWithFires.length,
       zonesWithFloodsCount: zonesWithFloods.length,
       briefingStatements,
       zoneSignals,
-      sentinelProvider: sentinelData.provider
+      sentinelProvider: sentinelData.provider,
+      sentinelStatus: sentinelData.status
     };
   }
+
 }
 
 const instance = new SatelliteSignal();

@@ -74,8 +74,9 @@ let citizenMarker = null;
 let citizenWeatherTimer = null;
 let lastResolvedCoords = null;
 
-// Track active citizen location globally
+// Track active citizen location and selected search place globally
 window.citizenCurrentLocation = { lat: 16.9891, lng: 82.2475, place: 'Kakinada, AP', default: true };
+window.citizenSelectedPlace = null;
 
 /**
  * Map weather summary metrics & WMO condition codes to standard UI emoji
@@ -114,7 +115,7 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
   if (chipCity && place) {
     chipCity.textContent = place;
   }
-  
+
   // 0. Update badge immediately so we don't hang on CHECKING...
   updateCitizenRiskBadge({ lat, lng });
 
@@ -158,7 +159,7 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
         lng,
         time: Date.now()
       }));
-    } catch (e) {}
+    } catch (e) { }
 
   } catch (err) {
     console.warn('Live weather fetch failed, falling back to cached snapshot:', err.message);
@@ -175,14 +176,16 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
         if (chipWind) chipWind.textContent = '12 km/h';
         if (chipIcon) chipIcon.textContent = '🌤️';
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // 2. Risk Zone Check (Point-in-polygon containment check via /api/risk-zone)
   try {
     const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Risk zone timeout')), 5000));
     const risk = await Promise.race([RZILocationService.checkRiskZone(lat, lng), timeoutPromise]);
-    window.citizenCurrentLocation = { lat, lng, place, risk };
+    if (!window.citizenSelectedPlace || (window.citizenSelectedPlace.lat !== lat || window.citizenSelectedPlace.lng !== lng)) {
+      window.citizenCurrentLocation = { lat, lng, place, risk };
+    }
 
     // Update topbar chip dynamically from live AI engine state
     updateCitizenRiskBadge({ lat, lng });
@@ -214,48 +217,55 @@ function updateCitizenRiskBadge(coords) {
   };
   if (!citizenLoc || isNaN(citizenLoc.lat) || isNaN(citizenLoc.lng)) return null;
 
-  const tierRank = (t) => {
-    t = (t || '').toUpperCase();
-    if (t === 'RED' || t === 'CRITICAL') return 3;
-    if (t === 'ORANGE' || t === 'HIGH') return 2;
-    if (t === 'YELLOW' || t === 'MODERATE' || t === 'ADVISORY') return 1;
-    return 0;
-  };
-
   let highestTier = 'GREEN';
   let activeZone = null;
 
-  // Gather all active zones from hazardEngine.aiState and HAZARD_INTEL
-  const allZones = [];
-  if (window.hazardEngine && window.hazardEngine.aiState && Array.isArray(window.hazardEngine.aiState.allZones)) {
-    allZones.push(...window.hazardEngine.aiState.allZones);
-  }
-  if (typeof HAZARD_INTEL !== 'undefined') {
-    Object.values(HAZARD_INTEL).forEach(h => {
-      if (Array.isArray(h.zones)) {
-        h.zones.forEach(z => {
-          if (!allZones.some(az => az.id === z.id)) allZones.push(z);
-        });
+  if (typeof window.getZoneForCoordinates === 'function') {
+    const zInfo = window.getZoneForCoordinates(citizenLoc.lat, citizenLoc.lng);
+    if (zInfo && zInfo.level) {
+      highestTier = zInfo.level;
+      activeZone = zInfo.zone;
+    }
+  } else {
+    const tierRank = (t) => {
+      t = (t || '').toUpperCase();
+      if (t === 'RED' || t === 'CRITICAL') return 3;
+      if (t === 'ORANGE' || t === 'HIGH') return 2;
+      if (t === 'YELLOW' || t === 'MODERATE' || t === 'ADVISORY') return 1;
+      return 0;
+    };
+
+    const allZones = [];
+    if (window.hazardEngine && window.hazardEngine.aiState && Array.isArray(window.hazardEngine.aiState.allZones)) {
+      allZones.push(...window.hazardEngine.aiState.allZones);
+    }
+    if (typeof HAZARD_INTEL !== 'undefined') {
+      Object.values(HAZARD_INTEL).forEach(h => {
+        if (Array.isArray(h.zones)) {
+          h.zones.forEach(z => {
+            if (!allZones.some(az => az.id === z.id)) allZones.push(z);
+          });
+        }
+      });
+    }
+
+    allZones.forEach(z => {
+      const zLat = z.epicenter ? z.epicenter.lat : z.lat;
+      const zLng = z.epicenter ? z.epicenter.lng : z.lng;
+      if (isNaN(zLat) || isNaN(zLng)) return;
+
+      const distKm = distanceKm(citizenLoc.lat, citizenLoc.lng, zLat, zLng);
+      const radiusKm = (z.baseRadius || z.radius || 28000) / 1000;
+
+      if (distKm <= radiusKm) {
+        const tier = (z.current_tier || z.level || 'GREEN').toUpperCase();
+        if (tierRank(tier) > tierRank(highestTier)) {
+          highestTier = tier;
+          activeZone = z;
+        }
       }
     });
   }
-
-  allZones.forEach(z => {
-    const zLat = z.epicenter ? z.epicenter.lat : z.lat;
-    const zLng = z.epicenter ? z.epicenter.lng : z.lng;
-    if (isNaN(zLat) || isNaN(zLng)) return;
-
-    const distKm = distanceKm(citizenLoc.lat, citizenLoc.lng, zLat, zLng);
-    const radiusKm = (z.baseRadius || z.radius || 28000) / 1000;
-
-    if (distKm <= radiusKm) {
-      const tier = (z.current_tier || z.level || 'GREEN').toUpperCase();
-      if (tierRank(tier) > tierRank(highestTier)) {
-        highestTier = tier;
-        activeZone = z;
-      }
-    }
-  });
 
   chipRisk.className = 'windy-risk-chip';
   if (highestTier === 'RED' || highestTier === 'CRITICAL') {
@@ -310,10 +320,11 @@ async function initCitizenLocation() {
     const pos = await Promise.race([RZILocationService.detectLocation(), timeoutPromise]);
     lat = pos.lat;
     lng = pos.lng;
+    window.citizenGPSLocation = { lat: Number(lat.toFixed(4)), lng: Number(lng.toFixed(4)), place };
     console.log(`[LOCATION] success, latitude=${lat}, longitude=${lng}`);
   } catch (err) {
     console.warn('[LOCATION] GPS failed, checking fallbacks:', err.message);
-    
+
     // 2. Fallback to URL parameters if GPS fails
     const loc = RZILocationService.parseLocationParams();
     if (loc) {
@@ -332,7 +343,8 @@ async function initCitizenLocation() {
   }
 
   // 4. Commit State IMMEDIATELY
-  window.citizenCurrentLocation = { lat, lng, place: place || 'Local Area', risk: { tier: 'GREEN' } };
+  const isFallback = Boolean(place && place.includes('Fallback'));
+  window.citizenCurrentLocation = { lat, lng, place: place || 'Local Area', risk: { tier: 'GREEN' }, default: isFallback };
   console.log('[LOCATION] state updated');
 
   // 5. Update Map Center & Marker (Synchronously relative to the user)
@@ -352,7 +364,7 @@ async function initCitizenLocation() {
           if (chipCity) chipCity.textContent = reverse.display;
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   } else {
     if (chipCity) chipCity.textContent = place;
   }
@@ -405,8 +417,8 @@ function flyToShelter(id, lat, lng, name) {
     disasterMap.getMap().closePopup();
   }
 
-  // 2. Pan and fly map smoothly to shelter location
-  flyToCitizenMap(numLat, numLng, 13);
+  // 2. Pan and fly map smoothly to shelter location at local street level
+  flyToCitizenMap(numLat, numLng, 14);
 
   // 3. Find matching shelter marker in disasterMap.markers.safeSites
   let targetMarker = null;
@@ -488,11 +500,11 @@ function placeAndActivateCitizenLocation(lat, lng, place) {
   if (citizenMarker) {
     try {
       if (disasterMap && disasterMap.getMap()) disasterMap.getMap().removeLayer(citizenMarker);
-    } catch (e) {}
+    } catch (e) { }
     citizenMarker = null;
   }
 
-  // Fly to location
+  // Fly to location at street/local-area zoom (matching reference zoom 12)
   flyToCitizenMap(lat, lng, 12);
 
   // Build pulsing "You are here" marker
@@ -510,7 +522,7 @@ function placeAndActivateCitizenLocation(lat, lng, place) {
   citizenMarker = L.marker([lat, lng], { icon: pulseIcon, zIndexOffset: 9000 })
     .addTo(leafletMap)
     .bindPopup(buildCitizenPopupHtml(lat, lng, place, window.citizenCurrentLocation?.risk), {
-      className: 'location-popup-wrapper', maxWidth: 320, minWidth: 260
+      className: 'location-popup-wrapper', maxWidth: 340, minWidth: 280
     })
     .openPopup();
 
@@ -554,17 +566,17 @@ function buildCitizenPopupHtml(lat, lng, place, risk) {
       </div>
       <div class="location-popup-shelters-list">
         ${risk.shelters.map(s => {
-          const matched = (window.APP_DATA && APP_DATA.safeSites)
-            ? APP_DATA.safeSites.find(x =>
-                x.name.toLowerCase().includes((s.name || '').toLowerCase()) ||
-                (s.name || '').toLowerCase().includes(x.name.toLowerCase())
-              )
-            : null;
-          const sLat = (s.lat !== undefined && s.lat !== null) ? s.lat : (matched?.lat || 16.9891);
-          const sLng = (s.lng !== undefined && s.lng !== null) ? s.lng : (matched?.lng || 82.2475);
-          const sId = s.id || matched?.id || '';
-          const sNameEsc = (s.name || 'Shelter').replace(/'/g, "\\'");
-          return `
+    const matched = (window.APP_DATA && APP_DATA.safeSites)
+      ? APP_DATA.safeSites.find(x =>
+        x.name.toLowerCase().includes((s.name || '').toLowerCase()) ||
+        (s.name || '').toLowerCase().includes(x.name.toLowerCase())
+      )
+      : null;
+    const sLat = (s.lat !== undefined && s.lat !== null) ? s.lat : (matched?.lat || 16.9891);
+    const sLng = (s.lng !== undefined && s.lng !== null) ? s.lng : (matched?.lng || 82.2475);
+    const sId = s.id || matched?.id || '';
+    const sNameEsc = (s.name || 'Shelter').replace(/'/g, "\\'");
+    return `
             <button type="button" class="location-popup-shelter-btn" onclick="flyToShelter('${sId}', ${sLat}, ${sLng}, '${sNameEsc}')" title="Navigate to ${escapeHtml(s.name)} on map">
               <span class="shelter-btn-left">
                 <span class="shelter-btn-icon">🛡️</span>
@@ -573,7 +585,7 @@ function buildCitizenPopupHtml(lat, lng, place, risk) {
               <span class="shelter-btn-dist">${s.dist_km} km &rsaquo;</span>
             </button>
           `;
-        }).join('')}
+  }).join('')}
       </div>
     </div>
   ` : '';
@@ -618,8 +630,8 @@ function selectHazard(key, fly) {
     fetch('/api/earthquakes/live')
       .then(r => r.json())
       .then(data => {
-        if (data && data.earthquakes && data.earthquakes.length > 0 && currentHazard === 'earthquake') {
-          HAZARD_INTEL.earthquake.summary = `Live USGS Seismic Monitor: ${data.count} global events (M2.5+) in last 24h. Peak: M${data.maxMagnitude} (${data.latest?.place || 'active fault'}).`;
+        if (data && data.earthquakes && currentHazard === 'earthquake') {
+          HAZARD_INTEL.earthquake.summary = `Live USGS Seismic Monitor: ${data.count} Andhra Pradesh events (M2.5+) in last 24h. ${data.latest ? `Peak: M${data.maxMagnitude} (${data.latest.place}).` : ''}`;
           HAZARD_INTEL.earthquake.alerts = data.earthquakes.slice(0, 10).map(eq => ({
             level: eq.mag >= 5.0 ? 'CRITICAL' : eq.mag >= 4.0 ? 'HIGH' : 'MODERATE',
             title: `M${eq.mag.toFixed(1)} — ${eq.place}`,
@@ -726,47 +738,63 @@ function initSearch() {
       (h.zones || []).forEach(z => {
         const zLat = z.epicenter ? z.epicenter.lat : z.lat;
         const zLng = z.epicenter ? z.epicenter.lng : z.lng;
-        const zRisk = z.current_tier || z.level || 'RED';
-        const zType = (window.RISK_STYLE && window.RISK_STYLE[zRisk]?.label) || zRisk;
+        const zInfo = (typeof window.getZoneForCoordinates === 'function')
+          ? window.getZoneForCoordinates(zLat, zLng)
+          : null;
+        const zRisk = (zInfo && zInfo.level) ? zInfo.level : (z.current_tier || z.level || 'RED');
+        const classification = (typeof window.classifyLocationType === 'function')
+          ? window.classifyLocationType(z)
+          : { type: 'Danger Zone' };
         const name = z.village_name || z.name;
-        if (name) {
+        if (name && !seenNames.has(name.toLowerCase())) {
           seenNames.add(name.toLowerCase());
           places.push({
             name,
-            region: h.label || 'Active Hazard Belt',
+            region: `${h.label || 'Hazard'} Risk Zone • ${z.district || 'AP'}`,
             lat: zLat,
             lng: zLng,
             risk: zRisk,
-            type: zType || 'Danger Zone',
+            type: classification.type || 'Danger Zone',
             hazard: key,
-            isOsm: false
+            isOsm: false,
+            population: z.pop || z.population || 0,
+            district: z.district || ''
           });
         }
       });
       (h.safeSites || []).forEach(s => {
-        if (s.name) {
+        if (s.name && !seenNames.has(s.name.toLowerCase())) {
           seenNames.add(s.name.toLowerCase());
+          const zInfo = (typeof window.getZoneForCoordinates === 'function')
+            ? window.getZoneForCoordinates(s.lat, s.lng)
+            : null;
+          const sRisk = (zInfo && zInfo.level) ? zInfo.level : 'GREEN';
           places.push({
             name: s.name,
-            region: h.label || 'Safe Sector',
+            region: s.capacity ? `Designated Shelter • Cap: ${s.capacity}` : (h.label || 'Safe Sector'),
             lat: s.lat,
             lng: s.lng,
-            risk: 'GREEN',
+            risk: sRisk,
             type: 'Safe Shelter',
+            capacity: s.capacity,
             hazard: key,
             isOsm: false
           });
         }
       });
       (h.habitations || []).forEach(v => {
-        if (v.name) {
+        if (v.name && !seenNames.has(v.name.toLowerCase())) {
           seenNames.add(v.name.toLowerCase());
+          const zInfo = (typeof window.getZoneForCoordinates === 'function')
+            ? window.getZoneForCoordinates(v.lat, v.lng)
+            : null;
+          const vRisk = (zInfo && zInfo.level) ? zInfo.level : (v.risk || 'YELLOW');
           places.push({
             name: v.name,
             region: h.label || 'Habitation',
             lat: v.lat,
             lng: v.lng,
-            risk: v.risk || 'YELLOW',
+            risk: vRisk,
             type: 'Habitation',
             hazard: key,
             isOsm: false
@@ -774,6 +802,51 @@ function initSearch() {
         }
       });
     });
+
+    // Also include APP_DATA.safeSites & APP_DATA.habitations
+    if (typeof APP_DATA !== 'undefined') {
+      (APP_DATA.safeSites || []).forEach(s => {
+        if (s.name && !seenNames.has(s.name.toLowerCase())) {
+          seenNames.add(s.name.toLowerCase());
+          const zInfo = (typeof window.getZoneForCoordinates === 'function')
+            ? window.getZoneForCoordinates(s.lat, s.lng)
+            : null;
+          const sRisk = (zInfo && zInfo.level) ? zInfo.level : 'GREEN';
+          places.push({
+            name: s.name,
+            region: s.capacity ? `Designated Shelter • Cap: ${s.capacity}` : 'Safe Shelter',
+            lat: s.lat,
+            lng: s.lng,
+            risk: sRisk,
+            type: s.type || 'Safe Shelter',
+            capacity: s.capacity,
+            district: s.district || '',
+            isOsm: false
+          });
+        }
+      });
+      (APP_DATA.habitations || []).forEach(hab => {
+        if (hab.name && !seenNames.has(hab.name.toLowerCase())) {
+          seenNames.add(hab.name.toLowerCase());
+          const hLng = hab.lng || hab.lon;
+          const zInfo = (typeof window.getZoneForCoordinates === 'function')
+            ? window.getZoneForCoordinates(hab.lat, hLng)
+            : null;
+          const hRisk = (zInfo && zInfo.level) ? zInfo.level : (hab.risk || 'GREEN');
+          places.push({
+            name: hab.name,
+            region: `Habitation • ${hab.district || 'AP'}`,
+            lat: hab.lat,
+            lng: hLng,
+            risk: hRisk,
+            type: 'Habitation',
+            population: hab.pop || hab.growth_adjusted_pop || 0,
+            district: hab.district || '',
+            isOsm: false
+          });
+        }
+      });
+    }
 
     // 2. Full Andhra Pradesh location set from RZILocationService (districts & mandals)
     if (typeof RZILocationService !== 'undefined') {
@@ -785,13 +858,20 @@ function initSearch() {
         const locName = loc.name;
         if (locName && !seenNames.has(locName.toLowerCase())) {
           seenNames.add(locName.toLowerCase());
+          const zInfo = (typeof window.getZoneForCoordinates === 'function')
+            ? window.getZoneForCoordinates(loc.lat, loc.lng)
+            : null;
+          const locRisk = (zInfo && zInfo.level) ? zInfo.level : 'GREEN';
+          const classification = (typeof window.classifyLocationType === 'function')
+            ? window.classifyLocationType(loc)
+            : { type: loc.type || 'District' };
           places.push({
             name: locName,
             region: loc.region || loc.district || 'Andhra Pradesh',
             lat: loc.lat,
             lng: loc.lng,
-            risk: 'GREEN',
-            type: loc.type || 'District',
+            risk: locRisk,
+            type: classification.type || loc.type || 'District',
             hazard: null,
             isOsm: false
           });
@@ -822,16 +902,41 @@ function initSearch() {
       <span class="risk-badge ${riskBadgeClass}">${riskBadgeText}</span>`;
 
     item.addEventListener('click', () => {
+      const zInfo = (typeof window.getZoneForCoordinates === 'function')
+        ? window.getZoneForCoordinates(p.lat, p.lng)
+        : { level: p.risk || 'GREEN' };
+      const effectiveRisk = zInfo.level;
+
+      // Track currently selected searched place state
+      window.citizenSelectedPlace = {
+        name: p.name,
+        region: p.region,
+        lat: p.lat,
+        lng: p.lng,
+        risk: effectiveRisk,
+        type: p.type
+      };
+
       if (p.hazard && p.hazard !== currentHazard) selectHazard(p.hazard, false);
-      const zoom = p.type === 'District' ? 10 : (p.isOsm ? 14 : 12);
-      flyToCitizenMap(p.lat, p.lng, zoom);
+      const zoom = p.type === 'District' ? 10 : (p.isOsm ? 15 : 14);
+      if (disasterMap && typeof disasterMap.setLocatePointer === 'function') {
+        disasterMap.setLocatePointer(p.lat, p.lng, {
+          name: p.name,
+          level: effectiveRisk,
+          desc: `${p.region} &bull; ${p.type}`,
+          zoom: zoom
+        });
+      } else {
+        flyToCitizenMap(p.lat, p.lng, zoom);
+      }
       dropdown.style.display = 'none';
       input.value = p.name;
+      if (clearBtn) clearBtn.style.display = 'block';
       openInspector(
         p.name,
         { lat: p.lat, lng: p.lng },
-        p.risk,
-        p.risk === 'RED' ? '140 km/h' : '20 km/h',
+        effectiveRisk,
+        effectiveRisk === 'RED' ? '140 km/h' : '20 km/h',
         p.type,
         nearestShelterText()
       );
@@ -849,8 +954,8 @@ function initSearch() {
     }
 
     try {
-      const queryParam = normQ.includes('andhra') ? normQ : `${normQ}, Andhra Pradesh`;
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryParam)}&addressdetails=1&limit=5&countrycodes=in`;
+      const queryParam = normQ;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryParam)}&addressdetails=1&limit=10&countrycodes=in`;
       const resp = await fetch(url, {
         headers: { 'Accept-Language': 'en', 'User-Agent': 'RedZoneIntelligence/2.0' }
       });
@@ -859,16 +964,25 @@ function initSearch() {
 
       const results = (data || []).map(item => {
         const parts = (item.display_name || '').split(',').map(s => s.trim());
-        const name = parts.slice(0, 2).join(', ') || item.display_name;
-        const region = parts.slice(2, 4).join(', ') || 'Andhra Pradesh';
-        const rawType = item.type ? (item.type.charAt(0).toUpperCase() + item.type.slice(1).replace(/_/g, ' ')) : 'Street / Landmark';
+        const name = parts[0] || item.display_name;
+        const region = parts.slice(1, 3).join(', ') || 'India';
+        const zInfo = (typeof window.getZoneForCoordinates === 'function')
+          ? window.getZoneForCoordinates(parseFloat(item.lat), parseFloat(item.lon))
+          : null;
+        const itemRisk = (zInfo && zInfo.level) ? zInfo.level : 'GREEN';
+        const classification = (typeof window.classifyLocationType === 'function')
+          ? window.classifyLocationType(item)
+          : { type: 'OpenStreetMap' };
+
         return {
           name,
           region,
           lat: parseFloat(item.lat),
           lng: parseFloat(item.lon),
-          risk: 'GREEN',
-          type: rawType,
+          risk: itemRisk,
+          type: classification.type || 'OpenStreetMap',
+          class: item.class,
+          addresstype: item.type,
           hazard: null,
           isOsm: true
         };
@@ -882,6 +996,30 @@ function initSearch() {
     }
   }
 
+  function resetLocalAreaToDefault() {
+    window.citizenSelectedPlace = null;
+    const defaultLoc = window.citizenCurrentLocation || { lat: 16.9891, lng: 82.2475, place: 'Kakinada, AP' };
+    const defaultPlace = defaultLoc.place || 'Kakinada, AP';
+    const chipCity = document.getElementById('chip-city');
+    if (chipCity) {
+      chipCity.textContent = defaultPlace;
+    }
+    if (defaultLoc.lat && defaultLoc.lng) {
+      updateCitizenWeatherAndRisk(defaultLoc.lat, defaultLoc.lng, defaultPlace);
+    }
+  }
+  window.resetCitizenLocalAreaToDefault = resetLocalAreaToDefault;
+
+  function clearCitizenSearchSelection() {
+    input.value = '';
+    if (clearBtn) clearBtn.style.display = 'none';
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+    if (debounceTimer) clearTimeout(debounceTimer);
+    resetLocalAreaToDefault();
+  }
+  window.clearCitizenSearchSelection = clearCitizenSearchSelection;
+
   input.addEventListener('input', () => {
     const rawQ = input.value.trim();
     const q = rawQ.toLowerCase();
@@ -892,7 +1030,16 @@ function initSearch() {
     if (!q) {
       dropdown.style.display = 'none';
       dropdown.innerHTML = '';
+      // Reset Local Area to normal/default state when search input is cleared
+      if (window.citizenSelectedPlace) {
+        resetLocalAreaToDefault();
+      }
       return;
+    }
+
+    // If text was modified away from currently selected place name, reset selected place state
+    if (window.citizenSelectedPlace && rawQ !== window.citizenSelectedPlace.name) {
+      resetLocalAreaToDefault();
     }
 
     // 1. Immediate local dataset match
@@ -901,12 +1048,16 @@ function initSearch() {
       p.name.toLowerCase().includes(q) ||
       p.region.toLowerCase().includes(q) ||
       p.type.toLowerCase().includes(q)
-    ).slice(0, 7);
+    );
+
+    if (typeof window.computeSearchRank === 'function') {
+      localMatches.sort((a, b) => window.computeSearchRank(a, q) - window.computeSearchRank(b, q));
+    }
 
     dropdown.innerHTML = '';
     dropdown.style.display = 'flex';
 
-    localMatches.forEach(p => {
+    localMatches.slice(0, 7).forEach(p => {
       dropdown.appendChild(renderItem(p));
     });
 
@@ -924,11 +1075,17 @@ function initSearch() {
       const seenLocNames = new Set(localMatches.map(m => m.name.toLowerCase()));
       const filteredOsm = cachedOsm.filter(o => !seenLocNames.has(o.name.toLowerCase()));
 
-      filteredOsm.forEach(p => {
+      const combined = [...localMatches, ...filteredOsm];
+      if (typeof window.computeSearchRank === 'function') {
+        combined.sort((a, b) => window.computeSearchRank(a, q) - window.computeSearchRank(b, q));
+      }
+
+      dropdown.innerHTML = '';
+      combined.slice(0, 8).forEach(p => {
         dropdown.appendChild(renderItem(p));
       });
 
-      if (!localMatches.length && !filteredOsm.length) {
+      if (!combined.length) {
         dropdown.innerHTML = '<div style="padding:10px; font-size:12px; color:#94a3b8; text-align:center;">Nothing found</div>';
       }
       return;
@@ -958,11 +1115,17 @@ function initSearch() {
       const seenLocNames = new Set(localMatches.map(m => m.name.toLowerCase()));
       const filteredOsm = osmResults.filter(o => !seenLocNames.has(o.name.toLowerCase()));
 
-      filteredOsm.forEach(p => {
+      const combined = [...localMatches, ...filteredOsm];
+      if (typeof window.computeSearchRank === 'function') {
+        combined.sort((a, b) => window.computeSearchRank(a, q) - window.computeSearchRank(b, q));
+      }
+
+      dropdown.innerHTML = '';
+      combined.slice(0, 8).forEach(p => {
         dropdown.appendChild(renderItem(p));
       });
 
-      if (!localMatches.length && !filteredOsm.length) {
+      if (!combined.length) {
         dropdown.innerHTML = '<div style="padding:10px; font-size:12px; color:#94a3b8; text-align:center;">Nothing found</div>';
       }
     }, 400);
@@ -970,11 +1133,7 @@ function initSearch() {
 
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
-      input.value = '';
-      clearBtn.style.display = 'none';
-      dropdown.style.display = 'none';
-      dropdown.innerHTML = '';
-      if (debounceTimer) clearTimeout(debounceTimer);
+      clearCitizenSearchSelection();
     });
   }
 
@@ -984,6 +1143,7 @@ function initSearch() {
     }
   });
 }
+window.initSearch = initSearch;
 
 // ================================================================
 // LEFT TOOLS
@@ -994,7 +1154,22 @@ function initLeftTools() {
     RZILocationService.detectLocation()
       .then(async ({ lat, lng }) => {
         const place = await RZILocationService.reverseGeocode(lat, lng);
+        if (window.citizenCurrentLocation) {
+          window.citizenCurrentLocation.lat = lat;
+          window.citizenCurrentLocation.lng = lng;
+          window.citizenCurrentLocation.place = place.display;
+          delete window.citizenCurrentLocation.default;
+        }
+        window.citizenGPSLocation = { lat: Number(lat.toFixed(4)), lng: Number(lng.toFixed(4)), place: place.display };
+        window.citizenSelectedPlace = null;
+        const searchInput = document.getElementById('windy-search');
+        const searchClear = document.getElementById('windy-search-clear');
+        if (searchInput) searchInput.value = '';
+        if (searchClear) searchClear.style.display = 'none';
+        const chipCity = document.getElementById('chip-city');
+        if (chipCity) chipCity.textContent = place.display;
         placeAndActivateCitizenLocation(lat, lng, place.display);
+        updateCitizenWeatherAndRisk(lat, lng, place.display);
         showToast(`📍 Located: ${place.display}`, 'success');
       })
       .catch((err) => {
@@ -1067,6 +1242,14 @@ function initMapInspector() {
 
   disasterMap.getMap().on('click', (e) => {
     const { lat, lng } = e.latlng;
+    if (typeof window.isInsideAndhraPradesh === 'function' && !window.isInsideAndhraPradesh(lat, lng)) {
+      inspector.classList.remove('active');
+      currentInspectedZone = null;
+      if (window.hazardEngine && typeof window.hazardEngine.hideRevealedSafeSites === 'function') {
+        window.hazardEngine.hideRevealedSafeSites();
+      }
+      return;
+    }
     const h = HAZARD_INTEL[currentHazard];
     if (!h) return;
 
@@ -1132,7 +1315,12 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
     ? window.hazardEngine.timelineStep
     : 0;
 
-  const currentTier = z.current_tier || z.level || risk || 'GREEN';
+  const zInfo = (typeof window.getZoneForCoordinates === 'function')
+    ? window.getZoneForCoordinates(lat, lng)
+    : null;
+  const currentTier = (zInfo && zInfo.level)
+    ? zInfo.level
+    : (z.current_tier || z.level || risk || 'GREEN');
   const activeTier = (stepIndex === 0)
     ? currentTier
     : (z.forecast_tier_by_hour?.[stepIndex] || currentTier);
@@ -1355,25 +1543,33 @@ function initReportModal() {
       const desc = document.getElementById('rep-desc').value;
       const phone = document.getElementById('rep-phone').value;
 
-      let lat = 16.9891;
-      let lng = 82.2475;
-      if (window.citizenCurrentLocation && window.citizenCurrentLocation.lat) {
+      let lat = null;
+      let lng = null;
+      let locAccuracy = null;
+
+      if (window.citizenGPSLocation && typeof window.citizenGPSLocation.lat === 'number' && !isNaN(window.citizenGPSLocation.lat)) {
+        lat = window.citizenGPSLocation.lat;
+        lng = window.citizenGPSLocation.lng;
+        locAccuracy = window.citizenGPSLocation.accuracy || null;
+      } else if (window.citizenCurrentLocation && typeof window.citizenCurrentLocation.lat === 'number' && !window.citizenCurrentLocation.default) {
         lat = window.citizenCurrentLocation.lat;
         lng = window.citizenCurrentLocation.lng;
-      } else if (window.disasterMap && window.disasterMap.getMap) {
-        const center = window.disasterMap.getMap().getCenter();
-        lat = center.lat;
-        lng = center.lng;
       }
+
+      const hasValidCoords = lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 
       const reportPayload = {
         id: 'REP-' + Date.now().toString().slice(-6),
         type,
-        location: loc,
+        location: loc || (hasValidCoords ? `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E` : 'Location unavailable'),
         desc,
         phone,
-        lat,
-        lng,
+        lat: hasValidCoords ? lat : null,
+        lng: hasValidCoords ? lng : null,
+        latitude: hasValidCoords ? lat : null,
+        longitude: hasValidCoords ? lng : null,
+        locationAccuracy: locAccuracy,
+        locationStatus: hasValidCoords ? 'available' : 'unavailable',
         photo: currentPhotoBase64,
         severity: type === 'Stranded' ? 'Critical' : type === 'Flood' ? 'High' : 'Medium',
         reporter: 'Citizen (' + (phone.slice(-4) || 'Live') + ')',
@@ -1391,7 +1587,7 @@ function initReportModal() {
         const existing = JSON.parse(localStorage.getItem('rzi_citizen_reports') || '[]');
         existing.unshift(reportPayload);
         localStorage.setItem('rzi_citizen_reports', JSON.stringify(existing));
-      } catch (e) {}
+      } catch (e) { }
 
       // Reset form fields
       form.reset();
@@ -1407,12 +1603,6 @@ function initReportModal() {
           }
         } else {
           try {
-            fetch('/api/reports', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(reportPayload)
-            }).catch(() => {});
-
             if (window.firebaseLive) {
               await window.firebaseLive.submitCitizenReport(reportPayload);
             }
@@ -1440,7 +1630,7 @@ function playEmergencyChime() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.45);
-  } catch (e) {}
+  } catch (e) { }
 }
 
 // ================================================================
@@ -1555,8 +1745,8 @@ function handleIncomingAuthorityAlert(alert) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(alert)
-    }).catch(() => {});
-  } catch (e) {}
+    }).catch(() => { });
+  } catch (e) { }
 
   // 4. Update Citizen live topbar risk badge immediately without page refresh
   updateCitizenRiskBadge();
@@ -1877,7 +2067,7 @@ function registerServiceWorker() {
         .catch(() => {
           // Degrade silently
         });
-    } catch (e) {}
+    } catch (e) { }
   }
 }
 
@@ -1898,7 +2088,7 @@ function saveHazardSnapshot(hazardKey) {
         time: Date.now()
       }));
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function restoreHazardSnapshot() {
@@ -1911,7 +2101,7 @@ function restoreHazardSnapshot() {
       updateCachedIndicator(true);
       return true;
     }
-  } catch (e) {}
+  } catch (e) { }
   return false;
 }
 
@@ -1925,7 +2115,7 @@ function queueOfflineSubmission(payload) {
     });
     localStorage.setItem('rzi_offline_queue', JSON.stringify(queue));
     updateCachedIndicator(true);
-  } catch (e) {}
+  } catch (e) { }
 }
 window.queueOfflineSubmission = queueOfflineSubmission;
 
@@ -1988,3 +2178,27 @@ function initOfflineSupport() {
     restoreHazardSnapshot();
   }
 }
+
+// FORCE SYNC REAL-WORLD HAZARDS
+setTimeout(() => {
+  if (window.firebaseLive && window.firebaseLive.db) {
+    // 1. Wipe out any old demo zones from Firestore
+    window.firebaseLive.db.collection('risk_zones').get().then(snap => {
+      snap.forEach(doc => {
+        if (!['RZ_IMD_001', 'RZ_IMD_002', 'RZ_EQ_001'].includes(doc.id)) {
+          window.firebaseLive.db.collection('risk_zones').doc(doc.id).delete();
+        }
+      });
+    });
+    // 2. Inject current authentic real-world zones
+    if (window.APP_DATA && window.APP_DATA.riskZones) {
+      window.APP_DATA.riskZones.forEach(zone => {
+        if (typeof window.firebaseLive.broadcastZoneCreation === 'function') {
+          window.firebaseLive.broadcastZoneCreation(zone);
+        } else if (typeof window.firebaseLive.forceAddZoneToMemory === 'function') {
+           window.firebaseLive.forceAddZoneToMemory(zone);
+        }
+      });
+    }
+  }
+}, 3000);
