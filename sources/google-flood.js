@@ -85,18 +85,31 @@ async function getGoogleFloodForecast() {
     // Search gauges around Godavari / Krishna basins in Andhra Pradesh (lat 14 to 18.5, lon 79 to 82.5)
     const url = `https://${GOOGLE_FLOOD_API_HOST}/v1/gauges:searchByArea?key=${encodeURIComponent(apiKey)}&polygon.coordinates=[{"latitude":14.0,"longitude":79.0},{"latitude":18.5,"longitude":81.0},{"latitude":17.0,"longitude":82.5},{"latitude":14.0,"longitude":80.5}]&includeNonQualityVerified=true`;
     const json = await fetchJson(url, 8000);
-    const gauges = (json.gauges || []).map(g => ({
+    let isCoordInsideAP = null;
+    try {
+      const cwcMod = require('./cwc-nwic.js');
+      isCoordInsideAP = cwcMod.isCoordInsideAP;
+    } catch(e) {}
+
+    const rawGauges = (json.gauges || []).map(g => ({
       gaugeId: g.gaugeId || g.name,
       displayName: g.displayName || g.location?.name || 'AP Basin Gauge',
-      lat: g.location?.latitude || null,
-      lon: g.location?.longitude || null,
+      lat: (g.location && typeof g.location.latitude === 'number') ? g.location.latitude : null,
+      lon: (g.location && typeof g.location.longitude === 'number') ? g.location.longitude : null,
       river: g.river || 'Godavari/Krishna Basin',
       qualityVerified: !!g.qualityVerified,
-      forecastStatus: g.forecastStatus || 'NORMAL',
+      forecastStatus: g.forecastStatus || 'UNKNOWN',
       peakForecastDate: g.peakForecastTime || null,
       forecastLeadTimeHours: 48,
+      sourceId: 'google_flood_forecast',
+      provenance: 'google_flood_forecast_live',
       attribution: 'Google Flood Hub (CC BY 4.0)'
     }));
+
+    // Filter strictly inside Andhra Pradesh
+    const gauges = typeof isCoordInsideAP === 'function'
+      ? rawGauges.filter(g => g.lat !== null && g.lon !== null && isCoordInsideAP(g.lon, g.lat))
+      : rawGauges;
 
     const result = {
       success: true,

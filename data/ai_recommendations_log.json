@@ -1,5 +1,2753 @@
 [
   {
+    "id": "REC-1789540947872",
+    "timestamp": "2026-09-16T06:42:27.872Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789535137916",
+    "timestamp": "2026-09-16T05:05:37.916Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789531875136",
+    "timestamp": "2026-09-16T04:11:15.136Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789526846454",
+    "timestamp": "2026-09-16T02:47:26.454Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789526846452",
+    "timestamp": "2026-09-16T02:47:26.452Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789526846440",
+    "timestamp": "2026-09-16T02:47:26.440Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789526769547",
+    "timestamp": "2026-09-16T02:46:09.547Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789526769543",
+    "timestamp": "2026-09-16T02:46:09.543Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789526767830",
+    "timestamp": "2026-09-16T02:46:07.830Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789526704757",
+    "timestamp": "2026-09-16T02:45:04.757Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789526704755",
+    "timestamp": "2026-09-16T02:45:04.755Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789526704744",
+    "timestamp": "2026-09-16T02:45:04.744Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789526311028",
+    "timestamp": "2026-09-16T02:38:31.028Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789526311026",
+    "timestamp": "2026-09-16T02:38:31.026Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789526311015",
+    "timestamp": "2026-09-16T02:38:31.015Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789525891699",
+    "timestamp": "2026-09-16T02:31:31.699Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789525891698",
+    "timestamp": "2026-09-16T02:31:31.698Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789525891685",
+    "timestamp": "2026-09-16T02:31:31.685Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524914017",
+    "timestamp": "2026-09-16T02:15:14.017Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789524914015",
+    "timestamp": "2026-09-16T02:15:14.015Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524914004",
+    "timestamp": "2026-09-16T02:15:14.004Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524833362",
+    "timestamp": "2026-09-16T02:13:53.362Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789524833361",
+    "timestamp": "2026-09-16T02:13:53.361Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524833349",
+    "timestamp": "2026-09-16T02:13:53.349Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524765459",
+    "timestamp": "2026-09-16T02:12:45.459Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789524765457",
+    "timestamp": "2026-09-16T02:12:45.457Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524765436",
+    "timestamp": "2026-09-16T02:12:45.436Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524536294",
+    "timestamp": "2026-09-16T02:08:56.294Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789524536292",
+    "timestamp": "2026-09-16T02:08:56.292Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524536280",
+    "timestamp": "2026-09-16T02:08:56.280Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524408663",
+    "timestamp": "2026-09-16T02:06:48.663Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789524408659",
+    "timestamp": "2026-09-16T02:06:48.659Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524408648",
+    "timestamp": "2026-09-16T02:06:48.648Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524356604",
+    "timestamp": "2026-09-16T02:05:56.604Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789524356602",
+    "timestamp": "2026-09-16T02:05:56.602Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524356585",
+    "timestamp": "2026-09-16T02:05:56.585Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524280830",
+    "timestamp": "2026-09-16T02:04:40.830Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789524280829",
+    "timestamp": "2026-09-16T02:04:40.829Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524280818",
+    "timestamp": "2026-09-16T02:04:40.818Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524195024",
+    "timestamp": "2026-09-16T02:03:15.024Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789524195023",
+    "timestamp": "2026-09-16T02:03:15.023Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789524195011",
+    "timestamp": "2026-09-16T02:03:15.011Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789523019425",
+    "timestamp": "2026-09-16T01:43:39.425Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789523019423",
+    "timestamp": "2026-09-16T01:43:39.423Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789523019412",
+    "timestamp": "2026-09-16T01:43:39.412Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522746450",
+    "timestamp": "2026-09-16T01:39:06.450Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789522746449",
+    "timestamp": "2026-09-16T01:39:06.449Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522746439",
+    "timestamp": "2026-09-16T01:39:06.439Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522732561",
+    "timestamp": "2026-09-16T01:38:52.561Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789522732559",
+    "timestamp": "2026-09-16T01:38:52.559Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522732548",
+    "timestamp": "2026-09-16T01:38:52.548Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522171148",
+    "timestamp": "2026-09-16T01:29:31.148Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789522171146",
+    "timestamp": "2026-09-16T01:29:31.146Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522171136",
+    "timestamp": "2026-09-16T01:29:31.136Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522153337",
+    "timestamp": "2026-09-16T01:29:13.337Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789522153335",
+    "timestamp": "2026-09-16T01:29:13.335Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522153325",
+    "timestamp": "2026-09-16T01:29:13.325Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522127055",
+    "timestamp": "2026-09-16T01:28:47.055Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789522127053",
+    "timestamp": "2026-09-16T01:28:47.053Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789522126268",
+    "timestamp": "2026-09-16T01:28:46.268Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789521368016",
+    "timestamp": "2026-09-16T01:16:08.016Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789521368015",
+    "timestamp": "2026-09-16T01:16:08.015Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789521368005",
+    "timestamp": "2026-09-16T01:16:08.005Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789521356828",
+    "timestamp": "2026-09-16T01:15:56.828Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789521356825",
+    "timestamp": "2026-09-16T01:15:56.825Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789521354081",
+    "timestamp": "2026-09-16T01:15:54.081Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789520284925",
+    "timestamp": "2026-09-16T00:58:04.925Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789520280769",
+    "timestamp": "2026-09-16T00:58:00.769Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789520223889",
+    "timestamp": "2026-09-16T00:57:03.889Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness."
+  },
+  {
+    "id": "REC-1789520223887",
+    "timestamp": "2026-09-16T00:57:03.887Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789520223874",
+    "timestamp": "2026-09-16T00:57:03.874Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789519988984",
+    "timestamp": "2026-09-16T00:53:08.984Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789519973687",
+    "timestamp": "2026-09-16T00:52:53.687Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789519959891",
+    "timestamp": "2026-09-16T00:52:39.891Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789519940011",
+    "timestamp": "2026-09-16T00:52:20.011Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
+    "id": "REC-1789519929888",
+    "timestamp": "2026-09-16T00:52:09.888Z",
+    "model": "Deterministic Operational Risk Analyst Engine",
+    "provider": "deterministic-fallback",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Kakinada Urban Slums",
+          "deficit": 8500
+        },
+        {
+          "zone": "Coastal Industrial Park",
+          "deficit": 2500
+        },
+        {
+          "zone": "Machilipatnam Delta",
+          "deficit": 4200
+        },
+        {
+          "zone": "Nellore Coastal Villages",
+          "deficit": 1800
+        },
+        {
+          "zone": "Srikakulam River Catchment",
+          "deficit": 3100
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
+  },
+  {
     "id": "REC-1789446032629",
     "timestamp": "2026-09-15T04:20:32.629Z",
     "model": "Deterministic Operational Risk Analyst Engine",

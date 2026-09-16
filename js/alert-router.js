@@ -90,7 +90,7 @@ class AlertRouter {
           forecastPeakTier,
           population: zone.pop || 0,
           telemetry: zone.current_telemetry || telemetry?.summary?.radar || {},
-          assignedShelter: (zone.assigned_shelters && zone.assigned_shelters[0]) ? zone.assigned_shelters[0].shelter_name : 'Kakinada Port Cyclone Relief Camp',
+          assignedShelter: (zone.assigned_shelters && zone.assigned_shelters[0]) ? zone.assigned_shelters[0].shelter_name : 'Designated Safe Shelter',
           directive: situationalBrief?.text || 'Initiate priority evacuation protocol immediately.',
           triggeredAt: new Date().toISOString()
         };
@@ -113,7 +113,7 @@ class AlertRouter {
    * Formats and delivers email via Resend, SendGrid, or Local Spool
    */
   async sendEscalationEmail(alert) {
-    const toEmail = process.env.ALERT_RECIPIENT_EMAIL || 'incident-commander@ap-sdma.gov.in';
+    const toEmail = process.env.ALERT_RECIPIENT_EMAIL || process.env.AUTHORITY_NOTIFICATION_EMAIL || 'incident-commander@ap-sdma.gov.in';
     const fromEmail = process.env.ALERT_SENDER_EMAIL || 'alerts@resend.dev';
 
     const newTier = alert.newTier || alert.level || 'RED';

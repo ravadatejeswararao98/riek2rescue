@@ -2,6 +2,151 @@
 // FIREBASE-LIVE.JS — Live Realtime Database & Multi-device Mesh Sync
 // ================================================================
 
+/**
+ * Normalizes a live citizen report without inventing data.
+ * Adheres strictly to Task 6 requirements:
+ * - Preserves: id, type, category, desc/message, latitude, longitude, accuracy, timestamp, time, status, verification state, source, reporter metadata.
+ * - Does NOT invent: coordinates, timestamps, accuracy, severity, verification, location names.
+ * - Missing values remain null, UNKNOWN, UNAVAILABLE as appropriate.
+ * - Validates coordinates against official AP boundary GeoJSON (window.isInsideAndhraPradesh).
+ * - Flags reports outside AP as Rejected / Out of State.
+ *
+ * @param {Object} raw
+ * @param {string} defaultSource
+ * @returns {Object|null}
+ */
+function normalizeCitizenReport(raw, defaultSource = 'FIREBASE') {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const id = raw.id || raw.reportId || ('REP-' + (raw.timestamp || Date.now()).toString().slice(-6));
+  const reportId = raw.reportId || id;
+  const type = raw.type || raw.category || 'UNKNOWN';
+  const reportType = raw.reportType || type;
+  const category = raw.category || raw.type || 'Citizen Field Report';
+  const desc = raw.desc ?? raw.description ?? raw.message ?? raw.details ?? '';
+  const message = desc;
+  const reporter = raw.reporter ?? raw.citizenName ?? 'Citizen Reporter';
+  const phone = raw.phone ?? raw.contact ?? 'UNAVAILABLE';
+  const timestamp = typeof raw.timestamp === 'number' ? raw.timestamp : (raw.timestamp ? new Date(raw.timestamp).getTime() : null);
+  const time = raw.time || (timestamp ? new Date(timestamp).toLocaleTimeString() : 'UNAVAILABLE');
+  const source = raw.source || defaultSource || 'UNKNOWN';
+  const sourceId = raw.sourceId || (defaultSource ? defaultSource.toLowerCase() : 'unknown');
+
+  // Coordinate parsing and validation
+  const rawLat = raw.latitude ?? raw.lat ?? raw.locationCoords?.latitude ?? raw.locationCoords?.lat;
+  const rawLng = raw.longitude ?? raw.lng ?? raw.lon ?? raw.locationCoords?.longitude ?? raw.locationCoords?.lng;
+
+  const hasCoords = (
+    rawLat !== null && rawLat !== undefined &&
+    rawLng !== null && rawLng !== undefined &&
+    rawLat !== '' && rawLng !== '' &&
+    !isNaN(Number(rawLat)) && !isNaN(Number(rawLng)) &&
+    isFinite(Number(rawLat)) && isFinite(Number(rawLng)) &&
+    Number(rawLat) >= -90 && Number(rawLat) <= 90 &&
+    Number(rawLng) >= -180 && Number(rawLng) <= 180
+  );
+
+  const lat = hasCoords ? Number(rawLat) : null;
+  const lng = hasCoords ? Number(rawLng) : null;
+  const rawAcc = raw.locationAccuracy ?? raw.accuracy ?? raw.locationCoords?.accuracy;
+  const accuracy = (hasCoords && rawAcc !== null && rawAcc !== undefined && !isNaN(Number(rawAcc)) && isFinite(Number(rawAcc)) && Number(rawAcc) >= 0)
+    ? Math.round(Number(rawAcc))
+    : null;
+
+  // Spatial containment check against official AP boundary GeoJSON
+  let isInsideAP = null;
+  if (hasCoords) {
+    if (typeof window !== 'undefined' && typeof window.isInsideAndhraPradesh === 'function') {
+      isInsideAP = window.isInsideAndhraPradesh(lat, lng);
+    } else if (typeof global !== 'undefined' && typeof global.isCoordInsideAP === 'function') {
+      isInsideAP = global.isCoordInsideAP(lng, lat);
+    } else if (typeof isCoordInsideAP === 'function') {
+      isInsideAP = isCoordInsideAP(lng, lat);
+    }
+  }
+
+  // Preserve existing report status (Pending, Verified, Rejected, Resolved, Escalated)
+  let status = raw.status || 'Pending';
+  let lifecycleStatus = raw.lifecycleStatus || (status === 'Verified' ? 'VERIFIED' : (status === 'Rejected' || status === 'Dismissed' ? 'REJECTED' : (status === 'Resolved' ? 'RESOLVED' : (status === 'Escalated' ? 'ESCALATED' : 'PENDING'))));
+  let verificationStatus = raw.verificationStatus || (status === 'Verified' ? 'VERIFIED' : (status === 'Rejected' ? 'REJECTED' : 'UNVERIFIED'));
+
+  let rejectionReason = raw.rejectionReason || null;
+
+  // If coordinates outside AP boundary, fail closed: mark explicitly as Rejected
+  if (hasCoords && isInsideAP === false) {
+    status = 'Rejected';
+    lifecycleStatus = 'REJECTED';
+    verificationStatus = 'REJECTED';
+    rejectionReason = rejectionReason || 'Out of State — Coordinate outside Andhra Pradesh operational boundary';
+  }
+
+  const isSos = Boolean(raw.isSos || (type && type.toUpperCase().includes('SOS')));
+  const severity = raw.severity || (isSos ? 'Critical' : 'UNKNOWN');
+
+  const locString = raw.location && !raw.location.toLowerCase().includes('fallback')
+    ? raw.location
+    : (hasCoords ? `Lat ${lat.toFixed(5)}° N, Lng ${lng.toFixed(5)}° E` : 'Location unavailable');
+
+  const isDrill = Boolean(raw.isDrill || raw.isSimulated || raw.tier === 'SIMULATED' || raw.role === 'DRILL');
+
+  return {
+    id,
+    reportId,
+    type,
+    reportType,
+    category,
+    desc,
+    description: desc,
+    message,
+    reporter,
+    phone,
+    timestamp,
+    submissionTimestamp: raw.submissionTimestamp || timestamp,
+    submittedAt: raw.submittedAt || (timestamp ? new Date(timestamp).toISOString() : null),
+    receivedAt: raw.receivedAt || null,
+    time,
+    source,
+    sourceId,
+    status,
+    lifecycleStatus,
+    verificationStatus,
+    rejectionReason,
+    severity,
+    isSos,
+    sosStatus: isSos ? (raw.sosStatus || 'HIGH_PRIORITY_URGENT') : undefined,
+    lat,
+    lng,
+    latitude: lat,
+    longitude: lng,
+    accuracy,
+    locationAccuracy: accuracy,
+    location: locString,
+    locationStatus: hasCoords ? 'AVAILABLE' : 'UNAVAILABLE',
+    locationCoords: hasCoords ? {
+      latitude: lat,
+      longitude: lng,
+      accuracy,
+      capturedAt: raw.locationTimestamp || timestamp
+    } : null,
+    isInsideAP,
+    upvotes: typeof raw.upvotes === 'number' ? raw.upvotes : 0,
+    photo: raw.photo || null,
+    officerNotes: raw.officerNotes || null,
+    verifiedBy: raw.verifiedBy || null,
+    verifiedAt: raw.verifiedAt || null,
+    verifiedTimestamp: raw.verifiedTimestamp || null,
+    resolvedAt: raw.resolvedAt || null,
+    resolvedTimestamp: raw.resolvedTimestamp || null,
+    isDrill,
+    tier: raw.tier || (isDrill ? 'SIMULATED' : 'LIVE_API'),
+    role: raw.role || (isDrill ? 'DRILL' : 'OPERATIONAL')
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.normalizeCitizenReport = normalizeCitizenReport;
+}
+
 class FirebaseLiveService {
   constructor() {
     this.db = null;
@@ -11,13 +156,30 @@ class FirebaseLiveService {
     this.reportListeners = [];
     this.alertListeners = [];
     this.statusListeners = [];
+    this.datasourceListeners = [];
 
-    // Local cached state (pre-populated from APP_DATA when available)
+    // Local cached state — live reports start strictly as []
     this.reports = [];
     this.alerts = [];
+    this.datasources = [];
 
     this.initMeshChannel();
     this.initFirebase();
+  }
+
+  syncToAppData() {
+    if (typeof window !== 'undefined' && window.APP_DATA && window.APP_DATA.live) {
+      window.APP_DATA.live.citizenReports = this.reports;
+      if (Array.isArray(this.alerts) && this.alerts.length > 0) {
+        const liveOnly = this.alerts.filter(a => a && !a.isDemo && !a.isDrill && a.tier !== 'SIMULATED' && a.role !== 'DRILL' && a.source !== 'STATIC_DEMO');
+        if (liveOnly.length > 0) {
+          const map = new Map();
+          (window.APP_DATA.live.alerts || []).forEach(a => map.set(`${a.sourceId || a.source}_${a.id}`, a));
+          liveOnly.forEach(a => map.set(`${a.sourceId || a.source}_${a.id}`, a));
+          window.APP_DATA.live.alerts = Array.from(map.values());
+        }
+      }
+    }
   }
 
   // ---- Cross-tab BroadcastChannel & Local Storage Sync ----
@@ -37,20 +199,29 @@ class FirebaseLiveService {
     try {
       const storedReports = localStorage.getItem('rzi_synced_reports');
       if (storedReports) {
-        this.reports = JSON.parse(storedReports);
-      } else if (typeof APP_DATA !== 'undefined' && APP_DATA.citizenReports) {
-        this.reports = JSON.parse(JSON.stringify(APP_DATA.citizenReports));
+        const parsed = JSON.parse(storedReports);
+        if (Array.isArray(parsed)) {
+          // Keep only live reports (filter out simulated/drill/mock reports)
+          this.reports = parsed
+            .filter(r => r && !r.isDemo && !r.isDrill && r.tier !== 'SIMULATED' && r.role !== 'DRILL' && r.source !== 'STATIC_DEMO')
+            .map(r => normalizeCitizenReport(r, r.source || 'REALTIME_MESH'))
+            .filter(Boolean);
+        }
       }
 
       const storedAlerts = localStorage.getItem('rzi_synced_alerts');
       if (storedAlerts) {
-        this.alerts = JSON.parse(storedAlerts);
-      } else if (typeof APP_DATA !== 'undefined' && APP_DATA.alerts) {
+        const parsed = JSON.parse(storedAlerts);
+        if (Array.isArray(parsed)) {
+          this.alerts = parsed.filter(a => a && !a.isDemo && !a.isDrill && a.tier !== 'SIMULATED' && a.role !== 'DRILL' && a.source !== 'STATIC_DEMO');
+        }
+      } else if (typeof APP_DATA !== 'undefined' && APP_DATA.mode === 'DRILL' && Array.isArray(APP_DATA.alerts)) {
         this.alerts = JSON.parse(JSON.stringify(APP_DATA.alerts));
       }
     } catch (e) {
       console.warn('Error loading cached disaster data:', e);
     }
+    this.syncToAppData();
   }
 
   ensureInitialData() {
@@ -58,13 +229,21 @@ class FirebaseLiveService {
       if (this.reports.length === 0) {
         const stored = localStorage.getItem('rzi_synced_reports');
         if (stored) {
-          this.reports = JSON.parse(stored);
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            this.reports = parsed
+              .filter(r => r && !r.isDemo && !r.isDrill && r.tier !== 'SIMULATED' && r.role !== 'DRILL' && r.source !== 'STATIC_DEMO')
+              .map(r => normalizeCitizenReport(r, r.source || 'REALTIME_MESH'))
+              .filter(Boolean);
+          }
         }
       }
-      if (typeof APP_DATA !== 'undefined' && APP_DATA.citizenReports) {
+      // Never auto-inject default reports into LIVE operational state
+      if (typeof APP_DATA !== 'undefined' && APP_DATA.mode === 'DRILL' && Array.isArray(APP_DATA.citizenReports)) {
         APP_DATA.citizenReports.forEach(defRep => {
           if (!this.reports.some(r => r.id === defRep.id)) {
-            this.reports.push(JSON.parse(JSON.stringify(defRep)));
+            const norm = normalizeCitizenReport(defRep, 'DRILL');
+            if (norm) this.reports.push(norm);
           }
         });
       }
@@ -72,16 +251,21 @@ class FirebaseLiveService {
       if (this.alerts.length === 0) {
         const storedAlerts = localStorage.getItem('rzi_synced_alerts');
         if (storedAlerts) {
-          this.alerts = JSON.parse(storedAlerts);
+          const parsed = JSON.parse(storedAlerts);
+          if (Array.isArray(parsed)) {
+            this.alerts = parsed.filter(a => a && !a.isDemo && !a.isDrill && a.tier !== 'SIMULATED' && a.role !== 'DRILL' && a.source !== 'STATIC_DEMO');
+          }
         }
       }
-      if (typeof APP_DATA !== 'undefined' && APP_DATA.alerts) {
+      // Never auto-inject static alerts into LIVE operational state
+      if (typeof APP_DATA !== 'undefined' && APP_DATA.mode === 'DRILL' && Array.isArray(APP_DATA.alerts)) {
         APP_DATA.alerts.forEach(defAlt => {
           if (!this.alerts.some(a => a.id === defAlt.id)) {
             this.alerts.push(JSON.parse(JSON.stringify(defAlt)));
           }
         });
       }
+      this.syncToAppData();
     } catch (e) { }
   }
 
@@ -92,15 +276,20 @@ class FirebaseLiveService {
     if (data.type === 'NEW_REPORT') {
       const exists = this.reports.some(r => r.id === data.payload.id);
       if (!exists) {
-        this.reports.unshift(data.payload);
-        this.persistLocalCache();
-        this.notifyReportListeners(this.reports, { added: data.payload });
+        const normalized = normalizeCitizenReport(data.payload, data.payload?.source || 'REALTIME_MESH');
+        if (normalized) {
+          this.reports.unshift(normalized);
+          this.persistLocalCache();
+          this.syncToAppData();
+          this.notifyReportListeners(this.reports, { added: normalized });
+        }
       }
     } else if (data.type === 'UPDATE_REPORT') {
       const idx = this.reports.findIndex(r => r.id === data.payload.id);
       if (idx !== -1) {
-        this.reports[idx] = { ...this.reports[idx], ...data.payload };
+        this.reports[idx] = normalizeCitizenReport({ ...this.reports[idx], ...data.payload }, this.reports[idx].source || 'REALTIME_MESH');
         this.persistLocalCache();
+        this.syncToAppData();
         this.notifyReportListeners(this.reports, { updated: data.payload });
       }
     } else if (data.type === 'NEW_ALERT') {
@@ -240,16 +429,21 @@ class FirebaseLiveService {
           const cloudReports = [];
           snapshot.forEach(doc => {
             const data = doc.data();
-            cloudReports.push({ id: doc.id, ...data });
+            const norm = (typeof normalizeCitizenReport === 'function')
+              ? normalizeCitizenReport({ id: doc.id, ...data }, 'FIREBASE')
+              : { id: doc.id, ...data };
+            if (norm) cloudReports.push(norm);
           });
           this.reports = cloudReports;
           this.persistLocalCache();
+          this.syncToAppData();
           this.notifyReportListeners(this.reports);
         } else {
-          // If collection is empty and custom config is active, seed once
-          if (config.isCustom && this.reports.length > 0 && fromServer) {
-            this.seedCloudReports();
-          }
+          // Cloud collection is empty — operational live state starts strictly as []
+          this.reports = [];
+          this.persistLocalCache();
+          this.syncToAppData();
+          this.notifyReportListeners(this.reports);
         }
       }, (error) => {
         console.warn('Firestore reports listener notice (using mesh sync):', error.message);
@@ -326,16 +520,32 @@ class FirebaseLiveService {
           const fromServer = snapshot.metadata && !snapshot.metadata.fromCache;
           if (fromServer && !config.isCustom) {
             if (typeof window !== 'undefined' && window.APP_DATA) {
-               window.APP_DATA.riskZones = [];
-               this.redrawAllMaps();
-               if (typeof renderZoneManager === 'function') {
-                 renderZoneManager();
-               }
+              window.APP_DATA.riskZones = [];
+              if (window.HAZARD_INTEL) {
+                Object.keys(window.HAZARD_INTEL).forEach(key => {
+                  if (window.HAZARD_INTEL[key].zones) window.HAZARD_INTEL[key].zones = [];
+                });
+              }
+              this.redrawAllMaps();
+              if (typeof renderZoneManager === 'function') renderZoneManager();
             }
           }
         }
       }, (error) => {
         console.warn('Firestore risk_zones listener notice:', error.message);
+      });
+
+    // Listen to Datasources collection
+    this.db.collection('datasources')
+      .onSnapshot((snapshot) => {
+        const cloudDatasources = [];
+        snapshot.forEach(doc => {
+          cloudDatasources.push({ id: doc.id, ...doc.data() });
+        });
+        this.datasources = cloudDatasources;
+        this.notifyDatasourceListeners(this.datasources);
+      }, (error) => {
+        console.warn('Firestore datasources listener notice:', error.message);
       });
 
     // Active server ping probe to verify whether backend Firestore is genuinely reachable
@@ -374,7 +584,7 @@ class FirebaseLiveService {
   updateDOMIndicator() {
     if (typeof document === 'undefined') return;
     // Citizens operate silently without raw sync-state jargon
-    if (document.body && document.body.classList.contains('citizen-page')) return;
+    if (document.body && document.body.classList && document.body.classList.contains('citizen-page')) return;
 
     const indicators = document.querySelectorAll('#sync-status-indicator, .sync-status-indicator');
     indicators.forEach(el => {
@@ -415,80 +625,57 @@ class FirebaseLiveService {
     }
   }
 
+  onDatasources(callback) {
+    this.datasourceListeners.push(callback);
+    if (this.datasources.length > 0) {
+      callback(this.datasources);
+    }
+  }
+
+  onConnectionStatus(callback) {
+    this.statusListeners.push(callback);
+    callback(this.connectionMode, this.isCloudConnected ? 'Live Cloud Firestore Connected' : 'Local Realtime Mesh Active');
+  }
+
   onStatus(callback) {
     this.statusListeners.push(callback);
     callback(this.connectionMode, this.isCloudConnected ? 'Live Cloud Firestore Connected' : 'Local Realtime Mesh Active');
   }
 
   notifyReportListeners(reports, meta) {
+    this.syncToAppData();
     this.reportListeners.forEach(fn => {
       try { fn(reports, meta); } catch (e) { console.error('Error in report listener:', e); }
     });
   }
 
-  notifyAlertListeners(alerts, meta) {
-    this.alertListeners.forEach(fn => {
-      try { fn(alerts, meta); } catch (e) { console.error('Error in alert listener:', e); }
+  notifyAlertListeners(alerts, meta = null) {
+    this.alertListeners.forEach(cb => {
+      try { cb(alerts, meta); } catch (e) { console.error('Alert listener err:', e); }
+    });
+  }
+
+  notifyDatasourceListeners(datasources, meta = null) {
+    this.datasourceListeners.forEach(cb => {
+      try { cb(datasources, meta); } catch (e) { console.error('Datasource listener err:', e); }
     });
   }
 
   // ---- Write Operations (Citizen & Authority) ----
 
   /**
-   * Submit a new citizen incident report (e.g. from citizen.html)
+   * Submit a new citizen incident report (e.g. from citizen.html or SOS beacon)
    */
   async submitCitizenReport(reportData) {
     this.ensureInitialData();
-    const id = reportData.id || ('REP-' + Date.now().toString().slice(-6));
+    const source = reportData.source || (this.isCloudConnected ? 'FIREBASE' : 'REALTIME_MESH');
+    const fullReport = normalizeCitizenReport(reportData, source);
+    if (!fullReport) return null;
 
-    // Validate coordinates: latitude >= -90 && latitude <= 90, longitude >= -180 && longitude <= 180
-    const rawLat = reportData.latitude ?? reportData.lat ?? reportData.locationCoords?.latitude;
-    const rawLng = reportData.longitude ?? reportData.lng ?? reportData.locationCoords?.longitude;
-    const isCoordValid = (
-      rawLat !== null && rawLat !== undefined &&
-      rawLng !== null && rawLng !== undefined &&
-      !isNaN(Number(rawLat)) && !isNaN(Number(rawLng)) &&
-      Number(rawLat) >= -90 && Number(rawLat) <= 90 &&
-      Number(rawLng) >= -180 && Number(rawLng) <= 180
-    );
-
-    const lat = isCoordValid ? Number(rawLat) : null;
-    const lng = isCoordValid ? Number(rawLng) : null;
-    const accuracy = reportData.locationAccuracy ?? reportData.accuracy ?? reportData.locationCoords?.accuracy ?? null;
-    const locStatus = isCoordValid ? (reportData.locationStatus || 'available') : 'unavailable';
-    const locString = reportData.location || (isCoordValid ? `Lat ${lat.toFixed(5)}° N, Lng ${lng.toFixed(5)}° E` : 'Location unavailable');
-
-    const fullReport = {
-      id,
-      type: reportData.type || 'Flood',
-      severity: reportData.severity || 'High',
-      status: reportData.status || 'Pending',
-      desc: reportData.desc || reportData.details || '',
-      category: reportData.category || 'Citizen Field Report',
-      reporter: reportData.reporter || reportData.citizenName || 'Citizen Reporter',
-      phone: reportData.phone || '+91-Verified',
-      location: locString,
-      lat: lat,
-      lng: lng,
-      latitude: lat,
-      longitude: lng,
-      locationAccuracy: accuracy ? Math.round(accuracy) : null,
-      locationTimestamp: reportData.locationTimestamp || Date.now(),
-      locationStatus: locStatus,
-      locationCoords: isCoordValid ? {
-        latitude: lat,
-        longitude: lng,
-        accuracy: accuracy ? Math.round(accuracy) : null,
-        capturedAt: reportData.locationTimestamp || Date.now()
-      } : null,
-      time: 'Just now',
-      timestamp: Date.now(),
-      upvotes: 1
-    };
-
-    // 1. Update local cache & broadcast via mesh
+    // 1. Update local cache, sync canonical live state, & broadcast via mesh
     this.reports.unshift(fullReport);
     this.persistLocalCache();
+    this.syncToAppData();
     this.notifyReportListeners(this.reports, { added: fullReport });
 
     if (this.meshChannel) {
@@ -497,7 +684,7 @@ class FirebaseLiveService {
 
     // 2. Write to Firebase Cloud Firestore in background if available
     if (this.db) {
-      this.db.collection('citizen_reports').doc(id).set(fullReport).catch(err => {
+      this.db.collection('citizen_reports').doc(fullReport.id).set(fullReport).catch(err => {
         console.warn('Saved report to mesh sync (Firestore cloud write pending):', err.message);
       });
     }
@@ -515,13 +702,14 @@ class FirebaseLiveService {
     const updates = {
       id: reportId,
       status: 'Verified',
-      officerNotes: officerNotes || 'Confirmed via GIS telemetry and Sentinel-2 satellite anomaly.',
+      officerNotes: officerNotes || 'Confirmed via GIS telemetry and district inspection team.',
       verifiedAt: new Date().toLocaleTimeString(),
       verifiedTimestamp: Date.now()
     };
 
     Object.assign(report, updates);
     this.persistLocalCache();
+    this.syncToAppData();
     this.notifyReportListeners(this.reports, { updated: report });
 
     if (this.meshChannel) {
@@ -540,13 +728,13 @@ class FirebaseLiveService {
       id: 'ALT-' + Date.now().toString().slice(-4),
       level: report.severity === 'Critical' ? 'CRITICAL' : 'HIGH',
       type: report.type,
-      title: `VERIFIED CITIZEN ALERT: ${report.type} at ${report.desc.slice(0, 30)}...`,
-      message: `${report.desc} — Verified by Authority Incident Response Commander.`,
+      title: `VERIFIED CITIZEN ALERT: ${report.type} at ${(report.desc || report.message || report.location || '').slice(0, 30)}...`,
+      message: `${report.desc || report.message || ''} — Verified by Authority Incident Response Commander.`,
       time: 'Just now',
       timestamp: Date.now(),
-      area: `Vicinity coordinates [${report.lat.toFixed(2)}, ${report.lng.toFixed(2)}]`,
+      area: (report.lat && report.lng) ? `Vicinity coordinates [${Number(report.lat).toFixed(2)}, ${Number(report.lng).toFixed(2)}]` : (report.location || 'Reported Incident Area'),
       confidence: 96,
-      sources: ['Citizen Verified', 'NDRF Dispatch', 'Satellite Radar Cross-check'],
+      sources: ['Citizen Verified', 'Incident Response Command'],
       active: true
     };
 
@@ -564,12 +752,13 @@ class FirebaseLiveService {
     const updates = {
       id: reportId,
       status: 'Rejected',
-      rejectionReason: reason || 'Unsubstantiated condition; dismissed after drone inspection.',
+      rejectionReason: reason || 'Unsubstantiated condition or outside operational scope; dismissed.',
       dismissedAt: new Date().toLocaleTimeString()
     };
 
     Object.assign(report, updates);
     this.persistLocalCache();
+    this.syncToAppData();
     this.notifyReportListeners(this.reports, { updated: report });
 
     if (this.meshChannel) {
@@ -670,7 +859,7 @@ class FirebaseLiveService {
         batch.set(docRef, { ...rep, timestamp: Date.now() - (idx * 600000) }, { merge: true });
       });
 
-      const initialAlerts = (typeof APP_DATA !== 'undefined' && APP_DATA.alerts)
+      const initialAlerts = (typeof APP_DATA !== 'undefined' && APP_DATA.alerts && APP_DATA.mode === 'DRILL')
         ? APP_DATA.alerts
         : [];
 
@@ -696,19 +885,27 @@ class FirebaseLiveService {
   }
 }
 
-
 // Global Singleton Instance
-window.firebaseLive = new FirebaseLiveService();
+if (typeof window !== 'undefined') {
+  window.firebaseLive = new FirebaseLiveService();
+}
 
 // Synchronize DOM connectivity indicators on initial load
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
-      if (window.firebaseLive) window.firebaseLive.updateDOMIndicator();
+      if (typeof window !== 'undefined' && window.firebaseLive) window.firebaseLive.updateDOMIndicator();
     });
   } else {
     setTimeout(() => {
-      if (window.firebaseLive) window.firebaseLive.updateDOMIndicator();
+      if (typeof window !== 'undefined' && window.firebaseLive) window.firebaseLive.updateDOMIndicator();
     }, 0);
   }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    normalizeCitizenReport,
+    FirebaseLiveService
+  };
 }

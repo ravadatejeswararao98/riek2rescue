@@ -6,12 +6,12 @@
 // Replace these values with your own project config from the Firebase Console:
 // https://console.firebase.google.com/ -> Project Settings -> General -> Your apps -> Web app
 const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDemoKey-RedZoneIntelligenceLiveDisasterSync2026",
-  authDomain: "red-zone-intelligence.firebaseapp.com",
-  projectId: "red-zone-intelligence",
-  storageBucket: "red-zone-intelligence.firebasestorage.app",
-  messagingSenderId: "721948301824",
-  appId: "1:721948301824:web:98a4e1bc63812fa9b4d"
+  apiKey: "",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
 };
 
 /**

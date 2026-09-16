@@ -5,9 +5,9 @@
 // ================================================================
 class WindyIntegrationController {
   constructor(options = {}) {
-    this.currentLat = options.lat || 16.99;
-    this.currentLon = options.lon || 82.25;
-    this.currentPlace = options.place || 'Kakinada, AP';
+    this.currentLat = (options.lat !== undefined && options.lat !== null) ? Number(options.lat) : null;
+    this.currentLon = (options.lon !== undefined && options.lon !== null) ? Number(options.lon) : null;
+    this.currentPlace = options.place || 'Selected Sector';
     this.activeMode = 'gis';
     this.timelineOffsetHours = 0;
     this._lastAutoHazard = null;
@@ -24,8 +24,10 @@ class WindyIntegrationController {
       this.btnGis.addEventListener('click', () => this.setMode('gis'));
     }
 
-    // Initial point forecast fetch
-    this.fetchPointForecast(this.currentLat, this.currentLon);
+    // Initial point forecast fetch if valid coordinates provided
+    if (this.currentLat !== null && this.currentLon !== null) {
+      this.fetchPointForecast(this.currentLat, this.currentLon);
+    }
   }
 
   setMode(mode) {
@@ -68,11 +70,11 @@ class WindyIntegrationController {
     const s = data.summary || {};
     const ts = data.timeSeries;
 
-    let temp = Math.round(s.currentTempC !== undefined ? s.currentTempC : 28);
-    let wind = Math.round(s.currentWindKmh !== undefined ? s.currentWindKmh : 15);
-    let gust = Math.round(s.maxGustKmh !== undefined ? s.maxGustKmh : wind * 1.5);
-    let precip = s.maxPrecipPerHourMm || 0;
-    let pressure = s.pressureHpa || 1008;
+    let temp = (s.currentTempC !== undefined && s.currentTempC !== null) ? Math.round(s.currentTempC) : null;
+    let wind = (s.currentWindKmh !== undefined && s.currentWindKmh !== null) ? Math.round(s.currentWindKmh) : null;
+    let gust = (s.maxGustKmh !== undefined && s.maxGustKmh !== null) ? Math.round(s.maxGustKmh) : (wind !== null ? Math.round(wind * 1.4) : null);
+    let precip = (s.maxPrecipPerHourMm !== undefined && s.maxPrecipPerHourMm !== null) ? s.maxPrecipPerHourMm : null;
+    let pressure = (s.pressureHpa !== undefined && s.pressureHpa !== null) ? s.pressureHpa : null;
     let overallRisk = s.overallRisk || 'GREEN';
 
     if (offsetHours > 0 && ts && ts.timestamps && ts.timestamps.length) {
@@ -87,32 +89,32 @@ class WindyIntegrationController {
         }
       }
 
-      if (ts.temp && ts.temp[idx] !== undefined) temp = Math.round(ts.temp[idx]);
-      if (ts.windKmh && ts.windKmh[idx] !== undefined) wind = Math.round(ts.windKmh[idx]);
-      if (ts.gustKmh && ts.gustKmh[idx] !== undefined) gust = Math.round(ts.gustKmh[idx]);
-      else gust = Math.round(wind * 1.4);
-      if (ts.precipMm && ts.precipMm[idx] !== undefined) precip = ts.precipMm[idx];
-      if (ts.pressure && ts.pressure[idx] !== undefined) pressure = ts.pressure[idx];
+      if (ts.temp && ts.temp[idx] !== undefined && ts.temp[idx] !== null) temp = Math.round(ts.temp[idx]);
+      if (ts.windKmh && ts.windKmh[idx] !== undefined && ts.windKmh[idx] !== null) wind = Math.round(ts.windKmh[idx]);
+      if (ts.gustKmh && ts.gustKmh[idx] !== undefined && ts.gustKmh[idx] !== null) gust = Math.round(ts.gustKmh[idx]);
+      else if (wind !== null) gust = Math.round(wind * 1.4);
+      if (ts.precipMm && ts.precipMm[idx] !== undefined && ts.precipMm[idx] !== null) precip = ts.precipMm[idx];
+      if (ts.pressure && ts.pressure[idx] !== undefined && ts.pressure[idx] !== null) pressure = ts.pressure[idx];
 
-      const isSevereWind = gust >= 65;
-      const isExtremeRain = precip >= 15;
-      if (isSevereWind || isExtremeRain || pressure <= 990) {
+      const isSevereWind = gust !== null && gust >= 65;
+      const isExtremeRain = precip !== null && precip >= 15;
+      if (isSevereWind || isExtremeRain || (pressure !== null && pressure <= 990)) {
         overallRisk = 'RED';
-      } else if (gust >= 45 || precip >= 7) {
+      } else if ((gust !== null && gust >= 45) || (precip !== null && precip >= 7)) {
         overallRisk = 'ORANGE';
-      } else if (gust >= 28 || precip >= 2) {
+      } else if ((gust !== null && gust >= 28) || (precip !== null && precip >= 2)) {
         overallRisk = 'YELLOW';
       } else {
         overallRisk = 'GREEN';
       }
     }
 
-    let icon = '🌤️';
-    if (precip >= 10) icon = '⛈️';
-    else if (precip > 0.5) icon = '🌧️';
-    else if (gust >= 50) icon = '🌪️';
-    else if (gust >= 35) icon = '💨';
-    else if (temp >= 32) icon = '☀️';
+    let icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-cloud-sun') : '🌤️';
+    if (precip !== null && precip >= 10) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-thunderstorm') : '⛈️';
+    else if (precip !== null && precip > 0.5) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-cloud-showers-heavy') : '🌧️';
+    else if (gust !== null && gust >= 50) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-tornado') : '🌪️';
+    else if (gust !== null && gust >= 35) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-wind') : '💨';
+    else if (temp !== null && temp >= 32) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-sun') : '☀️';
 
     // Update Topbar Weather Pill
     const chipTemp = document.getElementById('chip-temp');
@@ -120,9 +122,15 @@ class WindyIntegrationController {
     const chipIcon = document.getElementById('chip-icon');
     const chipRisk = document.getElementById('chip-risk');
 
-    if (chipTemp) chipTemp.textContent = `${temp}°C`;
-    if (chipWind) chipWind.textContent = `${wind} km/h`;
-    if (chipIcon) chipIcon.textContent = icon;
+    if (chipTemp) chipTemp.textContent = temp !== null ? `${temp}°C` : '—°C';
+    if (chipWind) chipWind.textContent = wind !== null ? `${wind} km/h` : '— km/h';
+    if (chipIcon) {
+      if (typeof icon === 'string' && icon.startsWith('<')) {
+        chipIcon.innerHTML = icon;
+      } else {
+        chipIcon.textContent = icon;
+      }
+    }
 
     const isCitizenPortal = document.body && document.body.classList.contains('citizen-page');
     if (chipRisk && !isCitizenPortal) {
@@ -148,16 +156,20 @@ class WindyIntegrationController {
     const inspRisk = document.getElementById('insp-risk');
     const inspSurge = document.getElementById('insp-surge');
 
-    if (inspWind) inspWind.textContent = `${gust} km/h`;
-    if (inspPressure) inspPressure.textContent = `${pressure} hPa`;
+    if (inspWind) inspWind.textContent = gust !== null ? `${gust} km/h` : '— km/h';
+    if (inspPressure) inspPressure.textContent = pressure !== null ? `${pressure} hPa` : '— hPa';
     if (inspRisk) {
       const tierNames = { RED: 'Active Hazard Zone', ORANGE: 'High Alert Zone', YELLOW: 'Moderate Risk Zone', GREEN: 'Safe Zone' };
       inspRisk.textContent = tierNames[overallRisk] || `${overallRisk} ZONE`;
       inspRisk.style.color = overallRisk === 'RED' ? '#ef4444' : overallRisk === 'ORANGE' ? '#f97316' : overallRisk === 'YELLOW' ? '#eab308' : '#22c55e';
     }
     if (inspSurge) {
-      const estSurge = Math.max(0.8, (precip * 0.12 + (gust / 140) * 2.2)).toFixed(1);
-      inspSurge.textContent = `${estSurge} meters`;
+      if (precip !== null && gust !== null) {
+        const estSurge = Math.max(0.8, (precip * 0.12 + (gust / 140) * 2.2)).toFixed(1);
+        inspSurge.textContent = `${estSurge} meters`;
+      } else {
+        inspSurge.textContent = '— meters';
+      }
     }
 
     if (isCitizenPortal && typeof window.updateCitizenRiskBadge === 'function') {

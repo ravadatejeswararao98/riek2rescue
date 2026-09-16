@@ -14,8 +14,11 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- Design System Base Stylesheet -->
+  <!-- Fonts & Design System Tokens -->
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="assets/uicons/css/uicons-regular-rounded.css">
+  <link rel="stylesheet" href="assets/uicons/css/uicons-bold-rounded.css">
+  <script src="js/icons.js"></script>
   <link rel="stylesheet" href="css/login.css">
 
   <style>
@@ -118,6 +121,18 @@
       background: var(--glass-bg-hover, rgba(255, 255, 255, 0.95));
       border-color: var(--accent-blue, #2563eb);
       transform: translateX(-2px);
+    }
+
+    .auth-footer-bottom {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted, #64748b);
+    }
+
+    .auth-footer-bottom .dot {
+      color: var(--text-muted, #94a3b8);
     }
 
     .nav-status-chip {
@@ -315,13 +330,13 @@
     }
 
     .pw-toggle-btn:hover {
-      color: #f8fafc;
+      color: #0f172a;
     }
 
     /* Inline Validation Error Message */
     .input-err-msg {
       font-size: 11.5px;
-      color: #f87171;
+      color: #ef4444;
       margin-top: 5px;
       display: none;
       line-height: 1.4;
@@ -415,7 +430,7 @@
       left: 0;
       right: 0;
       height: 1px;
-      background: var(--glass-border, rgba(255, 255, 255, 0.08));
+      background: var(--glass-border, rgba(15, 23, 42, 0.08));
     }
 
     .view-divider-text {
@@ -430,7 +445,7 @@
     .toggle-view-btn {
       background: none;
       border: none;
-      color: #60a5fa;
+      color: #2563eb;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -441,7 +456,7 @@
     }
 
     .toggle-view-btn:hover {
-      color: #93c5fd;
+      color: #1d4ed8;
     }
 
     .demo-bypass-wrap {
@@ -451,7 +466,7 @@
 
     .demo-bypass-link {
       font-size: 12px;
-      color: #60a5fa;
+      color: #2563eb;
       font-weight: 600;
       text-decoration: none;
       transition: color 0.2s ease;
@@ -461,7 +476,7 @@
     }
 
     .demo-bypass-link:hover {
-      color: #93c5fd;
+      color: #1d4ed8;
       text-decoration: underline;
     }
 
@@ -491,7 +506,7 @@
     }
 
     .security-notice strong {
-      color: #cbd5e1;
+      color: #0f172a;
     }
 
     /* Responsive */
@@ -554,7 +569,7 @@
       <!-- ================= VIEW 1: SIGN IN (DEFAULT) ================= -->
       <section class="auth-view is-active" id="signInView" aria-labelledby="signin-heading">
         <div class="auth-card-top">
-          <div class="auth-badge-emblem" aria-hidden="true">🏛️</div>
+          <div class="auth-badge-emblem" aria-hidden="true"><i class="fi fi-rr-building"></i></div>
           <div class="auth-card-meta">
             <h2 id="signin-heading">Officer Authentication</h2>
             <p>Enter your official credentials for system clearance.</p>
@@ -629,7 +644,7 @@
       <!-- ================= VIEW 2: CREATE ACCOUNT ================= -->
       <section class="auth-view" id="createAccountView" aria-labelledby="create-heading">
         <div class="auth-card-top">
-          <div class="auth-badge-emblem" style="background: #dcfce7; border: 1px solid #bbf7d0;" aria-hidden="true">🛡️</div>
+          <div class="auth-badge-emblem" style="background: #dcfce7; border: 1px solid #bbf7d0;" aria-hidden="true"><i class="fi fi-rr-shield-check"></i></div>
           <div class="auth-card-meta">
             <h2 id="create-heading">Personnel Registration</h2>
             <p>Register official credentials for emergency dispatch access.</p>
@@ -790,6 +805,9 @@
     <div class="security-notice">
       <strong>OFFICIAL DISASTER MANAGEMENT COMMAND PORTAL</strong><br>
       Unauthorized access attempts are monitored and logged under the Information Technology Act & National Disaster Management Act.
+      <div style="margin-top: 6px; font-size: 11px; opacity: 0.8;">
+        Icons: Uicons by <a href="https://www.flaticon.com/uicons" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Flaticon</a>
+      </div>
     </div>
 
   </div>

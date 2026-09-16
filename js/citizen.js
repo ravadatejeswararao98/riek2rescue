@@ -82,6 +82,23 @@ window.citizenSelectedPlace = null;
  * Map weather summary metrics & WMO condition codes to standard UI emoji
  */
 function getWeatherConditionIcon(summary) {
+  if (typeof window !== 'undefined' && window.iconHtml) {
+    if (!summary) return window.iconHtml('fi-rr-cloud-sun');
+    if (summary.isSevereWind || (summary.currentWindKmh && summary.currentWindKmh >= 60)) return window.iconHtml('fi-rr-tornado');
+    if (summary.isExtremeRain || (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm >= 10)) return window.iconHtml('fi-rr-thunderstorm');
+    if (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm > 0.5) return window.iconHtml('fi-rr-cloud-showers-heavy');
+
+    const code = summary.weatherCode;
+    if (code !== undefined) {
+      if ([95, 96, 99].includes(code)) return window.iconHtml('fi-rr-thunderstorm');
+      if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return window.iconHtml('fi-rr-cloud-showers-heavy');
+      if ([71, 73, 75, 77, 85, 86].includes(code)) return window.iconHtml('fi-rr-snowflake');
+      if ([45, 48].includes(code)) return window.iconHtml('fi-rr-fog');
+      if ([1, 2, 3].includes(code)) return window.iconHtml('fi-rr-cloud-sun');
+      if (code === 0) return window.iconHtml('fi-rr-sun');
+    }
+    return window.iconHtml('fi-rr-cloud-sun');
+  }
   if (!summary) return '🌤️';
   if (summary.isSevereWind || (summary.currentWindKmh && summary.currentWindKmh >= 60)) return '🌪️';
   if (summary.isExtremeRain || (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm >= 10)) return '⛈️';
@@ -140,13 +157,16 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
     const s = data.summary;
     if (!s) throw new Error('Empty weather summary');
 
-    const temp = Math.round(s.currentTempC);
-    const wind = Math.round(s.currentWindKmh !== undefined ? s.currentWindKmh : s.maxGustKmh);
+    const temp = (s.currentTempC !== undefined && s.currentTempC !== null) ? Math.round(s.currentTempC) : null;
+    const wind = (s.currentWindKmh !== undefined && s.currentWindKmh !== null) ? Math.round(s.currentWindKmh) : ((s.maxGustKmh !== undefined && s.maxGustKmh !== null) ? Math.round(s.maxGustKmh) : null);
     const icon = getWeatherConditionIcon(s);
 
-    if (chipTemp) chipTemp.textContent = `${temp}°C`;
-    if (chipWind) chipWind.textContent = `${wind} km/h`;
-    if (chipIcon) chipIcon.textContent = icon;
+    if (chipTemp) chipTemp.textContent = temp !== null ? `${temp}°C` : '—°C';
+    if (chipWind) chipWind.textContent = wind !== null ? `${wind} km/h` : '— km/h';
+    if (chipIcon) {
+      if (typeof icon === 'string' && icon.startsWith('<')) chipIcon.innerHTML = icon;
+      else chipIcon.textContent = icon || '☁️';
+    }
 
     // Cache successful weather snapshot for offline resilience
     try {
@@ -154,7 +174,7 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
         temp,
         wind,
         icon,
-        city: place || chipCity?.textContent || 'Kakinada, AP',
+        city: place || chipCity?.textContent || 'Selected Location',
         lat,
         lng,
         time: Date.now()
@@ -167,14 +187,22 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
       const cached = localStorage.getItem('rzi_weather_snapshot');
       if (cached) {
         const snap = JSON.parse(cached);
-        if (chipTemp && snap.temp !== undefined) chipTemp.textContent = `${snap.temp}°C`;
-        if (chipWind && snap.wind !== undefined) chipWind.textContent = `${snap.wind} km/h`;
-        if (chipIcon && snap.icon) chipIcon.textContent = snap.icon;
+        if (chipTemp && snap.temp !== undefined && snap.temp !== null) chipTemp.textContent = `${snap.temp}°C`;
+        else if (chipTemp) chipTemp.textContent = '—°C';
+        if (chipWind && snap.wind !== undefined && snap.wind !== null) chipWind.textContent = `${snap.wind} km/h`;
+        else if (chipWind) chipWind.textContent = '— km/h';
+        if (chipIcon && snap.icon) {
+          if (typeof snap.icon === 'string' && snap.icon.startsWith('<')) chipIcon.innerHTML = snap.icon;
+          else chipIcon.textContent = snap.icon;
+        }
         if (chipCity && snap.city && !place) chipCity.textContent = snap.city;
       } else {
-        if (chipTemp) chipTemp.textContent = '27°C';
-        if (chipWind) chipWind.textContent = '12 km/h';
-        if (chipIcon) chipIcon.textContent = '🌤️';
+        if (chipTemp) chipTemp.textContent = '—°C';
+        if (chipWind) chipWind.textContent = '— km/h';
+        if (chipIcon) {
+          if (typeof window !== 'undefined' && window.iconHtml) chipIcon.innerHTML = window.iconHtml('fi-rr-cloud');
+          else chipIcon.textContent = '☁️';
+        }
       }
     } catch (e) { }
   }
@@ -439,22 +467,30 @@ function flyToShelter(id, lat, lng, name) {
     });
   }
 
-  // Resolve shelter data for fallback or marker
-  const fallbackSite = (window.APP_DATA && APP_DATA.safeSites && APP_DATA.safeSites.find(s =>
-    (id && s.id === id) ||
+  // Resolve shelter data from LiveState or registered directory
+  const liveShelters = (window.LiveState && typeof window.LiveState.get === 'function') ? window.LiveState.get()?.shelters : null;
+  const shelterList = (Array.isArray(liveShelters) && liveShelters.length > 0)
+    ? liveShelters
+    : ((window.APP_DATA && APP_DATA.safeSites) ? APP_DATA.safeSites : []);
+
+  const matchedSite = shelterList.find(s =>
+    (id && (s.id === id || s.shelter_id === id)) ||
     (name && s.name && (
       s.name.toLowerCase() === name.toLowerCase() ||
       s.name.toLowerCase().includes(name.toLowerCase()) ||
       name.toLowerCase().includes(s.name.toLowerCase())
     )) ||
-    (Math.abs(s.lat - numLat) < 0.01 && Math.abs(s.lng - numLng) < 0.01)
-  )) || {
+    (Math.abs(s.lat - numLat) < 0.01 && Math.abs((s.lng || s.lon) - numLng) < 0.01)
+  );
+
+  const fallbackSite = matchedSite || {
     id: id || 'SS_GEN',
     name: name || 'Emergency Evacuation Shelter',
     lat: numLat,
     lng: numLng,
     capacity: 2500,
-    current: 420,
+    currentOccupancy: null,
+    occupancyStatus: 'UNKNOWN',
     type: 'Relief Center',
     amenities: ['Food', 'Water', 'Medical', 'Power']
   };
@@ -464,8 +500,11 @@ function flyToShelter(id, lat, lng, name) {
     if (targetMarker) {
       targetMarker.openPopup();
     } else if (disasterMap && disasterMap.getMap()) {
-      const pct = Math.round((fallbackSite.current / fallbackSite.capacity) * 100);
-      const capColor = pct > 85 ? '#ef4444' : pct > 60 ? '#f97316' : '#22c55e';
+      const hasOcc = typeof fallbackSite.currentOccupancy === 'number' || typeof fallbackSite.current === 'number';
+      const occVal = fallbackSite.currentOccupancy ?? fallbackSite.current ?? null;
+      const pct = (hasOcc && fallbackSite.capacity) ? Math.round((occVal / fallbackSite.capacity) * 100) : null;
+      const occDisplay = hasOcc ? `${occVal.toLocaleString()} (${pct}%)` : '<span style="color:#94a3b8; font-weight:normal;">Unconfirmed (UNKNOWN)</span>';
+      const capColor = (pct && pct > 85) ? '#ef4444' : (pct && pct > 60) ? '#f97316' : '#22c55e';
       const amenitiesHtml = (fallbackSite.amenities || ['Food', 'Water', 'Medical']).map(a => `<span>${escapeHtml(a)}</span>`).join('');
       L.popup({ className: 'custom-popup', offset: [0, -10] })
         .setLatLng([numLat, numLng])
@@ -473,9 +512,9 @@ function flyToShelter(id, lat, lng, name) {
           <div class="map-popup">
             <div class="popup-header"><span class="risk-badge risk-green">SAFE SITE</span><span class="popup-name">${escapeHtml(fallbackSite.name)}</span></div>
             <div class="popup-body">
-              <div class="popup-stat"><span>Capacity</span><strong>${fallbackSite.capacity.toLocaleString()}</strong></div>
-              <div class="popup-stat"><span>Current</span><strong style="color:${capColor}">${fallbackSite.current.toLocaleString()} (${pct}%)</strong></div>
-              <div class="popup-stat"><span>Type</span><strong>${escapeHtml(fallbackSite.type)}</strong></div>
+              <div class="popup-stat"><span>Capacity</span><strong>${(fallbackSite.capacity || 0).toLocaleString()}</strong></div>
+              <div class="popup-stat"><span>Current</span><strong style="color:${capColor}">${occDisplay}</strong></div>
+              <div class="popup-stat"><span>Type</span><strong>${escapeHtml(fallbackSite.type || 'Relief Shelter')}</strong></div>
               <div class="popup-amenities">${amenitiesHtml}</div>
             </div>
           </div>
@@ -1209,7 +1248,10 @@ function guideToNearestShelter() {
   if (currentEvacuationTarget) {
     flyToCitizenMap(currentEvacuationTarget.lat, currentEvacuationTarget.lng, 13);
     if (currentEvacuationTarget._marker) currentEvacuationTarget._marker.openPopup();
-    showToast(`🚶 Evacuation route: Heading to ${currentEvacuationTarget.name} (${currentEvacuationTarget.distanceKm?.toFixed(1) || '1.8'} km away)`, 'success');
+    const distText = (typeof currentEvacuationTarget.distanceKm === 'number' && !isNaN(currentEvacuationTarget.distanceKm))
+      ? ` (${currentEvacuationTarget.distanceKm.toFixed(1)} km away)`
+      : '';
+    showToast(`🚶 Evacuation route: Heading to ${currentEvacuationTarget.name}${distText}`, 'success');
   } else {
     const s = HAZARD_INTEL[currentHazard]?.safeSites?.[0];
     if (s) {
@@ -1384,9 +1426,13 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
   const peopleEl = document.getElementById('insp-people');
   if (peopleEl) peopleEl.textContent = peopleDisplay;
 
-  // 7. NASA FIRMS Active Fires (show "None detected" when zero rather than hiding the row)
+  // 7. NASA FIRMS Active Fires (truthful status display)
   let firesDisplay = 'None detected';
-  if (z.satellite && z.satellite.activeHotspotCount > 0) {
+  if (z.satellite && z.satellite.status === 'NOT_CONFIGURED') {
+    firesDisplay = 'Not configured';
+  } else if (z.satellite && z.satellite.status === 'UNAVAILABLE') {
+    firesDisplay = 'Unavailable';
+  } else if (z.satellite && z.satellite.activeHotspotCount > 0) {
     firesDisplay = `${z.satellite.activeHotspotCount} detected (${z.satellite.maxFrpMw} MW)`;
   }
   const firesEl = document.getElementById('insp-fires');
@@ -1557,25 +1603,38 @@ function initReportModal() {
       }
 
       const hasValidCoords = lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+      const repId = 'REP-' + Date.now().toString().slice(-6);
 
       const reportPayload = {
-        id: 'REP-' + Date.now().toString().slice(-6),
+        id: repId,
+        reportId: repId,
+        source: 'CITIZEN_APP',
+        sourceId: 'citizen_app',
         type,
+        reportType: type,
+        category: 'Citizen Field Report',
         location: loc || (hasValidCoords ? `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E` : 'Location unavailable'),
         desc,
+        description: desc,
         phone,
         lat: hasValidCoords ? lat : null,
         lng: hasValidCoords ? lng : null,
         latitude: hasValidCoords ? lat : null,
         longitude: hasValidCoords ? lng : null,
+        accuracy: locAccuracy,
         locationAccuracy: locAccuracy,
-        locationStatus: hasValidCoords ? 'available' : 'unavailable',
+        locationStatus: hasValidCoords ? 'AVAILABLE' : 'UNAVAILABLE',
         photo: currentPhotoBase64,
         severity: type === 'Stranded' ? 'Critical' : type === 'Flood' ? 'High' : 'Medium',
         reporter: 'Citizen (' + (phone.slice(-4) || 'Live') + ')',
         status: 'Pending',
+        lifecycleStatus: 'PENDING',
+        verificationStatus: 'UNVERIFIED',
         time: 'Just now',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        submissionTimestamp: Date.now(),
+        submittedAt: new Date().toISOString(),
+        receivedAt: Date.now()
       };
 
       // Optimistic instant feedback (< 300ms)

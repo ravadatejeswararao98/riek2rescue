@@ -52,7 +52,7 @@ if (typeof window !== 'undefined') {
 
 const HAZARD_INTEL = {
   cyclone: {
-    label: 'Cyclone', icon: '🌀', accent: '#ef4444',
+    label: 'Cyclone', icon: '<i class="fi fi-rr-tornado" aria-hidden="true"></i>', iconClass: 'fi-rr-tornado', accent: '#ef4444',
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
@@ -76,7 +76,7 @@ const HAZARD_INTEL = {
   },
 
   flood: {
-    label: 'Flood', icon: '🌊', accent: '#ef4444',
+    label: 'Flood', icon: '<i class="fi fi-rr-water" aria-hidden="true"></i>', iconClass: 'fi-rr-water', accent: '#ef4444',
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
@@ -94,7 +94,7 @@ const HAZARD_INTEL = {
   },
 
   landslide: {
-    label: 'Landslide', icon: '⛰️', accent: '#f97316',
+    label: 'Landslide', icon: '<i class="fi fi-rr-mountains" aria-hidden="true"></i>', iconClass: 'fi-rr-mountains', accent: '#f97316',
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
@@ -110,7 +110,7 @@ const HAZARD_INTEL = {
   },
 
   earthquake: {
-    label: 'Earthquake', icon: '📳', accent: '#f97316',
+    label: 'Earthquake', icon: '<i class="fi fi-rr-waveform-path" aria-hidden="true"></i>', iconClass: 'fi-rr-waveform-path', accent: '#f97316',
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
@@ -125,7 +125,7 @@ const HAZARD_INTEL = {
   },
 
   tsunami: {
-    label: 'Tsunami', icon: '🌊', accent: '#ef4444',
+    label: 'Tsunami', icon: '<i class="fi fi-rr-wave" aria-hidden="true"></i>', iconClass: 'fi-rr-wave', accent: '#ef4444',
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
@@ -140,7 +140,7 @@ const HAZARD_INTEL = {
   },
 
   cloudburst: {
-    label: 'Cloudburst', icon: '⛈️', accent: '#f97316',
+    label: 'Cloudburst', icon: '<i class="fi fi-rr-thunderstorm" aria-hidden="true"></i>', iconClass: 'fi-rr-thunderstorm', accent: '#f97316',
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
@@ -155,7 +155,7 @@ const HAZARD_INTEL = {
   },
 
   erosion: {
-    label: 'Coastal Erosion', icon: '🏝️', accent: '#eab308',
+    label: 'Coastal Erosion', icon: '<i class="fi fi-rr-island-tropical" aria-hidden="true"></i>', iconClass: 'fi-rr-island-tropical', accent: '#eab308',
     summary: 'Live telemetry and automated AI monitoring active.',
     zones: [],
     safeSites: [
@@ -818,9 +818,12 @@ class HazardEngine {
 
     // 3. Live Sensor Threat Warnings / Alerts
     (h.alerts || []).forEach((a, i) => {
-      const color = a.level === 'CRITICAL' ? 'red' : a.level === 'HIGH' ? 'orange' : 'yellow';
-      const coords = a.lat && a.lng ? [a.lat, a.lng] : [16.9 + (i * 0.15), 82.2 + (i * 0.12)];
+      if (!a.lat || !a.lng || !Number.isFinite(Number(a.lat)) || !Number.isFinite(Number(a.lng))) {
+        return; // Do not fabricate map geometry for alerts lacking valid coordinates
+      }
+      const coords = [Number(a.lat), Number(a.lng)];
       if (window.APBoundaryService && !window.APBoundaryService.isPointInside([coords[1], coords[0]])) return;
+      const color = a.level === 'CRITICAL' ? 'red' : a.level === 'HIGH' ? 'orange' : 'yellow';
       const marker = L.marker(coords, { icon: this.alertIcon(color, i * 40) })
         .bindPopup(this.popup('Live Warning', color, a.title, [
           ['Severity', a.level],
@@ -956,7 +959,7 @@ class HazardEngine {
     }).length;
     const shelter = h.safeSites ? h.safeSites.reduce((a, s) => a + (s.capacity - s.current), 0) : 0;
     const focusZone = zones[0];
-    const focus = focusZone ? { lat: focusZone.lat, lng: focusZone.lng, ...focusZone } : { lat: 16.99, lng: 82.25 };
+    const focus = focusZone ? { lat: focusZone.lat, lng: focusZone.lng, ...focusZone } : null;
     return {
       label: h.label, icon: h.icon, accent: h.accent, summary: h.summary,
       redZones,

@@ -12,10 +12,33 @@
  * 5. Claude 3.5 Sonnet NDRF Incident Commander Situational Briefing in a single unified pass
  */
 
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
-const http = require('http');
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory();
+  } else {
+    root.AIEngine = factory();
+  }
+}(typeof self !== 'undefined' ? self : this, function () {
+  // If loaded in a browser where Node built-ins are absent, provide client bridge
+  if (typeof require === 'undefined') {
+    return {
+      isBrowserStub: true,
+      getState: async function(force = false) {
+        try {
+          const res = await fetch('/api/ai-engine/state');
+          return res.ok ? await res.json() : null;
+        } catch (e) {
+          console.warn('[AIEngine Client] Fetch error:', e);
+          return null;
+        }
+      }
+    };
+  }
+
+  const fs = require('fs');
+  const path = require('path');
+  const https = require('https');
+  const http = require('http');
 
 let PriorityEngine = null;
 try {
@@ -123,19 +146,40 @@ class AIEngine {
       let priorityData = null;
       if (PriorityEngine) {
         try {
+          const isHighWind = Boolean(
+            (telemetry?.summary?.windGustKmH && telemetry.summary.windGustKmH > 100) ||
+            (telemetry?.radar?.maxGustSpeedKmH && telemetry.radar.maxGustSpeedKmH > 100)
+          );
           const rankedHabitations = PriorityEngine.rankIncidents(habitations.map(v => ({
             ...v,
             id: v.village_id,
             name: v.village_name,
             population: v.growth_adjusted_pop || v.census_2011_pop,
+            populationAtRisk: v.mapped_zone_id ? (v.growth_adjusted_pop || v.census_2011_pop) : 0,
             hazardType: v.hazard_type,
             vulnerabilityRaw: 100 - (v.elevation_m * 10),
-            immediateLifeRiskRaw: v.hazard_type === 'cyclone' ? 85 : undefined,
+            immediateLifeRiskRaw: v.hazard_type === 'cyclone' && isHighWind ? 95 : 0,
             responseUrgencyRaw: v.mapped_zone_id ? 85 : 40,
+            travelTimeMins: v.travelTimeMins ?? null,
+            etaMins: v.etaMins ?? null,
+            populationProvenance: 'Census India AP 2011 Reference Baseline (Growth Adjusted)',
+            hazardProvenance: 'Live Telemetry / CAP Advisory',
+            vulnerabilityProvenance: 'Census Demographic & Elevation Model',
+            urgencyProvenance: v.travelTimeMins != null ? 'OSRM Live Road Routing' : 'Estimated Zone Proximity',
+            accessibilityProvenance: v.travelTimeMins != null ? 'OSRM Road Network Routing' : 'Unavailable'
           })));
 
           const alloc = [];
-          let shelterStatus = shelters.map(s => ({ ...s, current_occupancy: s.current_occupancy || 0 }));
+          let shelterStatus = shelters.map(s => {
+            const hasOcc = typeof s.current_occupancy === 'number' && !isNaN(s.current_occupancy);
+            return {
+              ...s,
+              current_occupancy: hasOcc ? s.current_occupancy : 0,
+              real_occupancy: hasOcc ? s.current_occupancy : null,
+              occupancyStatus: hasOcc ? (s.occupancyStatus || 'LIVE') : 'UNKNOWN',
+              operationalStatus: s.status || 'UNKNOWN'
+            };
+          });
           const deficitReports = [];
           rankedHabitations.forEach(inc => {
             const candidates = PriorityEngine.evaluateRelocationCandidates(inc, shelterStatus, null);
@@ -155,7 +199,31 @@ class AIEngine {
 
           priorityData = {
             habitations: alloc,
-            shelterStatus: shelterStatus.map(s => ({ ...s, name: s.name || s.shelter_name, new_occupancy: s.current_occupancy, occupancy_pct: Math.round((s.current_occupancy / (s.capacity || s.max_capacity || 1)) * 100) })),
+            shelterStatus: shelterStatus.map(s => {
+              const cap = (typeof s.capacity === 'number' && !isNaN(s.capacity) && s.capacity > 0) ? s.capacity : null;
+              const hasRealOcc = typeof s.real_occupancy === 'number' && !isNaN(s.real_occupancy);
+              const realOcc = hasRealOcc ? s.real_occupancy : null;
+              const occ = Number(s.current_occupancy || 0);
+              const occPct = (cap !== null && hasRealOcc && cap > 0) ? Math.round((realOcc / cap) * 100) : null;
+              const projOccPct = (cap !== null && cap > 0) ? Math.round((occ / cap) * 100) : null;
+              return {
+                ...s,
+                name: s.name || s.shelter_name,
+                referenceCapacity: cap,
+                current_occupancy: realOcc,
+                currentOccupancy: realOcc,
+                real_occupancy: realOcc,
+                new_occupancy: realOcc,
+                projected_occupancy: occ,
+                occupancyStatus: hasRealOcc ? (s.occupancyStatus || 'LIVE') : 'UNKNOWN',
+                occupancy_pct: occPct,
+                occupancyRatePct: occPct,
+                projected_occupancy_pct: projOccPct,
+                available_beds: (cap !== null && hasRealOcc) ? Math.max(0, cap - realOcc) : null,
+                availableBeds: (cap !== null && hasRealOcc) ? Math.max(0, cap - realOcc) : null,
+                projected_available_beds: cap !== null ? Math.max(0, cap - occ) : null
+              };
+            }),
             deficitReports: deficitReports,
             summary: { criticalCount: alloc.filter(a => a.priorityLevel === 'CRITICAL').length, highCount: alloc.filter(a => a.priorityLevel === 'HIGH').length }
           };
@@ -304,25 +372,38 @@ class AIEngine {
         lat: st.lat,
         lng: st.lng,
         sector: st.sector,
-        currentWindKmh: s.currentWindKmh ?? 18.0,
-        maxGustKmh: s.maxGustKmh ?? 32.0,
-        pressureHpa: s.pressureHpa ?? 1008,
-        precipMm: s.maxPrecipPerHourMm ?? 0.0
+        currentWindKmh: (s.currentWindKmh !== undefined && s.currentWindKmh !== null) ? s.currentWindKmh : (w.windSpeedKmh !== undefined && w.windSpeedKmh !== null ? w.windSpeedKmh : null),
+        maxGustKmh: (s.maxGustKmh !== undefined && s.maxGustKmh !== null) ? s.maxGustKmh : (w.maxGustKmh !== undefined && w.maxGustKmh !== null ? w.maxGustKmh : null),
+        pressureHpa: (s.pressureHpa !== undefined && s.pressureHpa !== null) ? s.pressureHpa : (w.pressureHpa !== undefined && w.pressureHpa !== null ? w.pressureHpa : null),
+        precipMm: (s.maxPrecipPerHourMm !== undefined && s.maxPrecipPerHourMm !== null) ? s.maxPrecipPerHourMm : (w.precipitationMm !== undefined && w.precipitationMm !== null ? w.precipitationMm : null)
       };
     });
 
-    const maxGustOverall = Math.max(...weatherGridSummary.map(s => s.maxGustKmh || 0), 38.0);
-    const validPressures = weatherGridSummary.map(s => s.pressureHpa).filter(p => p > 800 && p < 1050);
-    const minPressureOverall = validPressures.length > 0 ? Math.min(...validPressures) : 1008;
-    const maxPrecipOverall = Math.max(...weatherGridSummary.map(s => s.precipMm || 0), 0.0);
+    const validGusts = weatherGridSummary.map(s => s.maxGustKmh).filter(g => typeof g === 'number' && !isNaN(g));
+    const maxGustOverall = validGusts.length > 0 ? Math.max(...validGusts) : null;
 
-    const primaryWeather = weatherMap['kakinada'] || weatherMap['visakhapatnam'] || weatherMap['coastal_ap'] || {};
+    const validPressures = weatherGridSummary.map(s => s.pressureHpa).filter(p => typeof p === 'number' && p > 800 && p < 1050);
+    const minPressureOverall = validPressures.length > 0 ? Math.min(...validPressures) : null;
+
+    const validPrecips = weatherGridSummary.map(s => s.precipMm).filter(p => typeof p === 'number' && !isNaN(p));
+    const maxPrecipOverall = validPrecips.length > 0 ? Math.max(...validPrecips) : null;
+
+    const validWinds = weatherGridSummary.map(s => s.currentWindKmh).filter(w => typeof w === 'number' && !isNaN(w));
+    const maxWindOverall = validWinds.length > 0 ? Math.max(...validWinds) : null;
+
+    const primaryWeather = weatherMap['kakinada'] || weatherMap['visakhapatnam'] || weatherMap['coastal_ap'] || Object.values(weatherMap)[0] || {};
+    const pwSummary = primaryWeather.summary || {};
+    const pwGust = pwSummary.maxGustKmh ?? primaryWeather.maxGustKmh ?? null;
+    const pwWind = pwSummary.currentWindKmh ?? primaryWeather.windSpeedKmh ?? null;
+    const pwPress = pwSummary.pressureHpa ?? primaryWeather.pressureHpa ?? null;
+    const pwPrecip = pwSummary.maxPrecipPerHourMm ?? primaryWeather.precipitationMm ?? null;
+
     const summary = {
       radar: {
-        maxGustSpeedKmH: Math.max(primaryWeather.summary?.maxGustKmh ?? 38.0, maxGustOverall),
-        currentWindKmh: primaryWeather.summary?.currentWindKmh ?? 18.0,
-        corePressureHpa: Math.min(primaryWeather.summary?.pressureHpa ?? 1008, minPressureOverall),
-        currentPrecipMm: Math.max(primaryWeather.summary?.maxPrecipPerHourMm ?? 0.0, maxPrecipOverall)
+        maxGustSpeedKmH: pwGust !== null ? (maxGustOverall !== null ? Math.max(pwGust, maxGustOverall) : pwGust) : maxGustOverall,
+        currentWindKmh: pwWind !== null ? pwWind : maxWindOverall,
+        corePressureHpa: pwPress !== null ? (minPressureOverall !== null ? Math.min(pwPress, minPressureOverall) : pwPress) : minPressureOverall,
+        currentPrecipMm: pwPrecip !== null ? (maxPrecipOverall !== null ? Math.max(pwPrecip, maxPrecipOverall) : pwPrecip) : maxPrecipOverall
       },
       seismic: {
         maxRecordedMagnitude: quakes.maxMagnitude || 0,
@@ -335,7 +416,7 @@ class AIEngine {
     return {
       weatherMap,
       quakes,
-      alerts: imd.alerts || [],
+      imd,
       summary
     };
   }
@@ -346,10 +427,15 @@ class AIEngine {
   getClosestWeather(habitation, weatherMap) {
     if (!weatherMap || Object.keys(weatherMap).length === 0) return {};
 
+    const habLat = habitation && habitation.lat != null ? habitation.lat : null;
+    const habLng = habitation && habitation.lng != null ? habitation.lng : null;
+    if (habLat == null || habLng == null) {
+      const fallbackKey = Object.keys(weatherMap)[0];
+      return fallbackKey ? (weatherMap[fallbackKey] || {}) : {};
+    }
+
     let bestStation = null;
     let bestDistSq = Infinity;
-    const habLat = habitation.lat || 16.99;
-    const habLng = habitation.lng || 82.25;
 
     for (const st of AP_WEATHER_GRID) {
       if (st.sector === 'national') continue;
@@ -367,7 +453,7 @@ class AIEngine {
     }
 
     const fallbackKey = Object.keys(weatherMap)[0];
-    return weatherMap[fallbackKey] || {};
+    return fallbackKey ? (weatherMap[fallbackKey] || {}) : {};
   }
 
   /**
@@ -455,20 +541,29 @@ class AIEngine {
       const hType = (hab.hazard_type || 'cyclone').toLowerCase();
       const weather = this.getClosestWeather(hab, telemetry.weatherMap || {});
       const weatherSummary = weather.summary || {};
-      const timeSeries = weather.timeSeries || {
-        windKmh: [16, 22, 35, 65, 85, 45],
-        gustKmh: [28, 38, 55, 95, 125, 65],
-        precipMm: [0, 2, 8, 28, 45, 12],
-        pressure: [1008, 1004, 998, 984, 978, 996]
-      };
+      const timeSeries = weather.timeSeries || null;
 
       // Disaster recurrence multiplier per habitation per hazard type
       const recurrence = this.computeDisasterRecurrence(hab, hType);
 
       // 1. Compute CURRENT_TIER from live conditions right now with recurrence risk
-      const currWindGust = weatherSummary.maxGustKmh ?? (timeSeries.gustKmh ? timeSeries.gustKmh[0] : 32.0);
-      const currPrecip = weatherSummary.maxPrecipPerHourMm ?? (timeSeries.precipMm ? timeSeries.precipMm[0] : 0.0);
-      const currPressure = weatherSummary.pressureHpa ?? (timeSeries.pressure ? timeSeries.pressure[0] : 1008);
+      const currWindGust = (weatherSummary.maxGustKmh !== undefined && weatherSummary.maxGustKmh !== null)
+        ? weatherSummary.maxGustKmh
+        : (weather.maxGustKmh !== undefined && weather.maxGustKmh !== null
+          ? weather.maxGustKmh
+          : (weather.windSpeedKmh !== undefined && weather.windSpeedKmh !== null
+            ? weather.windSpeedKmh
+            : (timeSeries?.gustKmh ? timeSeries.gustKmh[0] : 0)));
+      const currPrecip = (weatherSummary.maxPrecipPerHourMm !== undefined && weatherSummary.maxPrecipPerHourMm !== null)
+        ? weatherSummary.maxPrecipPerHourMm
+        : (weather.precipitationMm !== undefined && weather.precipitationMm !== null
+          ? weather.precipitationMm
+          : (timeSeries?.precipMm ? timeSeries.precipMm[0] : 0));
+      const currPressure = (weatherSummary.pressureHpa !== undefined && weatherSummary.pressureHpa !== null)
+        ? weatherSummary.pressureHpa
+        : (weather.pressureHpa !== undefined && weather.pressureHpa !== null
+          ? weather.pressureHpa
+          : (timeSeries?.pressure ? timeSeries.pressure[0] : 1013));
       const currMagnitude = telemetry.quakes?.maxMagnitude || 0;
 
       const currentTier = this.classifySeverityTier(hType, {
@@ -485,24 +580,23 @@ class AIEngine {
       const forecastTiers = [];
 
       TIMELINE_HOUR_OFFSETS.forEach((offset, idx) => {
-        const tsIdx = Math.min(offset, (timeSeries.gustKmh?.length || 1) - 1);
+        const tsIdx = Math.min(offset, (timeSeries?.gustKmh?.length || 1) - 1);
 
-        let gust = timeSeries.gustKmh ? (timeSeries.gustKmh[tsIdx] ?? currWindGust) : currWindGust;
-        let precip = timeSeries.precipMm ? (timeSeries.precipMm[tsIdx] ?? currPrecip) : currPrecip;
-        let press = timeSeries.pressure ? (timeSeries.pressure[tsIdx] ?? currPressure) : currPressure;
-        let wind = timeSeries.windKmh ? (timeSeries.windKmh[tsIdx] ?? 20) : 20;
+        let gust = timeSeries?.gustKmh ? (timeSeries.gustKmh[tsIdx] ?? currWindGust) : currWindGust;
+        let precip = timeSeries?.precipMm ? (timeSeries.precipMm[tsIdx] ?? currPrecip) : currPrecip;
+        let press = timeSeries?.pressure ? (timeSeries.pressure[tsIdx] ?? currPressure) : currPressure;
+        let wind = timeSeries?.windKmh ? (timeSeries.windKmh[tsIdx] ?? (weather.windSpeedKmh || 0)) : (weather.windSpeedKmh || 0);
 
-        // Model projected meteorological cyclone peak at +12h / +24h if approaching
-        if (hType === 'cyclone') {
-          if (offset === 3) { gust = Math.max(gust, 52); press = Math.min(press, 1002); }
-          else if (offset === 6) { gust = Math.max(gust, 78); precip = Math.max(precip, 14); press = Math.min(press, 994); }
-          else if (offset === 12) { gust = Math.max(gust, 128); precip = Math.max(precip, 38); press = Math.min(press, 976); }
-          else if (offset === 24) { gust = Math.max(gust, 115); precip = Math.max(precip, 30); press = Math.min(press, 982); }
-          else if (offset === 48) { gust = Math.min(gust, 48); press = Math.max(press, 1004); }
-        } else if (hType === 'flood') {
-          if (offset === 6) { precip = Math.max(precip, 18); }
-          else if (offset === 12) { precip = Math.max(precip, 32); }
-          else if (offset === 24) { precip = Math.max(precip, 28); }
+        // Only project meteorological cyclone peak if telemetry or alert indicates elevated hazard conditions
+        const isElevatedCondition = (currWindGust > 45 || currPrecip > 15 || currPressure < 1000);
+        if (isElevatedCondition && !timeSeries) {
+          if (hType === 'cyclone') {
+            if (offset === 3) { gust = Math.max(gust, 52); press = Math.min(press, 1002); }
+            else if (offset === 6) { gust = Math.max(gust, 78); precip = Math.max(precip, 14); press = Math.min(press, 994); }
+            else if (offset === 12) { gust = Math.max(gust, 128); precip = Math.max(precip, 38); press = Math.min(press, 976); }
+            else if (offset === 24) { gust = Math.max(gust, 115); precip = Math.max(precip, 30); press = Math.min(press, 982); }
+            else if (offset === 48) { gust = Math.min(gust, 48); press = Math.max(press, 1004); }
+          }
         }
 
         const tier = (offset === 0) ? currentTier : this.classifySeverityTier(hType, {
@@ -520,24 +614,29 @@ class AIEngine {
           offsetHours: offset,
           label: idx === 0 ? 'Now' : `+${offset}h`,
           tier,
-          windKmh: +(wind).toFixed(1),
-          gustKmh: +(gust).toFixed(1),
-          precipMm: +(precip).toFixed(1),
-          pressureHpa: Math.round(press)
+          windKmh: +(wind || 0).toFixed(1),
+          gustKmh: +(gust || 0).toFixed(1),
+          precipMm: +(precip || 0).toFixed(1),
+          pressureHpa: Math.round(press || 1013)
         });
       });
 
       // Derive base radius based on population & vulnerability
-      const baseRadiusMeters = Math.min(48000, Math.max(16000, Math.round(Math.sqrt(hab.growth_adjusted_pop || 15000) * 180)));
+      const popBaseline = Number(hab.growth_adjusted_pop || hab.census_2011_pop || hab.population);
+      const baseRadiusMeters = (Number.isFinite(popBaseline) && popBaseline > 0)
+        ? Math.min(48000, Math.max(16000, Math.round(Math.sqrt(popBaseline) * 180)))
+        : 20000;
 
       // Note explaining ongoing vs approaching trajectory and recurrence
       let note = '';
+      const gustDisplay = (currWindGust !== null && currWindGust !== undefined) ? `${currWindGust} km/h` : 'N/A';
       if (currentTier === 'RED') {
-        note = `CRITICAL DANGER NOW: Observed peak gusts ${currWindGust} km/h • active severe impact`;
+        note = `CRITICAL DANGER NOW: Observed peak gusts ${gustDisplay} • active severe impact`;
       } else if (forecastTiers[3] === 'RED' || forecastTiers[4] === 'RED') {
-        note = `Currently ${currentTier} (${currWindGust} km/h) • Projected CRITICAL RED at +12h/24h (${forecastSeries[3].gustKmh} km/h peak)`;
+        const peakGust = forecastSeries[3]?.gustKmh ?? gustDisplay;
+        note = `Currently ${currentTier} (${gustDisplay}) • Projected CRITICAL RED at +12h/24h (${peakGust} km/h peak)`;
       } else {
-        note = `Current: ${currentTier} (${currWindGust} km/h) • Monitoring status across 48h horizon`;
+        note = `Current: ${currentTier} (${gustDisplay}) • Monitoring status across 48h horizon`;
       }
       if (recurrence.elevated) {
         note += ` • Recurrence: ${recurrence.multiplier}x risk multiplier (${recurrence.count} prior events)`;
@@ -562,9 +661,9 @@ class AIEngine {
         forecast_tier_by_hour: forecastTiers,
         forecast_series: forecastSeries,
         current_telemetry: {
-          windGustKmh: +(currWindGust).toFixed(1),
-          precipMm: +(currPrecip).toFixed(1),
-          pressureHpa: Math.round(currPressure)
+          windGustKmh: (currWindGust !== null && currWindGust !== undefined) ? +(currWindGust).toFixed(1) : null,
+          precipMm: (currPrecip !== null && currPrecip !== undefined) ? +(currPrecip).toFixed(1) : null,
+          pressureHpa: (currPressure !== null && currPressure !== undefined) ? Math.round(currPressure) : null
         },
         disaster_recurrence: recurrence,
         weather_station: weather.station ? { key: weather.station.key, name: weather.station.name } : null,
@@ -678,30 +777,44 @@ class AIEngine {
     const redIn12h = zones.filter(z => z.forecast_tier_by_hour[3] === 'RED');
     const topHabitations = (priorityData?.habitations || []).slice(0, 3);
     const deficitReports = priorityData?.deficitReports || [];
-    const highOccShelters = (priorityData?.shelterStatus || []).filter(s => s.occupancy_pct >= 70);
+    const highOccShelters = (priorityData?.shelterStatus || []).filter(s => s.occupancy_pct !== null && s.occupancy_pct >= 70);
     const elevatedRecurrenceZones = zones.filter(z => z.disaster_recurrence?.elevated);
 
-    const satFireStatement = satelliteTelemetry?.briefingStatements?.[0] || 'NASA VIIRS thermal anomaly sweep confirms zero active fire clusters in monitored habitations.';
-    const satFloodStatement = satelliteTelemetry?.briefingStatements?.[1] || 'Sentinel-2 / SAR surface water baseline within normal seasonal bounds.';
+    const satFireStatement = satelliteTelemetry?.briefingStatements?.[0] || 'NASA VIIRS thermal anomaly data unavailable or not configured.';
+    const satFloodStatement = satelliteTelemetry?.briefingStatements?.[1] || 'Copernicus Sentinel-1 SAR latest observation unavailable or not configured.';
 
     const prompt = `Current Disaster Situation Data:
 - Ongoing/Unfolding Zones (Active RED right now): ${redNow.map(z => `${z.name} (${z.current_telemetry?.windGustKmh ?? z.current_telemetry?.maxGustSpeedKmH ?? 'Active'} km/h)`).join(', ') || 'None (calm current conditions)'}
 - Forecasted Escalation Peak (+12h): ${redIn12h.map(z => `${z.name} (${z.forecast_series?.[3]?.gustKmh ?? 'Forecasted RED'} km/h)`).join(', ') || 'No catastrophic peaks'}
 - Documented Disaster Recurrence Multipliers: ${elevatedRecurrenceZones.map(z => `${z.village_name}: ${z.disaster_recurrence.multiplier}x (${z.disaster_recurrence.count} prior events)`).join('; ') || 'All zones baseline 1.0x'}
-- Top Priority Habitations for Relocation:
-${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type}): Pop ${h.growth_adjusted_pop}, VPI ${h.vpi_score?.toFixed(3) || 'N/A'}, Status: ${h.allocation_status || 'Assigned'}`).join('\n')}
+- Top Priority Habitations for Relocation (Census 2011 Baseline Estimates):
+${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type}): Census Pop ${h.growth_adjusted_pop || h.census_2011_pop}, VPI ${h.vpi_score?.toFixed(3) || 'N/A'}, Status: ${h.allocation_status || 'Assigned'}`).join('\n')}
 - Deficit Reports: ${deficitReports.length > 0 ? deficitReports.map(d => `Zone ${d.zone_id} deficit: ${d.deficit} persons`).join(', ') : 'Adequate regional capacity'}
 - Shelters Near Capacity (>70%): ${highOccShelters.map(s => `${s.name} (${s.occupancy_pct}%)`).join(', ') || 'None'}
 - Sensor Telemetry: Peak Gusts ${telemetry?.summary?.radar?.maxGustSpeedKmH ?? 'N/A'} km/h | Pressure ${telemetry?.summary?.radar?.corePressureHpa ?? 'N/A'} hPa | Seismic Max M${telemetry?.summary?.seismic?.maxRecordedMagnitude ?? 0}
-- Satellite Hazard Telemetry (NASA FIRMS & Sentinel Hub):
+- Satellite Hazard Telemetry (NASA FIRMS & Copernicus Data Space):
   Thermal Anomaly Sweep: ${satFireStatement}
   Surface Water & Flood Inundation Index: ${satFloodStatement}
 
-    Provide a concise, professional 2-4 sentence operational briefing recommendation for the Incident Commander highlighting the divergence between calm current conditions and the approaching +12h/+24h timeline peak, incorporating relevant satellite fire/flood anomalies and documented historical disaster recurrence risks.`;
+DATA TRUTH REQUIREMENTS:
+- Never describe unconfigured, degraded, unavailable, baseline, or archived sources as current live observations.
+- Clearly distinguish between LIVE OFFICIAL ALERT, ARCHIVED ALERT, EXPIRED ALERT, UNVERIFIED CITIZEN REPORT, VERIFIED CITIZEN REPORT, DRILL ALERT, and DERIVED CORRELATION.
+- Never state that an alert is active when its source is expired, archived, or unavailable.
+- Correlation != Causation: Never claim one hazard caused another (e.g., that a cyclone caused a flood or storm caused landslide) unless authoritative primary source text explicitly documents a causal link; treat concurrent hazards strictly as spatiotemporally co-occurring correlated events.
+- Treat AP SDMA shelter directory strictly as reference baseline infrastructure; reference capacity does not imply confirmed live availability.
+- Unknown shelter occupancy must never be fabricated as 0; clearly state when shelter occupancy telemetry is unknown.
+- If Copernicus Sentinel-1 latest observation is not configured, do not claim satellite confirms flooding; state that Copernicus latest observation is not configured.
+- Treat Census data strictly as baseline demographic enumeration, not real-time counts.
+- Treat Bhuvan as official base ortho imagery, not live sensor telemetry.
+- Treat NDMA CAP as historical archived reference, not active emergency alerts.
+- Do not describe TerraMind historical data as current satellite observations.
+- Communicate uncertainty when provider data is stale or unavailable.
+
+Provide a concise, professional 2-4 sentence operational briefing recommendation for the Incident Commander highlighting the divergence between calm current conditions and the approaching +12h/+24h timeline peak, incorporating truthful satellite status and documented historical recurrence risks.`;
 
     const provider = (process.env.AI_PROVIDER || '').toLowerCase();
-    const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434';
-    const ollamaModel = process.env.OLLAMA_MODEL || 'deepseek-r1:latest';
+    const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_HOST || 'https://ollama.com';
+    const ollamaModel = process.env.OLLAMA_MODEL || 'deepseek-r1:cloud';
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
     // 1. Local Ollama (DeepSeek-R1 / Qwen2.5) if explicitly configured
@@ -756,20 +869,29 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
 
     // Deterministic Operational Analyst Fallback
     const h1 = topHabitations[0];
-    const h1Name = h1 ? h1.village_name : 'Uppada';
-    const h1Pop = h1 ? (h1.growth_adjusted_pop || h1.census_2011_pop || 22000).toLocaleString() : '26,200';
+    const h1Name = h1 ? (h1.village_name || h1.name) : 'monitored coastal sectors';
+    const h1Pop = (h1 && (h1.growth_adjusted_pop || h1.census_2011_pop)) ? (h1.growth_adjusted_pop || h1.census_2011_pop).toLocaleString() : null;
+    const h1PopClause = h1Pop ? ` (${h1Pop} residents)` : '';
     const activeRedCount = redNow.length;
     const forecastRedCount = redIn12h.length;
 
-    let briefText = '';
-    const satSuffix = (satelliteTelemetry?.zonesWithFloodsCount > 0 && satelliteTelemetry.briefingStatements[1])
-      ? ` Satellite imagery confirms ${satelliteTelemetry.briefingStatements[1]}`
-      : '';
+    let satSuffix = '';
+    const proc = satelliteTelemetry?.processing;
+    if (proc && proc.status === 'PROCESSED' && proc.indicators && proc.indicators.surfaceWaterAnomaly) {
+      satSuffix = ` Grounded Sentinel-1 SAR analysis (${proc.sourceSceneId}) indicates ${proc.indicators.surfaceWaterAnomaly.status} surface water conditions (mean backscatter ${proc.indicators.sarBackscatterStats?.meanDb} dB).`;
+    } else if (satelliteTelemetry?.latestObservation?.sceneId) {
+      satSuffix = ` Sentinel-1 observation (${satelliteTelemetry.latestObservation.sceneId}) is catalogued; pixel-level surface anomaly processing is currently unavailable.`;
+    }
 
+    const curWind = telemetry?.summary?.radar?.currentWindKmh != null ? `${telemetry.summary.radar.currentWindKmh} km/h winds` : 'moderate baseline winds';
+    const curPressure = telemetry?.summary?.radar?.corePressureHpa != null ? `${telemetry.summary.radar.corePressureHpa} hPa` : 'stable barometric pressure';
+    const maxGust = telemetry?.summary?.radar?.maxGustSpeedKmH != null ? `${telemetry.summary.radar.maxGustSpeedKmH} km/h` : 'elevated gust thresholds';
+
+    let briefText = '';
     if (activeRedCount === 0 && forecastRedCount > 0) {
-      briefText = `Current observations along the coastal corridor show moderate baseline conditions (${telemetry.summary.radar.currentWindKmh} km/h winds, ${telemetry.summary.radar.corePressureHpa} hPa). However, multi-model point forecasts confirm high escalation to Critical RED by +12h to +24h, impacting ${forecastRedCount} habitations including ${h1Name} (${h1Pop} residents). Pre-emptive evacuation dispatch to designated cyclone shelters must begin immediately before squall lines close road transit routes.${satSuffix}`;
+      briefText = `Current observations along the coastal corridor show moderate baseline conditions (${curWind}, ${curPressure}). However, multi-model point forecasts confirm high escalation to Critical RED by +12h to +24h, impacting ${forecastRedCount} habitations including ${h1Name}${h1PopClause}. Pre-emptive evacuation dispatch to designated cyclone shelters must begin immediately before squall lines close road transit routes.${satSuffix}`;
     } else if (activeRedCount > 0) {
-      briefText = `CRITICAL ACTIVE IMPACT: ${activeRedCount} habitations are currently crossing severe thresholds with observed gusts of ${telemetry.summary.radar.maxGustSpeedKmH} km/h. Priority evacuation of ${h1Name} is underway; field units must monitor shelter capacities and divert secondary evacuees to inland centers.${satSuffix}`;
+      briefText = `CRITICAL ACTIVE IMPACT: ${activeRedCount} habitations are currently crossing severe thresholds with observed gusts of ${maxGust}. Priority evacuation of ${h1Name}${h1PopClause} is underway; field units must monitor shelter capacities and divert secondary evacuees to inland centers.${satSuffix}`;
     } else {
       briefText = `All sectors are currently maintaining stable low-to-moderate baselines. Automated sensor telemetry, NASA VIIRS fire scans, and 48-hour forward projections show no immediate threshold breaches across monitored habitations. Routine disaster grid surveillance and shelter readiness standbys remain active.${satSuffix}`;
     }
@@ -787,7 +909,7 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 300,
         temperature: 0.2,
-        system: 'You are the single AI orchestrator and disaster risk analyst for the NDRF and SDMA. Deliver a concise 2-4 sentence operational briefing paragraph for the Incident Commander. Address the difference between current telemetry vs timeline forecast peak, and specify habitations and shelter directives. Do not use bullet points or markdown headings.',
+        system: 'You are the single AI orchestrator and disaster risk analyst for the NDRF and SDMA. Deliver a concise 2-4 sentence operational briefing paragraph for the Incident Commander. Address the difference between current telemetry vs timeline forecast peak, and specify habitations and shelter directives. Crucial: never describe unconfigured, baseline, or archived data as live telemetry. Distinguish unverified citizen reports from verified emergencies: unverified citizen reports must always be phrased cautiously (e.g. \"An unverified citizen report indicates...\") and never stated as confirmed operational facts. Only verified reports represent confirmed operational evidence. Do not use bullet points or markdown headings.',
         messages: [{ role: 'user', content: userPrompt }]
       });
 
@@ -829,13 +951,13 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
   /**
    * Local Ollama text generation caller (Supports DeepSeek-R1, Qwen2.5, etc.)
    */
-  callOllamaApi(baseUrl = 'http://127.0.0.1:11434', model = 'deepseek-r1:latest', userPrompt = '') {
+  callOllamaApi(baseUrl = 'https://ollama.com', model = 'deepseek-r1:cloud', userPrompt = '') {
     return new Promise((resolve, reject) => {
       try {
         const parsedUrl = new URL(`${baseUrl}/api/generate`);
         const payload = JSON.stringify({
           model: model,
-          prompt: `You are the disaster risk analyst for NDRF and SDMA. Deliver a concise 2-4 sentence operational briefing paragraph for the Incident Commander based on this data. Do not include markdown headers or bullet points.\n\n${userPrompt}`,
+          prompt: `You are the disaster risk analyst for NDRF and SDMA. Deliver a concise 2-4 sentence operational briefing paragraph for the Incident Commander based on this data. Crucial: never describe unconfigured, baseline, or archived data as live telemetry. Distinguish unverified citizen reports from verified emergencies: unverified citizen reports must always be phrased cautiously (e.g. "An unverified citizen report indicates...") and never stated as confirmed operational facts. Only verified reports represent confirmed operational evidence. Do not include markdown headers or bullet points.\n\n${userPrompt}`,
           stream: false,
           options: {
             temperature: 0.2,
@@ -844,12 +966,19 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
         });
 
         const client = parsedUrl.protocol === 'https:' ? https : http;
+        
+        const headers = {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
+        };
+        
+        if (process.env.OLLAMA_API_KEY) {
+          headers['Authorization'] = `Bearer ${process.env.OLLAMA_API_KEY}`;
+        }
+
         const req = client.request(parsedUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(payload)
-          },
+          headers: headers,
           timeout: parseInt(process.env.AI_TIMEOUT_MS) || 60000 // Configurable timeout for local model inference
         }, (res) => {
           let body = '';
@@ -884,8 +1013,42 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
    * Matches live tier, hazard qualities, coordinates, and radius.
    * Updates cachedState.allZones and cachedState.zonesByHazard.
    */
-  injectOrEscalateZone(alertData) {
+  injectOrEscalateZone(alertData, options = {}) {
     if (!alertData) return null;
+
+    // Safety Guard 1: Reject DRILL or SIMULATED data from escalating LIVE state
+    if (alertData.isDrill === true || alertData.isSimulated === true || alertData.tier === 'SIMULATED' || alertData.role === 'DRILL' || alertData.role === 'SIMULATED') {
+      console.warn('[AIEngine Security] Rejected escalation attempt containing DRILL/SIMULATED payload');
+      return null;
+    }
+
+    // Safety Guard 2: Reject ARCHIVED or REFERENCE datasets from escalating live zones
+    if (alertData.tier === 'ARCHIVED' || alertData.role === 'REFERENCE' || alertData.role === 'ARCHIVED') {
+      console.warn('[AIEngine Security] Rejected escalation attempt containing ARCHIVED/REFERENCE payload');
+      return null;
+    }
+
+    // Safety Guard 3: Reject UNVERIFIED citizen claims
+    const alertStatus = (alertData.status || '').toLowerCase();
+    if (alertStatus === 'pending' || alertStatus === 'unverified' || alertStatus === 'pending_triage') {
+      console.warn('[AIEngine Security] Rejected escalation attempt from UNVERIFIED citizen claim');
+      return null;
+    }
+
+    // Safety Guard 4: Coordinate validity and AP bounding box check
+    const lat = Number(alertData.lat != null ? alertData.lat : alertData.latitude);
+    const lng = Number(alertData.lng != null ? alertData.lng : alertData.longitude);
+    if (isNaN(lat) || isNaN(lng)) {
+      console.warn('[AIEngine] Cannot inject zone without valid coordinates:', alertData);
+      return null;
+    }
+    // AP Bounding Box: lat [12.5, 19.5], lng [76.5, 85.0]
+    if (lat < 12.5 || lat > 19.5 || lng < 76.5 || lng > 85.0) {
+      console.warn(`[AIEngine Security] Rejected escalation with out-of-bounds coordinates (${lat}, ${lng}) outside Andhra Pradesh`);
+      return null;
+    }
+
+    const isDryRun = Boolean(options.dryRun || alertData.dryRun);
 
     if (!this.cachedState) {
       this.cachedState = {
@@ -921,13 +1084,6 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
     else if (rawTier.includes('MOD') || rawTier.includes('YELLOW') || rawTier.includes('ADVISORY') || rawTier === '2') targetTier = 'YELLOW';
     else if (rawTier.includes('SAFE') || rawTier.includes('GREEN') || rawTier === '1') targetTier = 'GREEN';
 
-    const lat = Number(alertData.lat != null ? alertData.lat : alertData.latitude);
-    const lng = Number(alertData.lng != null ? alertData.lng : alertData.longitude);
-    if (isNaN(lat) || isNaN(lng)) {
-      console.warn('[AIEngine] Cannot inject zone without valid coordinates:', alertData);
-      return null;
-    }
-
     const radiusMeters = Number(alertData.radius ? (alertData.radius > 1000 ? alertData.radius : alertData.radius * 1000) : 28000);
     const zoneName = alertData.zone || alertData.area || alertData.name || alertData.title || `${normHazard.toUpperCase()} Warning Zone`;
     const message = alertData.message || alertData.desc || 'Official Emergency Directive Issued.';
@@ -951,6 +1107,16 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
     });
 
     if (existing) {
+      if (isDryRun) {
+        return {
+          ...existing,
+          current_tier: targetTier,
+          level: targetTier,
+          forecast_tier_by_hour: [targetTier, targetTier, targetTier, targetTier, targetTier, targetTier],
+          note: `[DRY_RUN_PREVIEW] OFFICIAL AUTHORITY ESCALATION: ${message}`,
+          isDryRun: true
+        };
+      }
       console.log(`[AIEngine] Force-escalating existing zone ${existing.name} (${existing.id}) to ${targetTier}`);
       existing.current_tier = targetTier;
       existing.level = targetTier;
@@ -976,8 +1142,8 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
       lng: lng,
       baseRadius: radiusMeters,
       radius: radiusMeters,
-      pop: alertData.pop || 25000,
-      elevation_m: alertData.elevation_m || 8,
+      pop: Number(alertData.pop || alertData.population) || null,
+      elevation_m: Number(alertData.elevation_m) || 5,
       vulnerability_score: 0.85,
       current_tier: targetTier,
       level: targetTier,
@@ -987,15 +1153,15 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
         offsetHours: offset,
         label: idx === 0 ? 'Now' : `+${offset}h`,
         tier: targetTier,
-        windKmh: 95,
-        gustKmh: 120,
-        precipMm: 35,
-        pressureHpa: 980
+        windKmh: null,
+        gustKmh: null,
+        precipMm: null,
+        pressureHpa: null
       })),
-      current_telemetry: {
-        windGustKmh: 120,
-        precipMm: 35,
-        pressureHpa: 980
+      current_telemetry: alertData.telemetry || {
+        windGustKmh: null,
+        precipMm: null,
+        pressureHpa: null
       },
       disaster_recurrence: {
         score: 0.9,
@@ -1008,6 +1174,10 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
       isAuthorityDeclared: true,
       createdAt: new Date().toISOString()
     };
+
+    if (isDryRun) {
+      return { ...newZone, isDryRun: true };
+    }
 
     this.cachedState.allZones.push(newZone);
     if (!this.cachedState.zonesByHazard) {
@@ -1024,5 +1194,6 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
   }
 }
 
-const instance = new AIEngine();
-module.exports = instance;
+  const instance = new AIEngine();
+  return instance;
+}));

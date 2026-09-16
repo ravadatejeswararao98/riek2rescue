@@ -24,5 +24,8 @@
   "license": "MIT",
   "devDependencies": {
     "ws": "^8.21.3"
+  },
+  "dependencies": {
+    "@flaticon/flaticon-uicons": "^3.3.1"
   }
 }

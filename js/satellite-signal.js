@@ -85,107 +85,73 @@ class SatelliteSignal {
    * 1. NASA FIRMS Active Fire Hotspots Ingestion
    */
   async fetchNasaFirmsHotspots() {
-    const now = Date.now();
-    if (this.firmsCache.fetchedAt && (now - this.firmsCache.fetchedAt < FIRMS_CACHE_TTL_MS)) {
-      return this.firmsCache;
-    }
-
     try {
-      console.log('[SatelliteSignal] Ingesting NASA FIRMS VIIRS Active Fire Feed...');
-      const csvText = await this.fetchText(NASA_FIRMS_VIIRS_CSV_URL, 9000);
-      const lines = csvText.split('\n');
-      if (lines.length < 2) throw new Error('Empty CSV feed');
-
-      const headers = lines[0].split(',').map(h => h.trim());
-      const latIdx = headers.indexOf('latitude');
-      const lonIdx = headers.indexOf('longitude');
-      const frpIdx = headers.indexOf('frp');
-      const confIdx = headers.indexOf('confidence');
-      const brightIdx = headers.indexOf('bright_ti4');
-      const dateIdx = headers.indexOf('acq_date');
-      const timeIdx = headers.indexOf('acq_time');
-
-      const hotspots = [];
-      // Parse CSV rows (filter coordinates roughly bounding India: lat 6 to 38, lng 68 to 98)
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        const cols = line.split(',');
-        const lat = parseFloat(cols[latIdx]);
-        const lon = parseFloat(cols[lonIdx]);
-
-        if (isNaN(lat) || isNaN(lon)) continue;
-
-        // Bounding box for India and immediate subcontinent
-        if (lat >= 6.0 && lat <= 38.0 && lon >= 68.0 && lon <= 98.0) {
-          hotspots.push({
-            lat,
-            lon,
-            frp: parseFloat(cols[frpIdx]) || 0,
-            confidence: cols[confIdx] || 'nominal',
-            brightness: parseFloat(cols[brightIdx]) || 300,
-            date: cols[dateIdx] || '',
-            time: cols[timeIdx] || ''
-          });
-        }
-      }
-
-      this.firmsCache = {
-        hotspots,
-        rawCount: hotspots.length,
-        fetchedAt: now
-      };
-      console.log(`[SatelliteSignal] NASA FIRMS ingested ${hotspots.length} active Indian subcontinent hotspots.`);
-      return this.firmsCache;
-
+      const { getNasaFirmsHotspots } = require('../sources/nasa-firms.js');
+      return await getNasaFirmsHotspots();
     } catch (err) {
-      console.warn('[SatelliteSignal] NASA FIRMS live fetch failed:', err.message);
-      if (this.firmsCache.hotspots && this.firmsCache.hotspots.length > 0) return this.firmsCache;
-
-      // Honest status: never invent synthetic fire points
+      console.warn('[SatelliteSignal] NASA FIRMS module call failed:', err.message);
       return {
         status: 'UNAVAILABLE',
+        sourceId: 'nasa_firms_viirs',
+        observations: [],
         hotspots: [],
         rawCount: 0,
-        fetchedAt: now,
-        isFallback: false,
+        observationCount: 0,
+        fetchedAt: new Date().toISOString(),
         error: err.message
       };
     }
   }
 
   /**
-   * 2. Real Copernicus Data Space Ecosystem (Sentinel-1 SAR Flood Ingestion)
+   * 2. Primary Sentinel-1 GRD Discovery via Copernicus Data Space Ecosystem
    */
   async fetchSentinelFloodSignals(focalPoints = []) {
     try {
-      const { getCopernicusFloodSignal } = require('../sources/copernicus.js');
-      if (typeof getCopernicusFloodSignal === 'function') {
-        const copernicusRes = await getCopernicusFloodSignal(focalPoints);
-        if (copernicusRes && copernicusRes.signals && copernicusRes.signals.length > 0) {
+      const { getLatestSentinel1Observation, processLatestSentinel1Observation } = require('../sources/copernicus.js');
+      if (typeof getLatestSentinel1Observation === 'function') {
+        const copernicusRes = await getLatestSentinel1Observation();
+        let processingRes = null;
+        if (typeof processLatestSentinel1Observation === 'function') {
+          try {
+            processingRes = await processLatestSentinel1Observation();
+          } catch (pe) {
+            console.warn('[SatelliteSignal] Processing evaluation warning:', pe.message);
+          }
+        }
+        if (copernicusRes && (copernicusRes.status === 'LIVE' || copernicusRes.status === 'DEGRADED')) {
           return {
             provider: 'Copernicus Data Space Ecosystem (Sentinel-1 SAR GRD)',
+            sourceId: 'copernicus_dataspace',
             isLiveAuthenticated: true,
-            status: copernicusRes.status || 'LIVE',
-            composites: copernicusRes.signals.map(s => ({
-              locationKey: s.locationKey || `${s.lat.toFixed(2)},${s.lng.toFixed(2)}`,
-              lat: s.lat,
-              lng: s.lng,
-              waterIndexExpansionPct: Math.round((s.waterPixelFraction || 0) * 1000) / 10,
-              floodRiskStatus: s.waterPixelFraction > 0.2 ? 'HIGH_INUNDATION' : (s.waterPixelFraction > 0.1 ? 'ELEVATED_INUNDATION' : 'NORMAL'),
-              satelliteSensor: s.sensor || 'Sentinel-1 SAR GRD',
-              sceneId: s.sceneId || 'N/A',
-              acquiredAt: s.acquiredAt || new Date().toISOString(),
-              observedAt: new Date().toISOString()
-            }))
+            status: copernicusRes.status,
+            observationType: 'LATEST_SATELLITE_OBSERVATION',
+            latestObservation: copernicusRes,
+            processing: processingRes,
+            composites: []
           };
         }
         if (copernicusRes && copernicusRes.status === 'NOT_CONFIGURED') {
           return {
             provider: 'Copernicus Data Space Ecosystem (Sentinel-1 SAR GRD)',
+            sourceId: 'copernicus_dataspace',
             isLiveAuthenticated: false,
             status: 'NOT_CONFIGURED',
+            observationType: 'LATEST_SATELLITE_OBSERVATION',
             detail: 'Add COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET to .env',
+            latestObservation: null,
+            processing: processingRes || {
+              status: 'NOT_CONFIGURED',
+              sourceId: 'copernicus_dataspace',
+              sourceSceneId: null,
+              observationType: 'LATEST_SATELLITE_OBSERVATION',
+              indicatorType: 'SENTINEL1_GRD_DERIVED_INDICATORS',
+              derivedAt: null,
+              processedAt: null,
+              contributingSources: ['copernicus_dataspace'],
+              indicators: null,
+              reason: 'COPERNICUS_CLIENT_ID or COPERNICUS_CLIENT_SECRET unset in .env'
+            },
             composites: []
           };
         }
@@ -197,15 +163,31 @@ class SatelliteSignal {
     // Default when credentials are unset: NOT_CONFIGURED, zero fabricated values
     return {
       provider: 'Copernicus Data Space Ecosystem (Sentinel-1 SAR GRD)',
+      sourceId: 'copernicus_dataspace',
       isLiveAuthenticated: false,
       status: (process.env.COPERNICUS_CLIENT_ID && process.env.COPERNICUS_CLIENT_SECRET) ? 'UNAVAILABLE' : 'NOT_CONFIGURED',
+      observationType: 'LATEST_SATELLITE_OBSERVATION',
       detail: (process.env.COPERNICUS_CLIENT_ID && process.env.COPERNICUS_CLIENT_SECRET) ? 'Copernicus upstream unavailable' : 'Add COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET to .env',
+      latestObservation: null,
+      processing: {
+        status: (process.env.COPERNICUS_CLIENT_ID && process.env.COPERNICUS_CLIENT_SECRET) ? 'UNAVAILABLE' : 'NOT_CONFIGURED',
+        sourceId: 'copernicus_dataspace',
+        sourceSceneId: null,
+        observationType: 'LATEST_SATELLITE_OBSERVATION',
+        indicatorType: 'SENTINEL1_GRD_DERIVED_INDICATORS',
+        derivedAt: null,
+        processedAt: null,
+        contributingSources: ['copernicus_dataspace'],
+        indicators: null,
+        reason: (process.env.COPERNICUS_CLIENT_ID && process.env.COPERNICUS_CLIENT_SECRET) ? 'Copernicus upstream unavailable' : 'Add COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET to .env'
+      },
       composites: []
     };
   }
 
   /**
-   * Generates OAuth Bearer token for Sentinel Hub
+   * LEGACY / REFERENCE ONLY: Generates OAuth Bearer token for Sentinel Hub
+   * NOT_USED_FOR_LATEST_SENTINEL1 (Replaced by Copernicus Data Space Ecosystem)
    */
   getSentinelAuthToken(clientId, clientSecret) {
     return new Promise((resolve, reject) => {
@@ -240,7 +222,8 @@ class SatelliteSignal {
   }
 
   /**
-   * Executes Sentinel Hub Processing API request with an NDWI flood compositing evalscript
+   * LEGACY / REFERENCE ONLY: Executes Sentinel Hub Processing API request with an NDWI flood compositing evalscript
+   * NOT_USED_FOR_LATEST_SENTINEL1 (Replaced by Copernicus Data Space Ecosystem)
    */
   callSentinelProcessingApi(token, focalPoints) {
     if (!focalPoints.length) return null;
@@ -296,19 +279,11 @@ function evaluatePixel(sample) {
         res.on('data', chunk => body += chunk);
         res.on('end', () => {
           if (res.statusCode === 200) {
+            // Honest processing: only report live authenticated status with verified composites
             resolve({
               provider: 'Sentinel Hub Processing API (Live)',
               isLiveAuthenticated: true,
-              composites: [{
-                locationKey: pt.key || 'primary_focus',
-                lat: pt.lat,
-                lng: pt.lng,
-                waterIndexExpansionPct: 15.4,
-                floodRiskStatus: 'ELEVATED_INUNDATION',
-                satelliteSensor: 'Sentinel-2 L2A NDWI Online',
-                cloudCoverPct: 8.5,
-                observedAt: new Date().toISOString()
-              }]
+              composites: []
             });
           } else {
             resolve(null);
@@ -342,18 +317,22 @@ function evaluatePixel(sample) {
       let nearbyHotspots = [];
       let maxFrp = 0;
 
-      if (zLat && zLng && Array.isArray(firmsData.hotspots)) {
-        for (const spot of firmsData.hotspots) {
-          const dist = this.calcDistanceKm(zLat, zLng, spot.lat, spot.lon);
+      const hotspotList = firmsData.observations || firmsData.hotspots || [];
+      if (zLat && zLng && Array.isArray(hotspotList)) {
+        for (const spot of hotspotList) {
+          const sLat = spot.latitude !== undefined ? spot.latitude : spot.lat;
+          const sLon = spot.longitude !== undefined ? spot.longitude : spot.lon;
+          if (typeof sLat !== 'number' || typeof sLon !== 'number') continue;
+          const dist = this.calcDistanceKm(zLat, zLng, sLat, sLon);
           if (dist <= 35) { // 35 km radius
             nearbyHotspots.push({
               distKm: Math.round(dist * 10) / 10,
               frp: spot.frp,
               confidence: spot.confidence,
               brightness: spot.brightness,
-              date: spot.date
+              date: spot.observedAt || spot.date
             });
-            if (spot.frp > maxFrp) maxFrp = spot.frp;
+            if (typeof spot.frp === 'number' && spot.frp > maxFrp) maxFrp = spot.frp;
           }
         }
       }
@@ -391,7 +370,9 @@ function evaluatePixel(sample) {
     const zonesWithFloods = zoneSignals.filter(z => z.floodExpansionPct !== null && z.floodExpansionPct >= 15);
 
     const briefingStatements = [];
-    if (firmsData.status === 'UNAVAILABLE') {
+    if (firmsData.status === 'NOT_CONFIGURED') {
+      briefingStatements.push('NASA FIRMS VIIRS fire feed not configured (add NASA_FIRMS_MAP_KEY to .env).');
+    } else if (firmsData.status === 'UNAVAILABLE') {
       briefingStatements.push('NASA VIIRS thermal anomaly feed currently unavailable from upstream.');
     } else if (zonesWithFires.length > 0) {
       const topFireZone = zonesWithFires[0];
@@ -401,7 +382,16 @@ function evaluatePixel(sample) {
     }
 
     if (sentinelData.status === 'NOT_CONFIGURED') {
-      briefingStatements.push('Copernicus Sentinel-1 SAR radar flood layer not configured (add credentials to .env).');
+      briefingStatements.push('Copernicus Data Space Ecosystem (Sentinel-1 SAR) not configured (add credentials to .env).');
+    } else if (sentinelData.status === 'UNAVAILABLE') {
+      briefingStatements.push('Copernicus Data Space Ecosystem (Sentinel-1 SAR) currently unavailable from upstream.');
+    } else if (sentinelData.latestObservation && sentinelData.latestObservation.sceneId) {
+      const proc = sentinelData.processing;
+      if (proc && proc.status === 'PROCESSED' && proc.indicators && proc.indicators.sarBackscatterStats) {
+        briefingStatements.push(`Latest Sentinel-1 observation (${sentinelData.latestObservation.sceneId}) processed: Mean backscatter ${proc.indicators.sarBackscatterStats.meanDb} dB, anomaly ${proc.indicators.surfaceWaterAnomaly.status}.`);
+      } else {
+        briefingStatements.push(`Latest Sentinel-1 observation acquired at ${sentinelData.latestObservation.acquisitionStart || 'recent pass'} across Andhra Pradesh (Platform ${sentinelData.latestObservation.platform}, Polarisation ${sentinelData.latestObservation.polarization || 'Dual'}). Satellite processing unavailable.`);
+      }
     } else if (zonesWithFloods.length > 0) {
       const topFloodZone = zonesWithFloods[0];
       briefingStatements.push(`Sentinel-1 SAR radar reveals +${topFloodZone.floodExpansionPct}% surface-water inundation expansion across ${topFloodZone.zoneName}.`);
@@ -409,14 +399,17 @@ function evaluatePixel(sample) {
 
     return {
       fetchedAt: new Date().toISOString(),
-      firmsSubcontinentTotal: firmsData.rawCount || 0,
+      firmsStatus: firmsData.status || 'UNAVAILABLE',
+      firmsSubcontinentTotal: firmsData.rawCount || firmsData.observationCount || 0,
       totalMonitoredHotspots,
       zonesWithFiresCount: zonesWithFires.length,
       zonesWithFloodsCount: zonesWithFloods.length,
       briefingStatements,
       zoneSignals,
       sentinelProvider: sentinelData.provider,
-      sentinelStatus: sentinelData.status
+      sentinelStatus: sentinelData.status,
+      latestObservation: sentinelData.latestObservation || null,
+      processing: sentinelData.processing || null
     };
   }
 

@@ -25,7 +25,7 @@ class EmergencySOSBeacon {
               lng: pos.coords.longitude,
               latitude: pos.coords.latitude,
               longitude: pos.coords.longitude,
-              accuracy: Math.round(pos.coords.accuracy || 0),
+              accuracy: (typeof pos.coords.accuracy === 'number' && !isNaN(pos.coords.accuracy)) ? Math.round(pos.coords.accuracy) : null,
               capturedAt: pos.timestamp || Date.now()
             };
             this.hasLiveFix = true;
@@ -38,7 +38,7 @@ class EmergencySOSBeacon {
           // Do not substitute any hardcoded or fake coordinates
           this.hasLiveFix = false;
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     }
   }
@@ -124,17 +124,18 @@ class EmergencySOSBeacon {
               accuracy
             });
 
+            const parsedAcc = (typeof accuracy === 'number' && !isNaN(accuracy)) ? Math.round(accuracy) : null;
             this.userCoords = {
               lat: latitude,
               lng: longitude,
               latitude,
               longitude,
-              accuracy: Math.round(accuracy || 0),
+              accuracy: parsedAcc,
               capturedAt
             };
             this.hasLiveFix = true;
             if (typeof window !== 'undefined') {
-              window.citizenGPSLocation = { lat: latitude, lng: longitude, accuracy: Math.round(accuracy || 0) };
+              window.citizenGPSLocation = { lat: latitude, lng: longitude, accuracy: parsedAcc };
             }
           }
         }
@@ -195,13 +196,22 @@ class EmergencySOSBeacon {
     this.renderSOSModal();
 
     // Broadcast high-priority distress event to Firebase & local mesh
+    const sosId = 'SOS-' + Date.now().toString().slice(-6);
+    const parsedAccFinal = hasLocation && typeof accuracy === 'number' && !isNaN(accuracy) ? Math.round(accuracy) : null;
     const distressPayload = {
-      id: 'SOS-' + Date.now().toString().slice(-6),
+      id: sosId,
+      reportId: sosId,
+      source: 'SOS_BEACON',
+      sourceId: 'sos_beacon',
       type: '🆘 EMERGENCY SOS DISTRESS',
+      reportType: 'SOS',
       category: 'Critical Life Rescue',
       citizenName: 'Citizen in Distress',
       phone: '+91 98765-EMERGENCY',
       desc: hasLocation
+        ? `Immediate beacon distress signal from citizen terminal. Verified device GPS acquired.`
+        : `Immediate beacon distress signal from citizen terminal. GPS location was unavailable at transmission.`,
+      description: hasLocation
         ? `Immediate beacon distress signal from citizen terminal. Verified device GPS acquired.`
         : `Immediate beacon distress signal from citizen terminal. GPS location was unavailable at transmission.`,
       details: hasLocation
@@ -211,25 +221,31 @@ class EmergencySOSBeacon {
       lng: hasLocation ? longitude : null,
       latitude: hasLocation ? latitude : null,
       longitude: hasLocation ? longitude : null,
-      locationAccuracy: hasLocation && accuracy ? Math.round(accuracy) : null,
+      accuracy: parsedAccFinal,
+      locationAccuracy: parsedAccFinal,
       locationTimestamp: capturedAt,
-      locationStatus: hasLocation ? 'available' : 'unavailable',
+      locationStatus: hasLocation ? 'AVAILABLE' : 'UNAVAILABLE',
       location: hasLocation
-        ? `Lat ${latitude.toFixed(5)}° N, Lng ${longitude.toFixed(5)}° E (±${Math.round(accuracy || 0)}m)`
+        ? `Lat ${latitude.toFixed(5)}° N, Lng ${longitude.toFixed(5)}° E${parsedAccFinal !== null ? ` (±${parsedAccFinal}m)` : ''}`
         : 'Location unavailable',
       locationCoords: hasLocation ? {
         latitude: latitude,
         longitude: longitude,
-        accuracy: Math.round(accuracy || 0),
+        accuracy: parsedAccFinal,
         capturedAt: capturedAt
       } : null,
       severity: 'Critical',
       status: 'Pending',
+      lifecycleStatus: 'PENDING',
+      verificationStatus: 'UNVERIFIED',
       isSos: true,
       sosStatus: 'HIGH_PRIORITY_URGENT',
-      upvotes: 99,
+      upvotes: 0,
       time: 'Just now',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      submissionTimestamp: Date.now(),
+      submittedAt: new Date().toISOString(),
+      receivedAt: Date.now()
     };
 
     // 1. Immediately store in localStorage so all tabs / portals have instant access

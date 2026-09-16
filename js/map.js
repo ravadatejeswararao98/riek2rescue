@@ -64,10 +64,10 @@ const RISK_TIERS = {
 const RISK_COLORS = RISK_TIERS;
 
 const LAYER_CONFIG = {
-  satellite: { name: 'Satellite', icon: '🛰️', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19 },
-  standard: { name: 'Standard', icon: '🗺️', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19 },
-  windy: { name: 'Windy Radar', icon: '🌀', url: 'https://tilecache.rainviewer.com/v2/radar/nowcast/256/{z}/{x}/{y}/2/1_1.png', maxZoom: 12, opacity: 0.75 },
-  topo: { name: 'Elevation', icon: '⛰️', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17 }
+  satellite: { name: 'Satellite', icon: '<i class="fi fi-rr-satellite" aria-hidden="true"></i>', iconClass: 'fi-rr-satellite', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', maxZoom: 19 },
+  standard: { name: 'Standard', icon: '<i class="fi fi-rr-map" aria-hidden="true"></i>', iconClass: 'fi-rr-map', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxZoom: 19 },
+  windy: { name: 'Windy Radar', icon: '<i class="fi fi-rr-wind" aria-hidden="true"></i>', iconClass: 'fi-rr-wind', url: 'https://tilecache.rainviewer.com/v2/radar/nowcast/256/{z}/{x}/{y}/2/1_1.png', maxZoom: 12, opacity: 0.75 },
+  topo: { name: 'Elevation', icon: '<i class="fi fi-rr-mountains" aria-hidden="true"></i>', iconClass: 'fi-rr-mountains', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', maxZoom: 17 }
 };
 
 if (typeof fetch !== 'undefined') {
@@ -456,8 +456,14 @@ class DisasterMap {
       if (window.isInsideAndhraPradesh && !window.isInsideAndhraPradesh(site.lat, site.lng)) {
         return;
       }
-      const pct = Math.round((site.current / site.capacity) * 100);
-      const capColor = pct > 85 ? '#ef4444' : pct > 60 ? '#f97316' : '#22c55e';
+      const hasOcc = typeof site.current === 'number' && !isNaN(site.current);
+      const pct = hasOcc ? Math.round((site.current / site.capacity) * 100) : null;
+      const capColor = !hasOcc ? '#94a3b8' : (pct > 85 ? '#ef4444' : pct > 60 ? '#f97316' : '#22c55e');
+      const occText = hasOcc ? `${site.current.toLocaleString()} (${pct}%) [LIVE]` : 'UNKNOWN (No live signal)';
+      const opStatus = site.live?.operationalStatus || 'UNKNOWN';
+      const badgeClass = opStatus === 'open' ? 'risk-green' : (opStatus === 'full' ? 'risk-red' : (opStatus === 'closed' ? 'risk-gray' : 'risk-blue'));
+      const badgeLabel = opStatus === 'open' ? 'SAFE SITE (OPEN)' : (opStatus === 'full' ? 'SHELTER FULL' : (opStatus === 'closed' ? 'SHELTER CLOSED' : 'BASELINE DIRECTORY'));
+
       const icon = L.divIcon({
         html: `
           <div class="map-poi-pin poi-shelter" title="Evacuation Shelter: ${site.name}">
@@ -473,10 +479,12 @@ class DisasterMap {
 
       marker.bindPopup(`
         <div class="map-popup">
-          <div class="popup-header"><span class="risk-badge risk-green">SAFE SITE</span><span class="popup-name">${site.name}</span></div>
+          <div class="popup-header"><span class="risk-badge ${badgeClass}">${badgeLabel}</span><span class="popup-name">${site.name}</span></div>
           <div class="popup-body">
-            <div class="popup-stat"><span>Capacity</span><strong>${site.capacity.toLocaleString()}</strong></div>
-            <div class="popup-stat"><span>Current</span><strong style="color:${capColor}">${site.current.toLocaleString()} (${pct}%)</strong></div>
+            <div class="popup-stat"><span>Reference Capacity</span><strong>${site.capacity.toLocaleString()}</strong></div>
+            <div class="popup-stat"><span>Estimated Occupancy</span><strong style="color:${capColor}">${occText}</strong></div>
+            <div class="popup-stat"><span>Operational Status</span><strong>${opStatus}</strong></div>
+            <div class="popup-stat"><span>Source</span><span style="font-size:11px;color:#94a3b8;">AP SDMA (Baseline)</span></div>
             <div class="popup-stat"><span>Type</span><strong>${site.type}</strong></div>
             <div class="popup-amenities">${site.amenities.map(a => `<span>${a}</span>`).join('')}</div>
           </div>
@@ -488,13 +496,21 @@ class DisasterMap {
   }
 
   addHazardMarkers() {
-    const icons = { Cyclone: '🌀', Flood: '🌊', Landslide: '⛰️', Earthquake: '📳', Cloudburst: '⛈️' };
+    const icons = {
+      Cyclone: '<i class="fi fi-rr-tornado" aria-hidden="true"></i>',
+      Flood: '<i class="fi fi-rr-water" aria-hidden="true"></i>',
+      Landslide: '<i class="fi fi-rr-mountains" aria-hidden="true"></i>',
+      Earthquake: '<i class="fi fi-rr-waveform-path" aria-hidden="true"></i>',
+      Cloudburst: '<i class="fi fi-rr-thunderstorm" aria-hidden="true"></i>',
+      Tsunami: '<i class="fi fi-rr-wave" aria-hidden="true"></i>',
+      'Coastal Erosion': '<i class="fi fi-rr-island-tropical" aria-hidden="true"></i>'
+    };
     APP_DATA.activeHazards.forEach(h => {
       if (window.isInsideAndhraPradesh && !window.isInsideAndhraPradesh(h.lat, h.lng)) {
         return;
       }
       const icon = L.divIcon({
-        html: `<div style="font-size:24px;text-shadow:0 2px 6px rgba(0,0,0,0.6);animation:float 2s ease-in-out infinite">${icons[h.type] || '⚠️'}</div>`,
+        html: `<div style="font-size:22px;display:flex;align-items:center;justify-content:center;color:#ef4444;text-shadow:0 2px 6px rgba(0,0,0,0.6);animation:float 2s ease-in-out infinite">${icons[h.type] || '<i class="fi fi-rr-triangle-warning" aria-hidden="true"></i>'}</div>`,
         className: '', iconSize: [32, 32], iconAnchor: [16, 16]
       });
       const marker = L.marker([h.lat, h.lng], { icon }).addTo(this.map);
@@ -546,11 +562,14 @@ class DisasterMap {
         const count = cluster.getChildCount();
         const markers = cluster.getAllChildMarkers();
         let totalPop = 0;
-        markers.forEach(m => totalPop += (m._habData.pop || m._habData.growth_adjusted_pop || 1000));
+        markers.forEach(m => {
+          const p = Number(m._habData.pop || m._habData.growth_adjusted_pop || m._habData.census_2011_pop);
+          if (Number.isFinite(p) && p > 0) totalPop += p;
+        });
 
         return L.divIcon({
           html: `<div style="background: rgba(15,23,42,0.95); border: 2px solid rgba(255,255,255,0.2); color: #f1f5f9; padding: 6px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.5); text-align: center;">
-            <span style="font-size:12px;">🏠 ${count} Habitations</span><br>
+            <span style="font-size:12px;"><i class="fi fi-rr-house-building" aria-hidden="true"></i> ${count} Habitations</span><br>
             <span style="color:#94a3b8; font-size:10px;">~${totalPop.toLocaleString()} pop</span>
           </div>`,
           className: 'custom-cluster-icon',
@@ -568,32 +587,41 @@ class DisasterMap {
         return;
       }
       // Compute dynamic risk based on Turf.js point-in-polygon vs active hazards
-      let computedRisk = hab.risk || 'GREEN';
-      let activeThreat = 'None';
-      if (typeof window.turf !== 'undefined' && this.hazardPolygons) {
-        const pt = turf.point([hab.lng || hab.lon, hab.lat]);
+      let computedRisk = 'UNKNOWN';
+      let activeThreat = 'No Active Threat Detected';
+      if (typeof window.turf !== 'undefined' && this.hazardPolygons && this.hazardPolygons.length > 0) {
+        const pt = turf.point([hLng, hLat]);
         let maxRank = 0;
-        const rankMap = { 'GREEN': 1, 'YELLOW': 2, 'ORANGE': 3, 'RED': 4 };
+        const rankMap = { 'GREEN': 1, 'LOW': 1, 'YELLOW': 2, 'MODERATE': 2, 'ORANGE': 3, 'HIGH': 3, 'RED': 4, 'CRITICAL': 4 };
 
         this.hazardPolygons.forEach(hp => {
           if (turf.booleanPointInPolygon(pt, hp.polygon)) {
-            if (rankMap[hp.level] > maxRank) {
-              maxRank = rankMap[hp.level];
-              computedRisk = hp.level;
-              activeThreat = hp.hazardType.charAt(0).toUpperCase() + hp.hazardType.slice(1);
+            const level = (hp.level || 'MODERATE').toUpperCase();
+            if ((rankMap[level] || 1) > maxRank) {
+              maxRank = rankMap[level] || 1;
+              computedRisk = level;
+              activeThreat = hp.hazardType ? (hp.hazardType.charAt(0).toUpperCase() + hp.hazardType.slice(1)) : 'Active Hazard';
             }
           }
         });
+        if (computedRisk === 'UNKNOWN') {
+          computedRisk = 'LOW'; // Verified zero spatial intersection with current active hazard polygons
+          activeThreat = 'Outside Active Hazard Zones';
+        }
+      } else {
+        // No active hazard polygons loaded
+        computedRisk = 'UNKNOWN';
+        activeThreat = 'No Active Hazard Data';
       }
 
-      hab.risk = computedRisk; // Override with live dynamic risk
+      hab.risk = computedRisk; // Dynamic operational risk based on current spatial relationship
 
-      const riskColors = { RED: '#ef4444', ORANGE: '#f97316', YELLOW: '#eab308', GREEN: '#22c55e' };
+      const riskColors = { RED: '#ef4444', CRITICAL: '#ef4444', ORANGE: '#f97316', HIGH: '#f97316', YELLOW: '#eab308', MODERATE: '#eab308', GREEN: '#22c55e', LOW: '#22c55e', UNKNOWN: '#94a3b8' };
       const col = riskColors[hab.risk] || '#94a3b8';
 
       const icon = L.divIcon({
         html: `
-          <div class="map-poi-pin poi-habitation" style="--poi-accent:${col};" title="Habitation: ${hab.name}">
+          <div class="map-poi-pin poi-habitation" style="--poi-accent:${col};" title="Habitation: ${hab.name} (${hab.risk} Risk)">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
               <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
             </svg>
@@ -605,22 +633,24 @@ class DisasterMap {
       marker._habData = hab;
 
       // Light-theme, high-contrast popup for habitations
-      const bgColors = { RED: '#fef2f2', ORANGE: '#fff7ed', YELLOW: '#fefce8', GREEN: '#f0fdf4' };
-      const txtColors = { RED: '#b91c1c', ORANGE: '#c2410c', YELLOW: '#a16207', GREEN: '#15803d' };
+      const bgColors = { RED: '#fef2f2', CRITICAL: '#fef2f2', ORANGE: '#fff7ed', HIGH: '#fff7ed', YELLOW: '#fefce8', MODERATE: '#fefce8', GREEN: '#f0fdf4', LOW: '#f0fdf4', UNKNOWN: '#f8fafc' };
+      const txtColors = { RED: '#b91c1c', CRITICAL: '#b91c1c', ORANGE: '#c2410c', HIGH: '#c2410c', YELLOW: '#a16207', MODERATE: '#a16207', GREEN: '#15803d', LOW: '#15803d', UNKNOWN: '#475569' };
       const riskBg = bgColors[hab.risk] || '#f8fafc';
       const riskTxt = txtColors[hab.risk] || '#0f172a';
+      const riskBadgeLabel = hab.risk === 'UNKNOWN' ? 'UNKNOWN RISK' : `${hab.risk} RISK`;
+      const actionText = (hab.risk === 'RED' || hab.risk === 'CRITICAL') ? 'Evacuate immediately' : (hab.risk === 'ORANGE' || hab.risk === 'HIGH') ? 'Prepare for evacuation' : (hab.risk === 'YELLOW' || hab.risk === 'MODERATE') ? 'Monitor local advisories' : hab.risk === 'LOW' ? 'Normal civil readiness' : 'Monitor situation';
 
       marker.bindPopup(`
         <div class="map-popup light-theme">
           <div class="popup-header">
-            <span class="risk-badge" style="background:${riskBg}; color:${riskTxt}; border:1px solid ${col}66; font-weight:700;">${hab.risk} RISK</span>
+            <span class="risk-badge" style="background:${riskBg}; color:${riskTxt}; border:1px solid ${col}66; font-weight:700;">${riskBadgeLabel}</span>
             <span class="popup-name">${hab.name}</span>
           </div>
           <div class="popup-body">
-            <div class="popup-stat"><span>Population</span><strong>${(hab.pop || hab.growth_adjusted_pop || 0).toLocaleString()}</strong></div>
-            <div class="popup-stat"><span>Status</span><strong>${hab.status || 'In Place'}</strong></div>
+            <div class="popup-stat"><span>Census Reference Pop</span><strong>${(hab.censusPopulation || hab.pop || hab.growth_adjusted_pop || 0).toLocaleString()}</strong></div>
+            <div class="popup-stat"><span>Status</span><strong>${hab.status || 'Registered Baseline'}</strong></div>
             <div class="popup-stat"><span>Immediate Threat</span><strong>${activeThreat}</strong></div>
-            <div class="popup-stat"><span>Action</span><strong>${hab.risk === 'RED' ? 'Evacuate immediately' : hab.risk === 'ORANGE' ? 'Prepare for evacuation' : 'Monitor updates'}</strong></div>
+            <div class="popup-stat"><span>Action</span><strong>${actionText}</strong></div>
           </div>
         </div>
       `, { className: 'custom-popup-light' });
@@ -893,18 +923,18 @@ class DisasterMap {
       .addTo(this.map);
 
     // Build popup with identical structure as My Location
-    const nameStr = options.name || (isSos ? '🚨 Citizen Emergency SOS' : 'Selected Location');
-    const titleStr = isSos ? '🚨 CITIZEN SOS DISTRESS' : (options.title || 'Selected Location');
+    const nameStr = options.name || (isSos ? 'Citizen Emergency SOS' : 'Selected Location');
+    const titleStr = isSos ? 'CITIZEN SOS DISTRESS' : (options.title || 'Selected Location');
     const coordsStr = `${nLat.toFixed(5)}°N, ${nLng.toFixed(5)}°E`;
-    const accStr = options.accuracy ? `📡 <strong>GPS Accuracy:</strong> ±${Math.round(options.accuracy)}m` : '';
+    const accStr = options.accuracy ? `<i class="fi fi-rr-satellite-dish" aria-hidden="true"></i> <strong>GPS Accuracy:</strong> ±${Math.round(options.accuracy)}m` : '';
     const descStr = options.desc || '';
-    const popStr = options.population ? `👥 <strong>${Number(options.population).toLocaleString()}</strong> population at risk` : '';
+    const popStr = options.population ? `<i class="fi fi-rr-users" aria-hidden="true"></i> <strong>${Number(options.population).toLocaleString()}</strong> population at risk` : '';
 
     const popupHtml = `
       <div class="location-popup">
         <div class="location-popup-header">
           <div class="location-popup-title-row">
-            <span class="location-popup-icon">${isSos ? '🚨' : '📍'}</span>
+            <span class="location-popup-icon">${isSos ? '<i class="fi fi-rr-alarm-exclamation" aria-hidden="true"></i>' : '<i class="fi fi-rr-marker" aria-hidden="true"></i>'}</span>
             <span class="location-popup-title">${titleStr}</span>
           </div>
           <div class="location-popup-risk" style="background:${markerColor}20; color:${markerColor}; font-weight:700; font-size:11px; padding:2.5px 8px; border-radius:12px;">

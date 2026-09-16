@@ -1,14 +1,20 @@
 import time
 import re
+import os
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
 
 class LangChainOrchestrator:
-    def __init__(self, base_url="http://127.0.0.1:11434", model="deepseek-r1:8b"):
+    def __init__(self, base_url="https://ollama.com", model="deepseek-r1:cloud"):
+        headers = {}
+        if os.environ.get("OLLAMA_API_KEY"):
+            headers["Authorization"] = f"Bearer {os.environ.get('OLLAMA_API_KEY')}"
+
         self.llm = ChatOllama(
             model=model,
             base_url=base_url,
-            temperature=0.0
+            temperature=0.0,
+            client_kwargs={"headers": headers}
         )
 
     def generate_response(self, prompt: str):
@@ -48,12 +54,17 @@ class LangChainOrchestrator:
         """
         start_time = time.time()
         try:
+            headers = {}
+            if os.environ.get("OLLAMA_API_KEY"):
+                headers["Authorization"] = f"Bearer {os.environ.get('OLLAMA_API_KEY')}"
+
             llm = ChatOllama(
                 model=self.llm.model,
                 base_url=self.llm.base_url,
                 temperature=0.0,
                 num_predict=num_predict,
-                timeout=timeout
+                timeout=timeout,
+                client_kwargs={"headers": headers}
             )
             messages = [HumanMessage(content=prompt)]
             response = llm.invoke(messages)

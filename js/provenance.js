@@ -17,9 +17,11 @@
       'usgs_earthquakes': 'USGS',
       'openmeteo_weather': 'Open-Meteo',
       'openmeteo_airquality': 'Open-Meteo AQ',
+      'openaq_aq': 'OpenAQ',
       'cwc_nwic_river': 'CWC / NWIC',
       'imd_cap_alerts': 'IMD CAP',
       'cap_imd': 'IMD CAP',
+      'cap_ndma': 'NDMA CAP',
       'cap_cwc': 'CWC CAP',
       'cap_incois': 'INCOIS CAP',
       'cap_gsi': 'GSI CAP',
@@ -30,6 +32,8 @@
       'osrm_routing': 'OSRM / OSM',
       'nasa_firms_viirs': 'NASA FIRMS',
       'sentinel_hub_api': 'Sentinel Hub',
+      'bhuvan_wms': 'ISRO Bhuvan',
+      'firebase_sync': 'Firebase',
       'windy_point_forecast': 'Windy.com',
       'ollama_llm': 'Ollama Local',
       'ai_service_fastapi': 'GeoAI TerraMind',
@@ -106,7 +110,15 @@
       const ageStr = fetchedAt ? Provenance.formatAge(fetchedAt) : '';
       const displayVal = typeof value === 'number' ? (Number.isInteger(value) ? value.toLocaleString() : value.toFixed(1)) : value;
 
-      const badgeHtml = `<span class="provenance-chip ${status === 'BASELINE' ? 'status-baseline' : (status === 'STALE' ? 'status-stale' : 'status-live')}" title="Click to view ${agencyLabel} in Sensor Data Sources" onclick="event.stopPropagation(); window.Provenance.openSourceInPanel('${sourceId}')">
+      let statusClass = 'status-live';
+      if (status === 'BASELINE') statusClass = 'status-baseline';
+      else if (status === 'REFERENCE') statusClass = 'status-reference';
+      else if (status === 'STALE') statusClass = 'status-stale';
+      else if (status === 'DEGRADED') statusClass = 'status-degraded';
+      else if (status === 'HISTORICAL') statusClass = 'status-historical';
+      else if (status === 'SIMULATED') statusClass = 'status-simulated';
+
+      const badgeHtml = `<span class="provenance-chip ${statusClass}" title="Click to view ${agencyLabel} in Sensor Data Sources" onclick="event.stopPropagation(); window.Provenance.openSourceInPanel('${sourceId}')">
         <span class="prov-agency">${escapeHtml(agencyLabel)}</span>
         ${ageStr ? `<span class="prov-age">· ${escapeHtml(ageStr)}</span>` : ''}
       </span>`;

@@ -9,6 +9,61 @@
 
 const https = require('https');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+// Load authoritative Andhra Pradesh operational boundary GeoJSON
+let apBoundaryGeom = null;
+try {
+  const boundaryPath = path.join(__dirname, '..', 'data', 'andhra_pradesh_boundary.geojson');
+  if (fs.existsSync(boundaryPath)) {
+    const raw = JSON.parse(fs.readFileSync(boundaryPath, 'utf8'));
+    if (raw && raw.features && raw.features[0]) {
+      apBoundaryGeom = raw.features[0].geometry;
+    }
+  }
+} catch (e) {
+  console.warn('[CAP] Failed to load AP boundary GeoJSON:', e.message);
+}
+
+function pointInPoly(pt, polyCoords) {
+  const x = pt[0], y = pt[1];
+  let inside = false;
+  for (let i = 0, j = polyCoords.length - 1; i < polyCoords.length; j = i++) {
+    const xi = polyCoords[i][0], yi = polyCoords[i][1];
+    const xj = polyCoords[j][0], yj = polyCoords[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function isCoordInsideAP(lng, lat) {
+  if (!apBoundaryGeom || typeof lng !== 'number' || typeof lat !== 'number') return false;
+  if (isNaN(lng) || !Number.isFinite(lng) || isNaN(lat) || !Number.isFinite(lat)) return false;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+  if (apBoundaryGeom.type === 'Polygon') {
+    return pointInPoly([lng, lat], apBoundaryGeom.coordinates[0]);
+  }
+  if (apBoundaryGeom.type === 'MultiPolygon') {
+    return apBoundaryGeom.coordinates.some(ring => pointInPoly([lng, lat], ring[0]));
+  }
+  return false;
+}
+
+function isGeometryInsideAP(geom) {
+  if (!geom || !apBoundaryGeom) return false;
+  if (geom.type === 'Point' && Array.isArray(geom.coordinates)) {
+    return isCoordInsideAP(geom.coordinates[0], geom.coordinates[1]);
+  }
+  if (geom.type === 'Polygon' && Array.isArray(geom.coordinates) && geom.coordinates[0]) {
+    return geom.coordinates[0].some(pt => isCoordInsideAP(pt[0], pt[1]));
+  }
+  if (geom.type === 'MultiPolygon' && Array.isArray(geom.coordinates)) {
+    return geom.coordinates.some(poly => poly[0] && poly[0].some(pt => isCoordInsideAP(pt[0], pt[1])));
+  }
+  return false;
+}
 
 const CAP_FEEDS = {
   cap_imd: {
@@ -35,10 +90,7 @@ const AP_DISTRICT_KEYWORDS = [
   'vijayawada', 'ongole', 'coringa', 'uppada', 'bheemunipatnam', 'kalingapatnam'
 ];
 
-// Rough AP bounding box for quick coordinate validation: lat 12.5 to 19.5, lon 76.5 to 85.0
-function isPointInAPBox(lat, lon) {
-  return lat >= 12.5 && lat <= 19.5 && lon >= 76.5 && lon <= 85.0;
-}
+
 
 const feedCache = new Map(); // sourceId -> { data, expiresAt }
 
@@ -90,15 +142,16 @@ function capXmlTag(block, tagName) {
 
 function inferHazardType(title, desc) {
   const t = (title + ' ' + desc).toLowerCase();
-  if (t.includes('cyclone') || t.includes('storm'))    return 'Cyclone';
+  if (t.includes('cyclone')) return 'Cyclone';
+  if (t.includes('thunder') || t.includes('lightning')) return 'Thunderstorm';
+  if (t.includes('storm')) return 'Severe Storm';
   if (t.includes('flood') || t.includes('inundation')) return 'Flood';
-  if (t.includes('landslide'))                         return 'Landslide';
-  if (t.includes('heatwave') || t.includes('heat wave')) return 'Heat Wave';
-  if (t.includes('thunder') || t.includes('lightning'))return 'Thunderstorm';
-  if (t.includes('rain') || t.includes('rainfall'))   return 'Heavy Rainfall';
-  if (t.includes('fog'))                               return 'Dense Fog';
-  if (t.includes('wind') || t.includes('squall'))      return 'Strong Winds';
-  if (t.includes('tsunami'))                           return 'Tsunami';
+  if (t.includes('landslide')) return 'Landslide';
+  if (t.includes('heatwave') || t.includes('heat wave') || t.includes('heat stress')) return 'Heat Stress';
+  if (t.includes('rain') || t.includes('rainfall')) return 'Heavy Rainfall';
+  if (t.includes('fog')) return 'Dense Fog';
+  if (t.includes('wind') || t.includes('squall')) return 'Strong Winds';
+  if (t.includes('tsunami')) return 'Tsunami';
   return 'Weather Alert';
 }
 
@@ -111,10 +164,10 @@ function inferSeverity(title, desc, rawSeverity) {
     if (s === 'minor') return 'Minor';
   }
   const t = (title + ' ' + desc).toLowerCase();
-  if (t.includes('extreme') || t.includes('red alert'))   return 'Extreme';
-  if (t.includes('severe')  || t.includes('orange alert')) return 'Severe';
-  if (t.includes('moderate')|| t.includes('yellow alert')) return 'Moderate';
-  if (t.includes('minor')   || t.includes('green alert'))  return 'Minor';
+  if (t.includes('extreme') || t.includes('red alert')) return 'Extreme';
+  if (t.includes('severe') || t.includes('orange alert')) return 'Severe';
+  if (t.includes('moderate') || t.includes('yellow alert')) return 'Moderate';
+  if (t.includes('minor') || t.includes('green alert')) return 'Minor';
   return 'Unknown';
 }
 
@@ -138,94 +191,262 @@ async function getCapFeed(sourceId, targetUrl, agencyLabel) {
     return { ...cached.data, cached: true };
   }
 
+  // Geographic filtering must fail closed if the official AP boundary cannot be loaded
+  if (!apBoundaryGeom) {
+    console.warn('[CAP] Fail-closed: Authoritative AP boundary GeoJSON not loaded. Rejecting alerts.');
+    return {
+      success: false,
+      sourceId,
+      agency: agencyLabel,
+      url: targetUrl,
+      error: 'Authoritative AP boundary GeoJSON not loaded — failing closed',
+      alerts: [],
+      count: 0
+    };
+  }
+
   const xml = await fetchText(targetUrl, 8000);
   const itemBlocks = xml.split(/<item[\s>]/i).slice(1);
   const alerts = [];
 
   for (const block of itemBlocks) {
-    const title       = capXmlTag(block, 'title');
+    const title = capXmlTag(block, 'title');
     const description = capXmlTag(block, 'description');
-    const link        = capXmlTag(block, 'link');
-    const guid        = capXmlTag(block, 'guid');
-    const identifier  = capXmlTag(block, 'identifier') || guid || ('ALERT-' + Math.abs(hashCode(title + link)));
-    const pubDate     = capXmlTag(block, 'pubDate');
-    const sent        = capXmlTag(block, 'sent') || pubDate || new Date().toISOString();
-    const effective   = capXmlTag(block, 'effective') || pubDate || new Date().toISOString();
-    const expires     = capXmlTag(block, 'expires') || '';
-    const areaDesc    = capXmlTag(block, 'areaDesc') || capXmlTag(block, 'area_desc') || capXmlTag(block, 'area') || '';
+    const link = capXmlTag(block, 'link');
+    const guid = capXmlTag(block, 'guid');
+    const identifier = capXmlTag(block, 'identifier') || guid || ('ALERT-' + Math.abs(hashCode(title + link)));
+    const pubDate = capXmlTag(block, 'pubDate');
+    const sent = capXmlTag(block, 'sent') || pubDate || '';
+    const effective = capXmlTag(block, 'effective') || pubDate || '';
+    const expires = capXmlTag(block, 'expires') || '';
+    const areaDesc = capXmlTag(block, 'areaDesc') || capXmlTag(block, 'area_desc') || capXmlTag(block, 'area') || '';
     const rawSeverity = capXmlTag(block, 'severity');
-    const certainty   = capXmlTag(block, 'certainty') || 'Observed';
-    const urgency     = capXmlTag(block, 'urgency') || 'Immediate';
-    const rawPolygon  = capXmlTag(block, 'polygon');
-    const rawCircle   = capXmlTag(block, 'circle');
+    const rawCertainty = capXmlTag(block, 'certainty');
+    const rawUrgency = capXmlTag(block, 'urgency');
+    const instruction = capXmlTag(block, 'instruction');
+    const rawPolygon = capXmlTag(block, 'polygon');
+    const rawCircle = capXmlTag(block, 'circle');
 
-    // Parse geometry if present
-    let polygon = null;
-    let circle = null;
-    let hasCoordsInAP = false;
+    // 1. LIFECYCLE & OPERATIONAL STATE EVALUATION
+    const isArchived = (sourceId === 'cap_ndma');
+    const isDrill = title.toLowerCase().includes('[drill]') ||
+                    description.toLowerCase().includes('[drill]') ||
+                    rawSeverity === 'Test' ||
+                    capXmlTag(block, 'status').toLowerCase() === 'test';
 
-    if (rawPolygon) {
-      // Pairs of "lat,lon lat,lon ..."
-      const pairs = rawPolygon.trim().split(/\s+/).map(p => {
-        const parts = p.split(',').map(Number);
-        return parts.length === 2 ? { lat: parts[0], lon: parts[1] } : null;
-      }).filter(Boolean);
-      if (pairs.length >= 3) {
-        polygon = pairs;
-        hasCoordsInAP = pairs.some(pt => isPointInAPBox(pt.lat, pt.lon));
+    let isExpired = false;
+    let expirationStatus = 'UNKNOWN_EXPIRY';
+    let requiresTemporalValidation = true;
+
+    if (expires) {
+      const expTime = new Date(expires).getTime();
+      if (!isNaN(expTime)) {
+        expirationStatus = 'AUTHENTIC_EXPIRY';
+        requiresTemporalValidation = false;
+        if (expTime < now) {
+          isExpired = true;
+        }
       }
-    }
-
-    if (rawCircle) {
-      // "lat,lon radius"
-      const parts = rawCircle.trim().split(/\s+/);
-      if (parts.length >= 1) {
-        const coords = parts[0].split(',').map(Number);
-        const rad = parts.length > 1 ? parseFloat(parts[1]) : 0;
-        if (coords.length === 2) {
-          circle = { lat: coords[0], lon: coords[1], radiusKm: rad };
-          hasCoordsInAP = isPointInAPBox(coords[0], coords[1]);
+    } else {
+      // Historical fallback: if no expiresAt, check if issuedAt is older than 30 days
+      const timestampToCheck = sent || pubDate || effective;
+      if (timestampToCheck) {
+        const parsedTime = new Date(timestampToCheck).getTime();
+        if (!isNaN(parsedTime) && (now - parsedTime) > (30 * 24 * 60 * 60 * 1000)) {
+          isExpired = true;
         }
       }
     }
 
-    // Determine geographic match confidence with word boundary check
-    let geoMatch = null;
-    const haystack = (title + ' ' + description + ' ' + areaDesc).toLowerCase();
-    const matchesText = AP_DISTRICT_KEYWORDS.some(kw => {
-      const regex = new RegExp(`\\b${kw.replace('.', '\\.')}\\b`, 'i');
-      return regex.test(haystack);
-    });
+    let operationalState = 'ACTIVE';
+    if (isDrill) {
+      operationalState = 'DRILL';
+    } else if (isArchived) {
+      operationalState = 'ARCHIVED';
+    } else if (isExpired) {
+      operationalState = 'EXPIRED';
+    }
 
-    if (hasCoordsInAP) {
-      geoMatch = polygon ? 'POLYGON' : 'CIRCLE';
-    } else if (matchesText) {
-      geoMatch = 'TEXT';
-    } else {
-      // Alert does not pertain to Andhra Pradesh or known disaster zones
+    const tier = isDrill ? 'SIMULATED' : (isArchived ? 'ARCHIVED' : 'LIVE_API');
+    const role = isDrill ? 'DRILL' : (isArchived ? 'REFERENCE' : 'PRIMARY');
+
+    // 2. GEOMETRY PARSING & MALFORMED COORDINATE VALIDATION
+    let polygon = null;
+    let circle = null;
+    let hasCoordsInAP = false;
+    let hasExplicitCoords = false;
+
+    if (rawPolygon) {
+      const pairs = rawPolygon.trim().split(/\s+/).map(p => {
+        const parts = p.split(',').map(Number);
+        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) &&
+            Number.isFinite(parts[0]) && Number.isFinite(parts[1]) &&
+            parts[0] >= -90 && parts[0] <= 90 && parts[1] >= -180 && parts[1] <= 180) {
+          return { lat: parts[0], lon: parts[1] };
+        }
+        return null;
+      }).filter(Boolean);
+
+      if (pairs.length >= 3) {
+        polygon = pairs;
+        hasExplicitCoords = true;
+        hasCoordsInAP = pairs.some(pt => isCoordInsideAP(pt.lon, pt.lat));
+      }
+    }
+
+    if (rawCircle) {
+      const parts = rawCircle.trim().split(/\s+/);
+      if (parts.length >= 1) {
+        const coords = parts[0].split(',').map(Number);
+        const rad = parts.length > 1 ? parseFloat(parts[1]) : 0;
+        if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1]) &&
+            Number.isFinite(coords[0]) && Number.isFinite(coords[1]) &&
+            coords[0] >= -90 && coords[0] <= 90 && coords[1] >= -180 && coords[1] <= 180 &&
+            !isNaN(rad) && rad >= 0) {
+          circle = { lat: coords[0], lon: coords[1], radiusKm: rad };
+          hasExplicitCoords = true;
+          hasCoordsInAP = isCoordInsideAP(coords[1], coords[0]);
+        }
+      }
+    }
+
+    // 3. GEOGRAPHIC FILTERING
+    // Rule: Usable geometry/coordinates MUST be spatially validated against official AP boundary GeoJSON.
+    // If explicit coordinates exist and are NOT inside AP, reject immediately.
+    if (hasExplicitCoords && !hasCoordsInAP) {
       continue;
     }
 
-    alerts.push({
-      capIdentifier: identifier,
+    let geoMatch = null;
+    if (hasCoordsInAP) {
+      geoMatch = polygon ? 'POLYGON' : 'CIRCLE';
+    } else if (!hasExplicitCoords) {
+      // Text matching is ONLY secondary metadata when NO explicit coordinates are available
+      const haystack = (title + ' ' + description + ' ' + areaDesc).toLowerCase();
+      const matchesText = AP_DISTRICT_KEYWORDS.some(kw => {
+        const regex = new RegExp(`\\b${kw.replace('.', '\\.')}\\b`, 'i');
+        return regex.test(haystack);
+      });
+      if (matchesText) {
+        geoMatch = 'TEXT';
+      } else {
+        continue;
+      }
+    } else {
+      continue;
+    }
+
+    // 4. COORDINATE EXTRACTION (Strictly genuine coordinates — no fabricated fallbacks)
+    let lat = null;
+    let lng = null;
+    let geometry = null;
+
+    if (circle && typeof circle.lat === 'number' && typeof circle.lon === 'number') {
+      lat = circle.lat;
+      lng = circle.lon;
+      geometry = { type: 'Point', coordinates: [circle.lon, circle.lat] };
+    } else if (polygon && polygon.length > 0) {
+      const sumLat = polygon.reduce((s, p) => s + p.lat, 0);
+      const sumLon = polygon.reduce((s, p) => s + p.lon, 0);
+      lat = Number((sumLat / polygon.length).toFixed(4));
+      lng = Number((sumLon / polygon.length).toFixed(4));
+      geometry = {
+        type: 'Polygon',
+        coordinates: [polygon.map(p => [p.lon, p.lat])]
+      };
+    }
+
+    // 5. CANONICAL ALERT MODEL
+    const severity = inferSeverity(title, description, rawSeverity);
+    const urgency = rawUrgency ? (rawUrgency.charAt(0).toUpperCase() + rawUrgency.slice(1).toLowerCase()) : 'UNKNOWN';
+    const certainty = rawCertainty ? (rawCertainty.charAt(0).toUpperCase() + rawCertainty.slice(1).toLowerCase()) : 'UNKNOWN';
+    const eventType = inferHazardType(title, description);
+
+    const alertRecord = {
+      // IDENTITY
+      id: identifier,
+      alertId: identifier,
       sourceId,
+      sourceAlertId: identifier,
+      event: eventType,
+      eventType,
+      hazardType: eventType,
+      hazard_type: eventType,
+
+      // GEOGRAPHY
+      lat,
+      latitude: lat,
+      lng,
+      longitude: lng,
+      geometry,
+      geometryStatus: geometry ? 'AVAILABLE' : 'UNAVAILABLE',
+      area: areaDesc || 'Andhra Pradesh Sector',
+      areaDesc: areaDesc || 'Andhra Pradesh Sector',
+      geoMatch,
+      polygon: polygon || null,
+      circle: circle || null,
+      isInsideAP: true,
+
+      // TIME (Never invent missing timestamps)
+      issuedAt: sent || null,
+      effectiveAt: effective || null,
+      expiresAt: expires || null,
+      observedAt: sent || effective || pubDate || null,
+      fetchedAt: new Date(now).toISOString(),
+      checkedAt: new Date(now).toISOString(),
+      effective: effective || null,
+      expires: expires || null,
+      sent: sent || null,
+      sourceTimestamp: sent || null,
+      expirationStatus,
+      requiresTemporalValidation,
+
+      // OPERATIONAL STATE
+      status: operationalState,
+      operationalState,
+      tier,
+      role,
+      isDrill,
+      isSimulated: isDrill,
+
+      // SEVERITY
+      severity,
+      sourceSeverity: rawSeverity || 'UNKNOWN',
+      normalizedSeverity: severity,
+      urgency,
+      certainty,
+
+      // CONTENT & PROVENANCE
       agency: agencyLabel,
       title: title || `${agencyLabel} Emergency Alert`,
-      hazard_type: inferHazardType(title, description),
-      severity: inferSeverity(title, description, rawSeverity),
-      certainty,
-      urgency,
-      areaDesc: areaDesc || 'Andhra Pradesh Sector',
-      geoMatch, // 'POLYGON' | 'CIRCLE' | 'TEXT'
-      effective,
-      expires,
-      sent,
       description: description.replace(/<[^>]+>/g, '').substring(0, 600).trim(),
-      polygon,
-      circle,
-      link: link || targetUrl
-    });
+      instruction: instruction ? instruction.replace(/<[^>]+>/g, '').substring(0, 600).trim() : null,
+      sourceUrl: link || targetUrl,
+      link: link || targetUrl,
+      provenance: {
+        sourceId,
+        sourceTier: tier,
+        sourceRole: role,
+        agency: agencyLabel,
+        url: targetUrl,
+        originalSourceTimestamp: sent || effective || null,
+        fetchedAt: new Date(now).toISOString(),
+        contributingSources: [sourceId]
+      }
+    };
+
+    alerts.push(alertRecord);
   }
+
+  // Partition alerts into lifecycle states
+  const isSourceArchived = (sourceId === 'cap_ndma');
+  const activeAlerts = alerts.filter(a => a.operationalState === 'ACTIVE');
+  const expiredAlerts = alerts.filter(a => a.operationalState === 'EXPIRED');
+  const archivedAlerts = alerts.filter(a => a.operationalState === 'ARCHIVED');
+  const drillAlerts = alerts.filter(a => a.operationalState === 'DRILL');
+
+  // NDMA historical/archive data must NOT enter active alerts
+  const liveOperationalAlerts = isSourceArchived ? [] : activeAlerts;
 
   const result = {
     success: true,
@@ -233,8 +454,14 @@ async function getCapFeed(sourceId, targetUrl, agencyLabel) {
     agency: agencyLabel,
     url: targetUrl,
     fetchedAt: new Date().toISOString(),
-    count: alerts.length,
-    alerts,
+    count: liveOperationalAlerts.length,
+    alerts: liveOperationalAlerts,
+    activeAlerts: liveOperationalAlerts,
+    expiredAlerts,
+    archivedAlerts: isSourceArchived ? alerts : archivedAlerts,
+    drillAlerts,
+    allAlerts: alerts,
+    totalRecords: alerts.length,
     cached: false
   };
 
@@ -257,13 +484,13 @@ function hashCode(str) {
 
 /**
  * Fetch and merge all active Indian official CAP feeds into unified de-duplicated stream
+ * Only genuinely live feeds (cap_imd) populate operational alerts.
+ * Archived feeds (cap_ndma) are excluded from live operational queue.
  */
 async function getOfficialCapAlerts() {
   const feedPromises = [
     getCapFeed('cap_imd', CAP_FEEDS.cap_imd.url, CAP_FEEDS.cap_imd.agency)
-      .catch(err => ({ success: false, sourceId: 'cap_imd', error: err.message, alerts: [] })),
-    getCapFeed('cap_ndma', CAP_FEEDS.cap_ndma.url, CAP_FEEDS.cap_ndma.agency)
-      .catch(err => ({ success: false, sourceId: 'cap_ndma', error: err.message, alerts: [] }))
+      .catch(err => ({ success: false, sourceId: 'cap_imd', error: err.message, alerts: [] }))
   ];
 
   const results = await Promise.all(feedPromises);
@@ -272,8 +499,9 @@ async function getOfficialCapAlerts() {
   results.forEach(res => {
     if (res && Array.isArray(res.alerts)) {
       res.alerts.forEach(alt => {
-        if (!alertMap.has(alt.capIdentifier)) {
-          alertMap.set(alt.capIdentifier, alt);
+        const key = `${alt.sourceId}_${alt.id || alt.capIdentifier}`;
+        if (!alertMap.has(key)) {
+          alertMap.set(key, alt);
         }
       });
     }
@@ -283,7 +511,7 @@ async function getOfficialCapAlerts() {
   const mergedAlerts = Array.from(alertMap.values()).sort((a, b) => {
     const sDiff = getSeverityWeight(b.severity) - getSeverityWeight(a.severity);
     if (sDiff !== 0) return sDiff;
-    return new Date(b.effective || b.sent || 0).getTime() - new Date(a.effective || a.sent || 0).getTime();
+    return new Date(b.effectiveAt || b.effective || b.sent || 0).getTime() - new Date(a.effectiveAt || a.effective || a.sent || 0).getTime();
   });
 
   return {
@@ -301,5 +529,8 @@ module.exports = {
   getCapFeed,
   getOfficialCapAlerts,
   inferHazardType,
-  inferSeverity
+  inferSeverity,
+  isCoordInsideAP,
+  isGeometryInsideAP
 };
+

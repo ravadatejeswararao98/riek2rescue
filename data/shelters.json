@@ -7,6 +7,7 @@
     "lng": 83.22,
     "capacity": 5000,
     "current_occupancy": 3000,
+    "occupancyStatus": "LIVE",
     "status": "open",
     "last_updated": "2026-09-14T14:36:47.384Z",
     "updated_by": "varma (LEVEL-3 (VERIFIED DISPATCH))"
@@ -15,10 +16,12 @@
     "shelter_id": "S_STATIC_02",
     "name": "Kakinada Municipal Shelter",
     "district": "East Godavari",
-    "lat": 17,
+    "lat": 17.0,
     "lng": 82.25,
     "capacity": 10000,
-    "current_occupancy": 0
+    "current_occupancy": null,
+    "occupancyStatus": "UNKNOWN",
+    "status": "UNKNOWN"
   },
   {
     "shelter_id": "S_STATIC_03",
@@ -28,6 +31,7 @@
     "lng": 81.15,
     "capacity": 6000,
     "current_occupancy": 600,
+    "occupancyStatus": "LIVE",
     "status": "open",
     "last_updated": "2026-09-14T17:29:08.552Z",
     "updated_by": "varma (LEVEL-3 (VERIFIED DISPATCH))"
@@ -39,7 +43,9 @@
     "lat": 18.3,
     "lng": 83.9,
     "capacity": 4000,
-    "current_occupancy": 0
+    "current_occupancy": null,
+    "occupancyStatus": "UNKNOWN",
+    "status": "UNKNOWN"
   },
   {
     "shelter_id": "S_STATIC_05",
@@ -48,6 +54,8 @@
     "lat": 14.45,
     "lng": 79.99,
     "capacity": 3000,
-    "current_occupancy": 0
+    "current_occupancy": null,
+    "occupancyStatus": "UNKNOWN",
+    "status": "UNKNOWN"
   }
 ]

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Risk2Rescue | Authority Command Center & Hazard Intelligence</title>
+  <title>Risk2Rescue | Priority Evacuation & Operations Queue</title>
   <meta name="description" content="Operational Command, Multi-Hazard Predictive Intelligence, Citizen Report Verification, and Evacuation Strategy for Disaster Authorities. Developed by Teja.">
 
   <!-- Authentication Route Guard: Immediate redirect if unauthenticated -->
@@ -41,6 +41,10 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <!-- Flaticon Uicons (Regular Rounded & Bold Rounded) -->
+  <link rel="stylesheet" href="assets/uicons/css/uicons-regular-rounded.css">
+  <link rel="stylesheet" href="assets/uicons/css/uicons-bold-rounded.css">
+  <script src="js/icons.js"></script>
   <!-- Chart.js for Analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
@@ -55,36 +59,39 @@
   <nav class="rzi-dock" id="rzi-dock" aria-label="Primary Navigation">
     <div class="dock-nav-group">
       <!-- Home / Live GIS Risk Map (DEFAULT LANDING PAGE) -->
-      <a href="authority-map.html" class="dock-item " style="--item-accent: var(--accent-cyan); text-decoration: none;" title="Home"><span class="dock-icon">🏠</span><span class="dock-label">Home</span></a>
+      <a href="authority-map.html" class="dock-item " style="--item-accent: var(--accent-cyan); text-decoration: none;" title="Home"><span class="dock-icon"><i class="fi fi-rr-home" aria-hidden="true"></i></span><span class="dock-label">Home</span></a>
 
       <!-- Command Center -->
       <button class="dock-item" data-view="command" style="--item-accent: var(--accent-blue)" title="Command Center">
-        <span class="dock-icon">🎛️</span><span class="dock-label">Command Center</span>
+        <span class="dock-icon"><i class="fi fi-rr-settings-sliders" aria-hidden="true"></i></span><span class="dock-label">Command Center</span>
       </button>
 
       <!-- Divider -->
       <div class="dock-divider"></div>
 
       <!-- Red Zones & Habitations -->
-      <a href="authority-queue.html" class="dock-item active" style="--item-accent: var(--risk-red); text-decoration: none;" title="Priority Queue"><span class="dock-icon">🏘️</span><span class="dock-label">Priority Queue</span></a>
+      <a href="authority-queue.html" class="dock-item active" style="--item-accent: var(--risk-red); text-decoration: none;" title="Priority Queue"><span class="dock-icon"><i class="fi fi-br-house-building" aria-hidden="true"></i></span><span class="dock-label">Priority Queue</span></a>
 
       <!-- Population at Risk -->
       <button class="dock-item" data-view="population-risk" style="--item-accent: var(--risk-orange)" title="Population at Risk">
-        <span class="dock-icon">⚠️</span><span class="dock-label">Population at Risk</span>
+        <span class="dock-icon"><i class="fi fi-rr-triangle-warning" aria-hidden="true"></i></span><span class="dock-label">Population at Risk</span>
       </button>
 
       <!-- Divider -->
       <div class="dock-divider"></div>
 
       <!-- Citizen Report Queue -->
-      <a href="authority-citizen.html" class="dock-item " style="--item-accent: var(--risk-orange); text-decoration: none;" title="Citizen Report Queue"><span class="dock-icon">📥</span><span class="dock-label">Citizen Report Queue</span><span class="dock-badge" id="dock-queue-badge">3</span></a>
+      <a href="authority-citizen.html" class="dock-item" style="--item-accent: var(--risk-orange); text-decoration: none;" title="Citizen Report Queue"><span class="dock-icon"><i class="fi fi-rr-inbox-in" aria-hidden="true"></i></span><span class="dock-label">Citizen Report Queue</span><span class="dock-badge" id="dock-queue-badge">0</span></a>
 
       <!-- Safe Sites & Capacity (Repositioned right before Sensor Data Sources) -->
-      <a href="authority-capacity.html" class="dock-item " style="--item-accent: var(--risk-green); text-decoration: none;" title="Safe Sites & Capacity"><span class="dock-icon">🏕️</span><span class="dock-label">Safe Sites &amp; Capacity</span></a>
+      <a href="authority-capacity.html" class="dock-item" style="--item-accent: var(--risk-green); text-decoration: none;" title="Safe Sites & Capacity"><span class="dock-icon"><i class="fi fi-rr-person-shelter" aria-hidden="true"></i></span><span class="dock-label">Safe Sites &amp; Capacity</span></a>
+
+      <!-- AI Decision Support -->
+      <a href="authority-ai.html" class="dock-item" style="--item-accent: var(--accent-purple, #8b5cf6); text-decoration: none;" title="AI Decision Support"><span class="dock-icon"><i class="fi fi-rr-robot" aria-hidden="true"></i></span><span class="dock-label">AI Decision Support</span></a>
 
       <!-- Sensor Data Sources -->
       <button class="dock-item" data-view="datasources" style="--item-accent: var(--accent-blue)" title="Sensor Data Sources">
-        <span class="dock-icon">🛰️</span><span class="dock-label">Sensor Data Sources</span>
+        <span class="dock-icon"><i class="fi fi-rr-satellite-dish" aria-hidden="true"></i></span><span class="dock-label">Sensor Data Sources</span>
       </button>
     </div>
 
@@ -125,6 +132,9 @@
         </svg>
         <span>Sign Out</span>
       </button>
+      <div style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 8px;">
+        Icons: Uicons by <a href="https://www.flaticon.com/uicons" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Flaticon</a>
+      </div>
     </div>
   </nav>
 
@@ -153,13 +163,13 @@
 
       <!-- Pill 2: Basemap Mode Switcher (Standard Light vs Satellite Imagery) -->
       <div class="map-view-switcher topbar-pill" id="map-view-switcher">
-        <button class="view-switch-btn active" id="btn-mode-gis" onclick="setAuthorityBasemap('standard')" title="Show Clean Light Gray Basemap">🗺️ Standard</button>
-        <button class="view-switch-btn" id="btn-mode-satellite" onclick="setAuthorityBasemap('satellite')" title="Show Photographic Satellite Imagery (ArcGIS World Imagery)">🛰️ Satellite</button>
+        <button class="view-switch-btn active" id="btn-mode-gis" onclick="setAuthorityBasemap('standard')" title="Show Clean Light Gray Basemap"><i class="fi fi-rr-map" aria-hidden="true"></i> Standard</button>
+        <button class="view-switch-btn" id="btn-mode-satellite" onclick="setAuthorityBasemap('satellite')" title="Show Photographic Satellite Imagery (ArcGIS World Imagery)"><i class="fi fi-rr-satellite" aria-hidden="true"></i> Satellite</button>
       </div>
 
       <!-- Pill 3: Citizen-Style Search Bar (Replaces AI Confidence) -->
       <div class="windy-search-pill topbar-pill" id="authority-search-pill">
-        <span class="windy-search-icon" id="authority-search-btn" style="cursor: pointer;" title="Search location">🔍</span>
+        <span class="windy-search-icon" id="authority-search-btn" style="cursor: pointer;" title="Search location"><i class="fi fi-rr-search" aria-hidden="true"></i></span>
         <input type="text" id="authority-search" class="windy-search-input" placeholder="Search city, district, mandal, or zone…" autocomplete="off">
         <button id="authority-search-clear" class="windy-search-clear">&times;</button>
         <div id="authority-search-dropdown" class="windy-search-dropdown"></div>
@@ -258,7 +268,7 @@
       <div class="map-legend-panel collapsed" id="map-legend-panel" aria-label="Hazard Severity Legend">
         <div class="legend-header" id="legend-header-toggle" role="button" tabindex="0" aria-expanded="false" title="Hazard Risk Tiers">
           <div class="legend-header-title">
-            <span class="legend-shield-icon">🛡️</span>
+            <span class="legend-shield-icon"><i class="fi fi-rr-shield-check" aria-hidden="true"></i></span>
             <span>Hazard Risk Tiers</span>
           </div>
           <button class="legend-collapse-btn" id="legend-collapse-btn" aria-label="Toggle Legend" title="Toggle Legend">
@@ -302,6 +312,9 @@
               <div class="legend-tier-desc" style="font-size: 10px; color: var(--text-secondary, #64748b);">Monitored safe perimeter · Evacuation buffer</div>
             </div>
           </div>
+          <div class="legend-attribution" style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 10px; padding-top: 6px; border-top: 1px solid rgba(15,23,42,0.06);">
+            Icons: Uicons by <a href="https://www.flaticon.com/uicons" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Flaticon</a>
+          </div>
         </div>
       </div>
     </div>
@@ -310,7 +323,7 @@
     <main class="content-panel view-overlay" id="content-panel" style="display:none;">
       <div class="view-overlay-close-bar">
         <button class="btn-return-map" onclick="switchView('map-view')" title="Return to interactive GIS Risk Map">
-          <span>🗺️</span> <span>Back to Live GIS Map</span>
+          <span><i class="fi fi-rr-arrow-small-left" aria-hidden="true"></i></span> <span>Back to Live GIS Map</span>
         </button>
       </div>
 
@@ -410,41 +423,41 @@
           <!-- Active Hazards -->
           <div class="kpi-card critical" onclick="switchView('hazards')" style="cursor:pointer;" title="Click to view all monitored hazards">
             <div class="kpi-icon">🌀</div>
-            <div class="kpi-value" id="kpi-active-hazards">5</div>
+            <div class="kpi-value" id="kpi-active-hazards">0</div>
             <div class="kpi-label">Active Monitored Hazards</div>
-            <div class="kpi-trend up">🔴 2 Cat-3 / Flash Level ➔</div>
+            <div class="kpi-trend down">🟢 0 Active Threats</div>
           </div>
 
           <!-- High Risk Habitations -->
           <div class="kpi-card warning" onclick="switchView('habitations')" style="cursor:pointer;" title="Click to view habitations ranking">
             <div class="kpi-icon">🏘️</div>
-            <div class="kpi-value">24</div>
+            <div class="kpi-value" id="kpi-high-risk-habs">0</div>
             <div class="kpi-label">High-Risk Habitations</div>
-            <div class="kpi-trend up">🟠 4 Priority Evacuation ➔</div>
+            <div class="kpi-trend down" id="kpi-high-risk-trend">🟢 Normal monitoring</div>
           </div>
 
           <!-- Population at Risk (Honest Baseline) -->
           <div class="kpi-card critical" onclick="switchView('population-risk')" style="cursor:pointer;" title="Click to view population exposure breakdown">
             <div class="kpi-icon">👥</div>
-            <div class="kpi-value" id="kpi-pop-risk">296k</div>
+            <div class="kpi-value" id="kpi-pop-risk">0</div>
             <div class="kpi-label">Population at Risk <span class="data-source-badge" title="Estimated based on Census 2011 & SDMA enumeration">Est. 2011 Census</span></div>
-            <div class="kpi-trend up">🔴 Census demographic breakdown ➔</div>
+            <div class="kpi-trend down" id="kpi-pop-trend">🟢 No exposed habitations</div>
           </div>
 
           <!-- Safe Site Capacity (Honest Baseline) -->
           <div class="kpi-card safe" onclick="switchView('safesites')" style="cursor:pointer;" title="Click to view safe shelters">
             <div class="kpi-icon">🏕️</div>
-            <div class="kpi-value" id="kpi-shelter-cap">26.0k</div>
+            <div class="kpi-value" id="kpi-shelter-cap">28.0k</div>
             <div class="kpi-label">Safe Shelter Capacity <span class="data-source-badge" title="AP SDMA registered civil facility capacity">SDMA Base</span></div>
-            <div class="kpi-trend down">🟢 Registered emergency facilities ➔</div>
+            <div class="kpi-trend down" id="kpi-shelter-trend">ESTIMATED OCCUPANCY: UNKNOWN &bull; SDMA Base ➔</div>
           </div>
 
           <!-- Immediate Priority Areas -->
           <div class="kpi-card warning" onclick="switchView('habitations')" style="cursor:pointer;" title="Click to view priority sectors">
             <div class="kpi-icon">🎯</div>
-            <div class="kpi-value">3</div>
+            <div class="kpi-value" id="kpi-priority-sectors">0</div>
             <div class="kpi-label">Immediate Priority Sectors</div>
-            <div class="kpi-trend neutral">Kakinada Coast, Konaseema, Visakhapatnam ➔</div>
+            <div class="kpi-trend neutral" id="kpi-priority-trend">All sectors reporting standard operational state</div>
           </div>
 
           <!-- Live Coastal Doppler Telemetry -->
@@ -466,9 +479,9 @@
           <!-- AI Model Confidence & False Alarm Rate -->
           <div class="kpi-card info">
             <div class="kpi-icon">🧠</div>
-            <div class="kpi-value">94.6%</div>
+            <div class="kpi-value" id="kpi-ai-confidence">Active</div>
             <div class="kpi-label">AI Engine Prediction Confidence</div>
-            <div class="kpi-trend down">🟢 Multi-sensor cross check &lt; 2.1%</div>
+            <div class="kpi-trend down" id="kpi-ai-trend">🛡️ Grounded in Canonical Data</div>
           </div>
         </div>
 
@@ -570,54 +583,9 @@
               </thead>
               <tbody id="hazard-table-body">
                 <tr>
-                  <td><code>HAZ001</code></td>
-                  <td>🌀 Cyclone</td>
-                  <td><strong>Cyclone Vayu</strong></td>
-                  <td>Gujarat</td>
-                  <td><span class="risk-badge risk-red">CRITICAL</span></td>
-                  <td><strong style="color:#38bdf8;">87%</strong></td>
-                  <td>18 hours</td>
-                  <td><button class="btn btn-glass" style="padding:4px 10px; font-size:11px;" onclick="locateHazardById('HAZ001')">Locate GIS</button></td>
-                </tr>
-                <tr>
-                  <td><code>HAZ002</code></td>
-                  <td>🌊 Flood</td>
-                  <td><strong>Brahmaputra Flood</strong></td>
-                  <td>Assam</td>
-                  <td><span class="risk-badge risk-red">CRITICAL</span></td>
-                  <td><strong style="color:#38bdf8;">95%</strong></td>
-                  <td>Active</td>
-                  <td><button class="btn btn-glass" style="padding:4px 10px; font-size:11px;" onclick="locateHazardById('HAZ002')">Locate GIS</button></td>
-                </tr>
-                <tr>
-                  <td><code>HAZ003</code></td>
-                  <td>⛰️ Landslide</td>
-                  <td><strong>Landslide Alert</strong></td>
-                  <td>Uttarakhand</td>
-                  <td><span class="risk-badge risk-yellow">MODERATE</span></td>
-                  <td><strong style="color:#38bdf8;">72%</strong></td>
-                  <td>6 hours</td>
-                  <td><button class="btn btn-glass" style="padding:4px 10px; font-size:11px;" onclick="locateHazardById('HAZ003')">Locate GIS</button></td>
-                </tr>
-                <tr>
-                  <td><code>HAZ004</code></td>
-                  <td>📳 Earthquake</td>
-                  <td><strong>Seismic Tremors</strong></td>
-                  <td>Manipur</td>
-                  <td><span class="risk-badge risk-yellow">MODERATE</span></td>
-                  <td><strong style="color:#38bdf8;">68%</strong></td>
-                  <td>Active</td>
-                  <td><button class="btn btn-glass" style="padding:4px 10px; font-size:11px;" onclick="locateHazardById('HAZ004')">Locate GIS</button></td>
-                </tr>
-                <tr>
-                  <td><code>HAZ005</code></td>
-                  <td>⛈️ Cloudburst</td>
-                  <td><strong>Cloudburst Warning</strong></td>
-                  <td>Himachal Pradesh</td>
-                  <td><span class="risk-badge risk-orange">HIGH</span></td>
-                  <td><strong style="color:#38bdf8;">81%</strong></td>
-                  <td>3 hours</td>
-                  <td><button class="btn btn-glass" style="padding:4px 10px; font-size:11px;" onclick="locateHazardById('HAZ005')">Locate GIS</button></td>
+                  <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px; font-size: 13px;">
+                    No active official disaster hazards currently reported inside Andhra Pradesh.
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -954,7 +922,7 @@
               <input type="number" id="edit-shelter-capacity" class="input-field" readonly style="background:#f1f5f9; color:var(--text-secondary); cursor:not-allowed;">
             </div>
             <div>
-              <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">CURRENT OCCUPANCY</label>
+              <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">ESTIMATED OCCUPANCY</label>
               <input type="number" id="edit-shelter-occupancy" class="input-field" min="0" required oninput="updateOccupancyPreview()">
             </div>
           </div>
@@ -1149,6 +1117,7 @@
   <script src="js/provenance.js?v=17"></script>
   <script src="js/source-health-ui.js?v=17"></script>
   <script src="js/data.js?v=17"></script>
+  <script src="js/live-state.js?v=20"></script>
   <script src="js/priority-engine.js?v=16"></script>
   <script src="js/ap-boundary.js?v=16"></script>
   <script src="js/map.js?v=16"></script>

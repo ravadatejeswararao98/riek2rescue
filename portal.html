@@ -15,7 +15,10 @@
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
   <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="assets/uicons/css/uicons-regular-rounded.css">
+  <link rel="stylesheet" href="assets/uicons/css/uicons-bold-rounded.css">
   <link rel="stylesheet" href="css/signin-modal.css">
+  <script src="js/icons.js"></script>
 
   <style>
     /* ================================================================
@@ -1036,7 +1039,7 @@
     <div class="header-right">
       <!-- Language Pill -->
       <div class="lang-pill" onclick="cycleLanguage()">
-        <span style="font-size: 14px;">🌐</span>
+        <span style="font-size: 14px; display: inline-flex; align-items: center;"><i class="fi fi-rr-globe" aria-hidden="true"></i></span>
         <span id="lang-current">English</span>
         <span style="font-size: 10px; opacity: 0.7;">⌵</span>
       </div>
@@ -1373,6 +1376,7 @@
         onclick="showPopup('Help', 'National Disaster Helpline: 1078 (NDRF) | State Emergency Response: 112')">Help</a>
       <a class="footer-anchor"
         onclick="showPopup('Contact', 'AP SDMA Emergency Operation Centre &bull; command@sdma.ap.gov.in')">Contact</a>
+      <span class="footer-anchor" style="color: #94a3b8; font-size: 11px;">Icons: Uicons by <a href="https://www.flaticon.com/uicons" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Flaticon</a></span>
     </div>
   </footer>
 

@@ -8,6 +8,9 @@
  */
 
 const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 const GDACS_FEED_URL = 'https://www.gdacs.org/xml/rss.xml';
 const GDACS_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -17,13 +20,11 @@ function fetchText(targetUrl, timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
     try {
       const parsed = new URL(targetUrl);
-      const req = https.request({
-        hostname: parsed.hostname,
-        port: 443,
-        path: parsed.pathname + parsed.search,
+      const client = parsed.protocol === 'https:' ? https : http;
+      const req = client.request(parsed, {
         method: 'GET',
         headers: {
-          'User-Agent': 'Risk2Rescue-GDACS-Correlator/2.0 (Disaster-Management-Platform)',
+          'User-Agent': 'Risk2Rescue-GDACS-Ingest/2.0 (Disaster-Management-Platform)',
           'Accept': 'application/rss+xml, application/xml, text/xml, */*'
         },
         timeout: timeoutMs
@@ -31,14 +32,17 @@ function fetchText(targetUrl, timeoutMs = 8000) {
         let raw = '';
         res.on('data', chunk => raw += chunk);
         res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) resolve(raw);
-          else reject(new Error(`HTTP ${res.statusCode} from ${targetUrl}`));
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve(raw);
+          } else {
+            reject(new Error(`HTTP ${res.statusCode} from ${targetUrl}`));
+          }
         });
       });
       req.on('error', reject);
       req.on('timeout', () => {
         req.destroy();
-        reject(new Error(`Timeout after ${timeoutMs}ms`));
+        reject(new Error(`Timeout after ${timeoutMs}ms from ${targetUrl}`));
       });
       req.end();
     } catch (e) {
@@ -58,9 +62,44 @@ function xmlTag(block, tagName) {
     .trim();
 }
 
-// Bounding box for Andhra Pradesh: lat 12.5 to 19.5, lon 76.5 to 85.0
-function isCoordInsideAP(lat, lon) {
-  return lat >= 12.5 && lat <= 19.5 && lon >= 76.5 && lon <= 85.0;
+// Load authoritative Andhra Pradesh operational boundary GeoJSON
+let apBoundaryGeom = null;
+try {
+  const boundaryPath = path.join(__dirname, '..', 'data', 'andhra_pradesh_boundary.geojson');
+  if (fs.existsSync(boundaryPath)) {
+    const raw = JSON.parse(fs.readFileSync(boundaryPath, 'utf8'));
+    if (raw && raw.features && raw.features[0]) {
+      apBoundaryGeom = raw.features[0].geometry;
+    }
+  }
+} catch (e) {
+  console.warn('[GDACS] Failed to load AP boundary GeoJSON:', e.message);
+}
+
+function pointInPoly(pt, polyCoords) {
+  const x = pt[0], y = pt[1];
+  let inside = false;
+  for (let i = 0, j = polyCoords.length - 1; i < polyCoords.length; j = i++) {
+    const xi = polyCoords[i][0], yi = polyCoords[i][1];
+    const xj = polyCoords[j][0], yj = polyCoords[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+// Spatial check using official AP boundary GeoJSON (Fails closed)
+function isCoordInsideAP(lon, lat) {
+  if (!apBoundaryGeom || typeof lon !== 'number' || typeof lat !== 'number') return false;
+  if (isNaN(lon) || isNaN(lat) || !Number.isFinite(lon) || !Number.isFinite(lat)) return false;
+  if (lon < -180 || lon > 180 || lat < -90 || lat > 90) return false;
+  if (apBoundaryGeom.type === 'Polygon') {
+    return pointInPoly([lon, lat], apBoundaryGeom.coordinates[0]);
+  }
+  if (apBoundaryGeom.type === 'MultiPolygon') {
+    return apBoundaryGeom.coordinates.some(ring => pointInPoly([lon, lat], ring[0]));
+  }
+  return false;
 }
 
 // Bounding box for India: lat 6.0 to 38.0, lon 68.0 to 98.0
@@ -115,15 +154,104 @@ async function getGdacsEvents() {
 
       allEvents.push(eventObj);
 
+      // Check active vs expired
+      let isActive = true;
+      if (toDate) {
+        const toTime = new Date(toDate).getTime();
+        if (!isNaN(toTime) && toTime < now) {
+          isActive = false;
+        }
+      }
+      if (fromDate) {
+        const fromTime = new Date(fromDate).getTime();
+        if (!isNaN(fromTime) && (now - fromTime) > (30 * 24 * 60 * 60 * 1000)) {
+          isActive = false;
+        }
+      }
+      eventObj.isActive = isActive;
+
       const isIndia = (country && country.toLowerCase().includes('india')) ||
                       (!isNaN(lat) && !isNaN(lon) && isCoordInsideIndia(lat, lon));
 
       if (isIndia) {
-        const inAP = !isNaN(lat) && !isNaN(lon) && isCoordInsideAP(lat, lon);
+        const inAP = !isNaN(lat) && !isNaN(lon) && isCoordInsideAP(lon, lat);
         eventObj.inAndhraPradesh = inAP;
         indiaEvents.push(eventObj);
-        if (inAP) apEvents.push(eventObj);
+        if (inAP) {
+          const eventId = xmlTag(block, 'eventid') || Math.abs(hashCode(title + link));
+          const opState = isActive ? 'ACTIVE' : 'EXPIRED';
+          const alertId = `gdacs_${eventType.toLowerCase()}_${eventId}`;
+          const normAlert = {
+            id: alertId,
+            alertId: alertId,
+            source: 'gdacs_events',
+            sourceId: 'gdacs_events',
+            sourceAlertId: String(eventId),
+            agency: 'Global Disaster Alert and Coordination System (GDACS — UN / EC)',
+            title: title || `${eventType} Hazard Event`,
+            event: eventName || eventType || 'Disaster Event',
+            eventType: eventType,
+            hazardType: eventType,
+            hazard_type: eventType,
+            severity: alertLevel ? (alertLevel.charAt(0).toUpperCase() + alertLevel.slice(1).toLowerCase()) : 'UNKNOWN',
+            sourceSeverity: severity || alertLevel || 'UNKNOWN',
+            normalizedSeverity: alertLevel ? (alertLevel.charAt(0).toUpperCase() + alertLevel.slice(1).toLowerCase()) : 'UNKNOWN',
+            urgency: 'UNKNOWN',
+            certainty: 'Observed',
+            status: opState === 'ACTIVE' ? 'LIVE' : 'EXPIRED',
+            operationalState: opState,
+            tier: 'LIVE_API',
+            role: 'CROSS_CHECK',
+            issuedAt: fromDate || null,
+            effectiveAt: fromDate || null,
+            expiresAt: toDate || null,
+            observedAt: fromDate || null,
+            fetchedAt: new Date(now).toISOString(),
+            checkedAt: new Date(now).toISOString(),
+            effective: fromDate || null,
+            expires: toDate || null,
+            lat: !isNaN(lat) ? lat : null,
+            latitude: !isNaN(lat) ? lat : null,
+            lng: !isNaN(lon) ? lon : null,
+            longitude: !isNaN(lon) ? lon : null,
+            geometry: (!isNaN(lat) && !isNaN(lon)) ? { type: 'Point', coordinates: [lon, lat] } : null,
+            geometryStatus: (!isNaN(lat) && !isNaN(lon)) ? 'AVAILABLE' : 'UNAVAILABLE',
+            area: country || 'Andhra Pradesh Sector',
+            areaDesc: country || 'Andhra Pradesh Sector',
+            description: description.replace(/<[^>]+>/g, '').substring(0, 500).trim(),
+            instruction: null,
+            sourceUrl: link || GDACS_FEED_URL,
+            link: link || GDACS_FEED_URL,
+            sourceTimestamp: fromDate || null,
+            isInsideAP: true,
+            expirationStatus: toDate ? 'AUTHENTIC_EXPIRY' : 'UNKNOWN_EXPIRY',
+            requiresTemporalValidation: !toDate,
+            provenance: {
+              sourceId: 'gdacs_events',
+              sourceTier: 'LIVE_API',
+              sourceRole: 'CROSS_CHECK',
+              agency: 'Global Disaster Alert and Coordination System (GDACS — UN / EC)',
+              url: GDACS_FEED_URL,
+              originalSourceTimestamp: fromDate || null,
+              fetchedAt: new Date(now).toISOString(),
+              contributingSources: ['gdacs_events']
+            }
+          };
+
+          if (isActive) {
+            apEvents.push(normAlert);
+          }
+        }
       }
+    }
+
+    function hashCode(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return hash;
     }
 
     const result = {
@@ -137,6 +265,7 @@ async function getGdacsEvents() {
       apEventsCount: apEvents.length,
       fetchedAt: new Date().toISOString(),
       events: indiaEvents, // Prioritize India-region events
+      apEvents: apEvents,
       allEventsCount: allEvents.length,
       cached: false
     };
@@ -164,5 +293,7 @@ async function getGdacsEvents() {
 }
 
 module.exports = {
-  getGdacsEvents
+  getGdacsEvents,
+  isCoordInsideAP
 };
+
