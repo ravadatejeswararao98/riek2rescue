@@ -25,10 +25,10 @@
   "author": "Teja",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^10.0.5",
-    "ws": "^8.21.3"
+    "concurrently": "^10.0.5"
   },
   "dependencies": {
-    "@flaticon/flaticon-uicons": "^3.3.1"
+    "@flaticon/flaticon-uicons": "^3.3.1",
+    "ws": "^8.21.3"
   }
 }
