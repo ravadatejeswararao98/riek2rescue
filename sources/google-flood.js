@@ -1,3 +1,4 @@
+const { safeText } = require('../js/redact.js');
 /**
  * RISK2RESCUE — GOOGLE FLOOD FORECASTING API (sources/google-flood.js)
  * Google Flood Hub Hydrologic Forecasting Engine (Up to 7-Day Flood Horizon)
@@ -38,17 +39,17 @@ function fetchJson(targetUrl, timeoutMs = 8000) {
             try {
               resolve(JSON.parse(raw));
             } catch (e) {
-              reject(new Error('JSON parse error from ' + targetUrl));
+              reject(new Error(safeText('JSON parse error from ' + targetUrl)));
             }
           } else {
-            reject(new Error(`HTTP ${res.statusCode} from ${targetUrl}`));
+            reject(new Error(safeText(`HTTP ${res.statusCode} from ${targetUrl}`)));
           }
         });
       });
       req.on('error', reject);
       req.on('timeout', () => {
         req.destroy();
-        reject(new Error(`Timeout after ${timeoutMs}ms`));
+        reject(new Error(safeText(`Timeout after ${timeoutMs}ms`)));
       });
       req.end();
     } catch (e) {
@@ -65,12 +66,12 @@ async function getGoogleFloodForecast() {
   if (!apiKey || apiKey.trim() === '') {
     return {
       success: false,
-      status: 'NOT_CONFIGURED',
+      status: 'UNAVAILABLE',
       sourceId: 'google_flood_forecast',
       agency: 'Google Flood Hub (Flood Forecasting Initiative)',
       role: 'FORECAST',
       tier: 'LIVE_API',
-      error: 'GOOGLE_FLOOD_API_KEY is not configured in .env',
+      error: 'GOOGLE_FLOOD_API_KEY is missing or not configured in .env',
       attribution: 'Google Flood Forecasting Initiative (CC BY 4.0)',
       gauges: []
     };

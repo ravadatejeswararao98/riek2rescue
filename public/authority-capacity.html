@@ -161,10 +161,11 @@
         </div>
       </div>
 
-      <!-- Pill 2: Basemap Mode Switcher (Standard Light vs Satellite Imagery) -->
+      <!-- Pill 2: Basemap Mode Switcher (Standard Light vs Satellite Imagery vs Windy Radar) -->
       <div class="map-view-switcher topbar-pill" id="map-view-switcher">
         <button class="view-switch-btn active" id="btn-mode-gis" onclick="setAuthorityBasemap('standard')" title="Show Clean Light Gray Basemap"><i class="fi fi-rr-map" aria-hidden="true"></i> Standard</button>
         <button class="view-switch-btn" id="btn-mode-satellite" onclick="setAuthorityBasemap('satellite')" title="Show Photographic Satellite Imagery (ArcGIS World Imagery)"><i class="fi fi-rr-satellite" aria-hidden="true"></i> Satellite</button>
+        <button class="view-switch-btn" id="btn-mode-windy" onclick="setAuthorityBasemap('windy')" title="Show Windy Radar Overlay (Live Doppler Precipitation & Atmospheric Reflectivity)"><i class="fi fi-rr-wind" aria-hidden="true"></i> Windy Radar</button>
       </div>
 
       <!-- Pill 3: Citizen-Style Search Bar (Replaces AI Confidence) -->
@@ -193,6 +194,34 @@
     <div class="map-viewport" id="map-viewport">
       <!-- Archive Data Disclaimer Removed -->
       <div id="authority-map"></div>
+
+      <!-- Full-Viewport Windy Live Weather & Radar Map View -->
+      <iframe id="authority-windy-frame" class="authority-windy-frame" style="display:none;" frameborder="0" src="" allowfullscreen></iframe>
+
+      <!-- Floating Windy Radar Sub-Layer Switcher (Visible when Windy Radar is Active) -->
+      <div id="windy-radar-layer-bar" class="windy-radar-layer-bar" style="display:none;" onclick="event.stopPropagation()">
+        <div class="wrlb-status">
+          <span class="wrlb-dot"></span>
+          <span class="wrlb-label">WINDY RADAR</span>
+        </div>
+        <div class="wrlb-buttons">
+          <button class="windy-layer-btn active" data-layer="radar" onclick="setWindySubLayer('radar', event)" title="Live Doppler Precipitation Radar">
+            <i class="fi fi-rr-cloud-showers-heavy" aria-hidden="true"></i> Radar
+          </button>
+          <button class="windy-layer-btn" data-layer="wind" onclick="setWindySubLayer('wind', event)" title="Wind Streamlines & Gusts">
+            <i class="fi fi-rr-wind" aria-hidden="true"></i> Wind
+          </button>
+          <button class="windy-layer-btn" data-layer="rain" onclick="setWindySubLayer('rain', event)" title="Precipitation Accumulation">
+            <i class="fi fi-rr-cloud-rain" aria-hidden="true"></i> Rain
+          </button>
+          <button class="windy-layer-btn" data-layer="clouds" onclick="setWindySubLayer('clouds', event)" title="Satellite Cloud Coverage">
+            <i class="fi fi-rr-cloud" aria-hidden="true"></i> Clouds
+          </button>
+          <button class="windy-layer-btn" data-layer="temp" onclick="setWindySubLayer('temp', event)" title="Surface Temperature Field">
+            <i class="fi fi-rr-temperature-high" aria-hidden="true"></i> Temp
+          </button>
+        </div>
+      </div>
 
       <!-- Floating Hazard Button (Top Right — Clear of Zoom & Topbar) -->
       <button id="btn-map-hazard" class="btn-map-hazard" onclick="toggleMapHazardDropdown(event)" title="Active Monitored Hazards">
@@ -1121,7 +1150,6 @@
   <script src="js/priority-engine.js?v=16"></script>
   <script src="js/ap-boundary.js?v=16"></script>
   <script src="js/map.js?v=16"></script>
-  <script src="js/ai-engine.js?v=16"></script>
   <script src="js/hazards.js?v=16"></script>
   <script src="js/location-service.js?v=16"></script>
   <script src="js/windy-integration.js?v=16"></script>

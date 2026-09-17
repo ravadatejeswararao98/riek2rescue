@@ -1,3 +1,4 @@
+const { safeText } = require('../js/redact.js');
 /**
  * RISK2RESCUE — GDACS GLOBAL DISASTER EVENT FEED (sources/gdacs.js)
  * Global Disaster Alert and Coordination System (UN / European Commission)
@@ -35,14 +36,14 @@ function fetchText(targetUrl, timeoutMs = 8000) {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(raw);
           } else {
-            reject(new Error(`HTTP ${res.statusCode} from ${targetUrl}`));
+            reject(new Error(safeText(`HTTP ${res.statusCode} from ${targetUrl}`)));
           }
         });
       });
       req.on('error', reject);
       req.on('timeout', () => {
         req.destroy();
-        reject(new Error(`Timeout after ${timeoutMs}ms from ${targetUrl}`));
+        reject(new Error(safeText(`Timeout after ${timeoutMs}ms from ${targetUrl}`)));
       });
       req.end();
     } catch (e) {

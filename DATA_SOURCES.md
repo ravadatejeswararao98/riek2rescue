@@ -51,7 +51,7 @@
 - **What it Measures:** Multi-model point forecast series (GFS, ECMWF, ICON) for coastal landfall corridors.
 - **Cadence:** 15 minutes (`900,000 ms`).
 - **Role:** `CROSS_CHECK`
-- **Requires Key:** `WINDY_API_KEY`
+- **Requires Key:** `WINDY_DATA_KEY`
 - **Accuracy Caveats:** Available only when API key is configured.
 - **Licence & Attribution:** Proprietary Commercial / Free Tier. Attribute: `Forecasts provided by Windy.com`.
 - **UI Failure Behaviour:** Displays `NOT_CONFIGURED` with prompt to add key; Open-Meteo continues to display as itself, not as Windy.

@@ -1,3 +1,4 @@
+const { safeText } = require('../js/redact.js');
 /**
  * RISK2RESCUE — CWC / NWIC RIVER WATER LEVEL TELEMETRY (sources/cwc-nwic.js)
  * Central Water Commission & National Water Data Portal (NWIC) Real-Time Telemetry
@@ -84,17 +85,17 @@ function fetchJson(targetUrl, headers = {}, timeoutMs = 8000) {
             try {
               resolve(JSON.parse(raw));
             } catch (e) {
-              reject(new Error('JSON parse error from ' + targetUrl));
+              reject(new Error(safeText('JSON parse error from ' + targetUrl)));
             }
           } else {
-            reject(new Error(`HTTP ${res.statusCode} from ${targetUrl}`));
+            reject(new Error(safeText(`HTTP ${res.statusCode} from ${targetUrl}`)));
           }
         });
       });
       req.on('error', reject);
       req.on('timeout', () => {
         req.destroy();
-        reject(new Error(`Timeout after ${timeoutMs}ms`));
+        reject(new Error(safeText(`Timeout after ${timeoutMs}ms`)));
       });
       req.end();
     } catch (e) {

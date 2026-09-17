@@ -6,6 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
+    "start:ai": "python ai-service/app.py",
+    "start:all": "concurrently -n \"NODE,GEOAI\" -c \"blue,green\" \"node server.js\" \"python ai-service/app.py\"",
     "dev": "node server.js",
     "serve": "node server.js",
     "test": "node server.js --check"
@@ -23,6 +25,7 @@
   "author": "Teja",
   "license": "MIT",
   "devDependencies": {
+    "concurrently": "^10.0.5",
     "ws": "^8.21.3"
   },
   "dependencies": {

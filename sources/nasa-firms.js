@@ -1,3 +1,4 @@
+const { safeText } = require('../js/redact.js');
 /**
  * RISK2RESCUE — NASA FIRMS ACTIVE FIRE / THERMAL ANOMALIES (sources/nasa-firms.js)
  * NASA LANCE / EOSDIS Fire Information for Resource Management System (VIIRS NRT)
@@ -83,12 +84,12 @@ function fetchText(targetUrl, timeoutMs = 8000) {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(data);
           } else {
-            reject(new Error(`HTTP ${res.statusCode} from ${targetUrl}`));
+            reject(new Error(safeText(`HTTP ${res.statusCode} from ${targetUrl}`)));
           }
         });
       });
       req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
+      req.on('timeout', () => { req.destroy(); reject(new Error(safeText('Request timeout'))); });
       req.end();
     } catch (err) {
       reject(err);

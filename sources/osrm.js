@@ -1,3 +1,4 @@
+const { safeText } = require('../js/redact.js');
 /**
  * sources/osrm.js
  * 
@@ -123,10 +124,10 @@ function fetchJson(targetUrl, headers = {}, timeoutMs = OSRM_TIMEOUT_MS) {
               const json = JSON.parse(raw);
               resolve(json);
             } catch (err) {
-              reject(new Error(`OSRM JSON parse failed: ${err.message}`));
+              reject(new Error(safeText(`OSRM JSON parse failed: ${err.message}`)));
             }
           } else {
-            reject(new Error(`OSRM HTTP error status ${res.statusCode}: ${raw.slice(0, 100)}`));
+            reject(new Error(safeText(`OSRM HTTP error status ${res.statusCode}: ${raw.slice(0, 100)}`)));
           }
         });
       });
@@ -134,7 +135,7 @@ function fetchJson(targetUrl, headers = {}, timeoutMs = OSRM_TIMEOUT_MS) {
       req.on('error', reject);
       req.on('timeout', () => {
         req.destroy();
-        reject(new Error(`OSRM request timed out after ${timeoutMs}ms`));
+        reject(new Error(safeText(`OSRM request timed out after ${timeoutMs}ms`)));
       });
       req.end();
     } catch (err) {
@@ -345,7 +346,7 @@ async function fetchOsrmRoute(origin, destination, options = {}) {
     const validation = validateOsrmResponse(rawData);
 
     if (!validation.valid) {
-      throw new Error(validation.error);
+      throw new Error(safeText(validation.error));
     }
 
     const r = validation.route;

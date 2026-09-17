@@ -27,3 +27,4 @@ ai-service/.venv-terramind/
 ai-service/.venv*/
 ai-service/node_modules/
 ai-service/__pycache__/
+.env.pre-merge.bak

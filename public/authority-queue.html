@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Risk2Rescue | AI Decision Support & Operational Recommendations</title>
+  <title>Risk2Rescue | Priority Evacuation & Operations Queue</title>
   <meta name="description" content="Operational Command, Multi-Hazard Predictive Intelligence, Citizen Report Verification, and Evacuation Strategy for Disaster Authorities. Developed by Teja.">
 
   <!-- Authentication Route Guard: Immediate redirect if unauthenticated -->
@@ -70,7 +70,7 @@
       <div class="dock-divider"></div>
 
       <!-- Red Zones & Habitations -->
-      <a href="authority-queue.html" class="dock-item " style="--item-accent: var(--risk-red); text-decoration: none;" title="Priority Queue"><span class="dock-icon"><i class="fi fi-rr-house-building" aria-hidden="true"></i></span><span class="dock-label">Priority Queue</span></a>
+      <a href="authority-queue.html" class="dock-item active" style="--item-accent: var(--risk-red); text-decoration: none;" title="Priority Queue"><span class="dock-icon"><i class="fi fi-br-house-building" aria-hidden="true"></i></span><span class="dock-label">Priority Queue</span></a>
 
       <!-- Population at Risk -->
       <button class="dock-item" data-view="population-risk" style="--item-accent: var(--risk-orange)" title="Population at Risk">
@@ -87,7 +87,7 @@
       <a href="authority-capacity.html" class="dock-item" style="--item-accent: var(--risk-green); text-decoration: none;" title="Safe Sites & Capacity"><span class="dock-icon"><i class="fi fi-rr-person-shelter" aria-hidden="true"></i></span><span class="dock-label">Safe Sites &amp; Capacity</span></a>
 
       <!-- AI Decision Support -->
-      <a href="authority-ai.html" class="dock-item active" style="--item-accent: var(--accent-purple, #8b5cf6); text-decoration: none;" title="AI Decision Support"><span class="dock-icon"><i class="fi fi-br-robot" aria-hidden="true"></i></span><span class="dock-label">AI Decision Support</span></a>
+      <a href="authority-ai.html" class="dock-item" style="--item-accent: var(--accent-purple, #8b5cf6); text-decoration: none;" title="AI Decision Support"><span class="dock-icon"><i class="fi fi-rr-robot" aria-hidden="true"></i></span><span class="dock-label">AI Decision Support</span></a>
 
       <!-- Sensor Data Sources -->
       <button class="dock-item" data-view="datasources" style="--item-accent: var(--accent-blue)" title="Sensor Data Sources">
@@ -161,10 +161,11 @@
         </div>
       </div>
 
-      <!-- Pill 2: Basemap Mode Switcher (Standard Light vs Satellite Imagery) -->
+      <!-- Pill 2: Basemap Mode Switcher (Standard Light vs Satellite Imagery vs Windy Radar) -->
       <div class="map-view-switcher topbar-pill" id="map-view-switcher">
         <button class="view-switch-btn active" id="btn-mode-gis" onclick="setAuthorityBasemap('standard')" title="Show Clean Light Gray Basemap"><i class="fi fi-rr-map" aria-hidden="true"></i> Standard</button>
         <button class="view-switch-btn" id="btn-mode-satellite" onclick="setAuthorityBasemap('satellite')" title="Show Photographic Satellite Imagery (ArcGIS World Imagery)"><i class="fi fi-rr-satellite" aria-hidden="true"></i> Satellite</button>
+        <button class="view-switch-btn" id="btn-mode-windy" onclick="setAuthorityBasemap('windy')" title="Show Windy Radar Overlay (Live Doppler Precipitation & Atmospheric Reflectivity)"><i class="fi fi-rr-wind" aria-hidden="true"></i> Windy Radar</button>
       </div>
 
       <!-- Pill 3: Citizen-Style Search Bar (Replaces AI Confidence) -->
@@ -193,6 +194,34 @@
     <div class="map-viewport" id="map-viewport">
       <!-- Archive Data Disclaimer Removed -->
       <div id="authority-map"></div>
+
+      <!-- Full-Viewport Windy Live Weather & Radar Map View -->
+      <iframe id="authority-windy-frame" class="authority-windy-frame" style="display:none;" frameborder="0" src="" allowfullscreen></iframe>
+
+      <!-- Floating Windy Radar Sub-Layer Switcher (Visible when Windy Radar is Active) -->
+      <div id="windy-radar-layer-bar" class="windy-radar-layer-bar" style="display:none;" onclick="event.stopPropagation()">
+        <div class="wrlb-status">
+          <span class="wrlb-dot"></span>
+          <span class="wrlb-label">WINDY RADAR</span>
+        </div>
+        <div class="wrlb-buttons">
+          <button class="windy-layer-btn active" data-layer="radar" onclick="setWindySubLayer('radar', event)" title="Live Doppler Precipitation Radar">
+            <i class="fi fi-rr-cloud-showers-heavy" aria-hidden="true"></i> Radar
+          </button>
+          <button class="windy-layer-btn" data-layer="wind" onclick="setWindySubLayer('wind', event)" title="Wind Streamlines & Gusts">
+            <i class="fi fi-rr-wind" aria-hidden="true"></i> Wind
+          </button>
+          <button class="windy-layer-btn" data-layer="rain" onclick="setWindySubLayer('rain', event)" title="Precipitation Accumulation">
+            <i class="fi fi-rr-cloud-rain" aria-hidden="true"></i> Rain
+          </button>
+          <button class="windy-layer-btn" data-layer="clouds" onclick="setWindySubLayer('clouds', event)" title="Satellite Cloud Coverage">
+            <i class="fi fi-rr-cloud" aria-hidden="true"></i> Clouds
+          </button>
+          <button class="windy-layer-btn" data-layer="temp" onclick="setWindySubLayer('temp', event)" title="Surface Temperature Field">
+            <i class="fi fi-rr-temperature-high" aria-hidden="true"></i> Temp
+          </button>
+        </div>
+      </div>
 
       <!-- Floating Hazard Button (Top Right — Clear of Zoom & Topbar) -->
       <button id="btn-map-hazard" class="btn-map-hazard" onclick="toggleMapHazardDropdown(event)" title="Active Monitored Hazards">
@@ -332,7 +361,6 @@
              TASK 18: AI DECISION SUPPORT PANEL
              Integrated DeepSeek-R1 8B Evidence-Grounded Decision Brief
              ======================================================== -->
-      <section id="view-decision-support" style="display:none;">
         <div class="dsb-card" id="ai-decision-support-panel">
           <div class="dsb-header">
             <div class="dsb-title-wrap">
@@ -410,7 +438,6 @@
             </div>
           </div>
         </div>
-      </section>
 
         <!-- Hidden backward-compatibility container for legacy scripts -->
         <div id="ai-situational-brief" style="display:none;" aria-hidden="true">
@@ -1123,7 +1150,6 @@
   <script src="js/priority-engine.js?v=16"></script>
   <script src="js/ap-boundary.js?v=16"></script>
   <script src="js/map.js?v=16"></script>
-  <script src="js/ai-engine.js?v=16"></script>
   <script src="js/hazards.js?v=16"></script>
   <script src="js/location-service.js?v=16"></script>
   <script src="js/windy-integration.js?v=16"></script>

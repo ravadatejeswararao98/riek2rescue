@@ -136,6 +136,14 @@ function isSourceConfigured(source) {
     const key = process.env.NASA_FIRMS_MAP_KEY || process.env.FIRMS_MAP_KEY;
     return Boolean(key && key.trim() !== '' && !key.startsWith('DEMO') && !key.startsWith('YOUR_'));
   }
+  if (source.id === 'windy_point_forecast') {
+    const key = process.env.WINDY_POINT_KEY || process.env.WINDY_DATA_KEY || process.env.WINDY_API_KEY || process.env.WINDY_API_POINT_KEY;
+    return Boolean(key && key.trim() !== '' && !key.startsWith('YOUR_'));
+  }
+  if (source.id === 'windy_map_radar') {
+    const key = process.env.WINDY_MAP_KEY || process.env.WINDY_API_MAP_KEY;
+    return Boolean(key && key.trim() !== '' && !key.startsWith('YOUR_'));
+  }
   const val = process.env[source.requiresKey];
   return Boolean(val && val.trim() !== '' && !val.startsWith('AIzaSyDemoKey') && !val.startsWith('YOUR_'));
 }
@@ -211,11 +219,11 @@ const SOURCES = [
     tier: 'LIVE_API',
     role: 'CROSS_CHECK',
     cadenceMs: 900000,
-    requiresKey: 'WINDY_API_KEY',
-    consumers: ['citizen-windy-drawer', 'view-datasources'],
+    requiresKey: 'WINDY_POINT_KEY',
+    consumers: ['citizen-windy-drawer', 'authority-telemetry', 'view-datasources'],
     probe: async () => {
-      const key = process.env.WINDY_API_KEY;
-      if (!key || key.trim() === '') return { ok: false, error: 'WINDY_API_KEY is unset in .env', notConfigured: true };
+      const key = process.env.WINDY_POINT_KEY || process.env.WINDY_DATA_KEY || process.env.WINDY_API_KEY || process.env.WINDY_API_POINT_KEY;
+      if (!key || key.trim() === '') return { ok: false, error: 'WINDY_POINT_KEY is unset in .env', notConfigured: true };
       const url = 'https://api.windy.com/api/point-forecast/v2';
       const payload = JSON.stringify({
         lat: 16.99,
@@ -229,8 +237,31 @@ const SOURCES = [
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const json = JSON.parse(res.data);
         const points = json['temp-surface'] ? json['temp-surface'].length : 0;
-        const observedAt = json.ts ? new Date(json.ts).toISOString() : null;
+        const observedAt = Array.isArray(json.ts) ? new Date(json.ts[0]).toISOString() : (json.ts ? new Date(json.ts).toISOString() : null);
         return { ok: true, latencyMs: res.latencyMs, recordCount: points, detail: `${points} forecast steps returned`, raw: json, observedAt };
+      }
+      throw new Error(`HTTP ${res.statusCode}`);
+    }
+  },
+  {
+    id: 'windy_map_radar',
+    agency: 'Windy.com Map Tiles API',
+    displayName: 'Windy Map Weather Radar Tiles (v1.0)',
+    host: 'tiles.windy.com',
+    dataType: 'Live Weather Radar Tile Stream',
+    category: 'weather',
+    tier: 'LIVE_API',
+    role: 'PRIMARY',
+    cadenceMs: 900000,
+    requiresKey: 'WINDY_MAP_KEY',
+    consumers: ['authority-map', 'authority', 'view-datasources'],
+    probe: async () => {
+      const key = process.env.WINDY_MAP_KEY || process.env.WINDY_API_MAP_KEY;
+      if (!key || key.trim() === '') return { ok: false, error: 'WINDY_MAP_KEY is unset in .env', notConfigured: true };
+      const url = `https://tiles.windy.com/tiles/v1.0/radar/6/46/29.png?key=${encodeURIComponent(key)}`;
+      const res = await probeRequest(url, { accept: 'image/png' }, 5000);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return { ok: true, latencyMs: res.latencyMs, recordCount: 1, detail: 'Live Windy weather radar tile stream active', observedAt: new Date().toISOString() };
       }
       throw new Error(`HTTP ${res.statusCode}`);
     }
@@ -604,7 +635,16 @@ const SOURCES = [
         if (res.statusCode >= 200 && res.statusCode < 300) {
           return { ok: true, latencyMs: res.latencyMs, recordCount: 1, detail: 'Resend API authenticated', observedAt: null };
         }
-        throw new Error(`Resend HTTP ${res.statusCode}`);
+        // Resend returns 401 with restricted_api_key when an API key is restricted to sending emails (the standard least-privilege key)
+        if (res.statusCode === 401 && (res.data?.includes('restricted_api_key') || res.data?.includes('only send emails'))) {
+          return { ok: true, latencyMs: res.latencyMs, recordCount: 1, detail: 'Resend API authenticated (Email Dispatcher Key)', observedAt: null };
+        }
+        let errMsg = `Resend HTTP ${res.statusCode}`;
+        try {
+          const parsed = JSON.parse(res.data);
+          if (parsed.message) errMsg += `: ${parsed.message}`;
+        } catch (e) {}
+        throw new Error(errMsg);
       }
       return { ok: true, latencyMs: 50, recordCount: 1, detail: 'SendGrid key present in environment', observedAt: null };
     }
@@ -615,7 +655,7 @@ const SOURCES = [
     id: 'ollama_llm',
     agency: 'Ollama Local AI Runtime',
     displayName: 'Local Neural LLM Incident Commander Briefing (DeepSeek-R1)',
-    host: 'ollama.com',
+    host: '127.0.0.1:11434',
     dataType: 'Neural natural language generation',
     category: 'ai',
     tier: 'LIVE_API',
@@ -624,7 +664,7 @@ const SOURCES = [
     requiresKey: null,
     consumers: ['incident-commander-ai-brief', 'view-datasources'],
     probe: async () => {
-      const baseUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_HOST || 'https://ollama.com';
+      const baseUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
       const headers = { accept: 'application/json' };
       if (process.env.OLLAMA_API_KEY) {
         headers['Authorization'] = `Bearer ${process.env.OLLAMA_API_KEY}`;
@@ -649,7 +689,7 @@ const SOURCES = [
     role: 'FORECAST',
     cadenceMs: 60000,
     requiresKey: null,
-    consumers: ['ai-bridge', 'view-datasources'],
+    consumers: ['view-datasources'],
     probe: async () => {
       const baseUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8001';
       const res = await probeRequest(`${baseUrl}/health`, { accept: 'application/json' }, 3000);

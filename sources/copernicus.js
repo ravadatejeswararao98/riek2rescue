@@ -1,3 +1,4 @@
+const { safeText } = require('../js/redact.js');
 /**
  * RISK2RESCUE — COPERNICUS DATA SPACE ECOSYSTEM (sources/copernicus.js)
  * Authoritative Sentinel-1 GRD Latest Satellite Observation Discovery
@@ -239,15 +240,15 @@ function fetchHttpsJson(targetUrl, headers = {}, timeoutMs = 8000) {
             try {
               resolve(JSON.parse(body));
             } catch (err) {
-              reject(new Error(`Failed to parse Copernicus response JSON: ${err.message}`));
+              reject(new Error(safeText(`Failed to parse Copernicus response JSON: ${err.message}`)));
             }
           } else {
-            reject(new Error(`Copernicus OData returned HTTP ${res.statusCode}: ${body.slice(0, 200)}`));
+            reject(new Error(safeText(`Copernicus OData returned HTTP ${res.statusCode}: ${body.slice(0, 200)}`)));
           }
         });
       });
       req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('Copernicus request timeout')); });
+      req.on('timeout', () => { req.destroy(); reject(new Error(safeText('Copernicus request timeout'))); });
       req.end();
     } catch (err) {
       reject(err);
@@ -290,12 +291,12 @@ async function getCopernicusToken(clientId, clientSecret) {
             resolve(cachedToken);
           } catch (e) { reject(e); }
         } else {
-          reject(new Error(`OAuth error HTTP ${res.statusCode}: ${body}`));
+          reject(new Error(safeText(`OAuth error HTTP ${res.statusCode}: ${body}`)));
         }
       });
     });
     req.on('error', reject);
-    req.on('timeout', () => { req.destroy(); reject(new Error('OAuth request timeout')); });
+    req.on('timeout', () => { req.destroy(); reject(new Error(safeText('OAuth request timeout'))); });
     req.write(payload);
     req.end();
   });

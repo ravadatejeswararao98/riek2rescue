@@ -1,5 +1,19 @@
 [
   {
+    "id": "alert-1789613972934-931",
+    "timestamp": "2026-09-17T02:59:32.934Z",
+    "recipient": "incident-commander@ap-sdma.gov.in",
+    "sender": "alerts@resend.dev",
+    "subject": "🚨 [NDRF-SDMA ALERT] Machilipatnam Sector Test Escalated to RED (CYCLONE)",
+    "provider": "Local Spool Log (Zero Cost / Offline Fallback)",
+    "status": "logged_locally",
+    "responseId": null,
+    "zone": "Machilipatnam Sector Test",
+    "tier": "RED",
+    "population": 5000,
+    "preview": "TEST AUDIT: Immediate evacuation directive"
+  },
+  {
     "id": "alert-1789526853928-664",
     "timestamp": "2026-09-16T02:47:33.928Z",
     "recipient": "incident-commander@ap-sdma.gov.in",
@@ -1383,20 +1397,6 @@
     "zone": "Ukhrul Hill Village Fault Line Focal Zone",
     "tier": "ORANGE",
     "population": 6641,
-    "preview": "Current observations along the coastal corridor show moderate baseline conditions (13 km/h winds, 1002 hPa). However, multi-model point forecasts confirm high escalation to Critical RED by +12h to +24h, impacting 8 habitations including Barpeta Lowland Clusters (27,612 residents). Pre-emptive evacuation dispatch to designated cyclone shelters must begin immediately before squall lines close road transit routes. Satellite imagery confirms Sentinel-2 / SAR composite reveals +18.6% surface-water inundation expansion across Tallarevu Coastal Landfall Corridor."
-  },
-  {
-    "id": "alert-1789040666587-25",
-    "timestamp": "2026-09-10T11:44:26.587Z",
-    "recipient": "incident-commander@ap-sdma.gov.in",
-    "sender": "alerts@resend.dev",
-    "subject": "🚨 [NDRF-SDMA ALERT] Imphal East Habitation Belt Fault Line Focal Zone Escalated to ORANGE (EARTHQUAKE)",
-    "provider": "Local Spool Log (Zero Cost / Offline Fallback)",
-    "status": "logged_locally",
-    "responseId": null,
-    "zone": "Imphal East Habitation Belt Fault Line Focal Zone",
-    "tier": "ORANGE",
-    "population": 52200,
     "preview": "Current observations along the coastal corridor show moderate baseline conditions (13 km/h winds, 1002 hPa). However, multi-model point forecasts confirm high escalation to Critical RED by +12h to +24h, impacting 8 habitations including Barpeta Lowland Clusters (27,612 residents). Pre-emptive evacuation dispatch to designated cyclone shelters must begin immediately before squall lines close road transit routes. Satellite imagery confirms Sentinel-2 / SAR composite reveals +18.6% surface-water inundation expansion across Tallarevu Coastal Landfall Corridor."
   }
 ]

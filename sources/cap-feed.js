@@ -1,3 +1,4 @@
+const { safeText } = require('../js/redact.js');
 /**
  * RISK2RESCUE — COMMON ALERTING PROTOCOL (CAP) ENGINE (sources/cap-feed.js)
  * Generalised WMO/ITU-T Recommendation X.1303 CAP Feed Ingestion & AP Spatial Correlator
@@ -113,14 +114,14 @@ function fetchText(targetUrl, timeoutMs = 8000) {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(raw);
           } else {
-            reject(new Error(`HTTP ${res.statusCode} from ${targetUrl}`));
+            reject(new Error(safeText(`HTTP ${res.statusCode} from ${targetUrl}`)));
           }
         });
       });
       req.on('error', reject);
       req.on('timeout', () => {
         req.destroy();
-        reject(new Error(`Timeout after ${timeoutMs}ms from ${targetUrl}`));
+        reject(new Error(safeText(`Timeout after ${timeoutMs}ms from ${targetUrl}`)));
       });
       req.end();
     } catch (e) {

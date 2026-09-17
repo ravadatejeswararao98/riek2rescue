@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Risk2Rescue | Citizen SOS & Field Report Verification</title>
+  <title>Risk2Rescue | Live GIS Multi-Hazard Risk Map</title>
   <meta name="description" content="Operational Command, Multi-Hazard Predictive Intelligence, Citizen Report Verification, and Evacuation Strategy for Disaster Authorities. Developed by Teja.">
 
   <!-- Authentication Route Guard: Immediate redirect if unauthenticated -->
@@ -36,7 +36,7 @@
 
   <!-- Base & Authority Styles -->
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/authority.css?v=14">
+  <link rel="stylesheet" href="css/authority.css?v=21">
   <link rel="stylesheet" href="css/simulation.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
@@ -59,7 +59,9 @@
   <nav class="rzi-dock" id="rzi-dock" aria-label="Primary Navigation">
     <div class="dock-nav-group">
       <!-- Home / Live GIS Risk Map (DEFAULT LANDING PAGE) -->
-      <a href="authority-map.html" class="dock-item " style="--item-accent: var(--accent-cyan); text-decoration: none;" title="Home"><span class="dock-icon"><i class="fi fi-rr-home" aria-hidden="true"></i></span><span class="dock-label">Home</span></a>
+      <button class="dock-item active" data-view="map-view" style="--item-accent: var(--accent-cyan)" title="Home">
+        <span class="dock-icon"><i class="fi fi-br-home" aria-hidden="true"></i></span><span class="dock-label">Home</span>
+      </button>
 
       <!-- Command Center -->
       <button class="dock-item" data-view="command" style="--item-accent: var(--accent-blue)" title="Command Center">
@@ -70,7 +72,9 @@
       <div class="dock-divider"></div>
 
       <!-- Red Zones & Habitations -->
-      <a href="authority-queue.html" class="dock-item " style="--item-accent: var(--risk-red); text-decoration: none;" title="Priority Queue"><span class="dock-icon"><i class="fi fi-rr-house-building" aria-hidden="true"></i></span><span class="dock-label">Priority Queue</span></a>
+      <button class="dock-item" data-view="habitations" style="--item-accent: var(--risk-red)" title="Priority Queue">
+        <span class="dock-icon"><i class="fi fi-rr-house-building" aria-hidden="true"></i></span><span class="dock-label">Priority Queue</span>
+      </button>
 
       <!-- Population at Risk -->
       <button class="dock-item" data-view="population-risk" style="--item-accent: var(--risk-orange)" title="Population at Risk">
@@ -81,13 +85,19 @@
       <div class="dock-divider"></div>
 
       <!-- Citizen Report Queue -->
-      <a href="authority-citizen.html" class="dock-item active" style="--item-accent: var(--risk-orange); text-decoration: none;" title="Citizen Report Queue"><span class="dock-icon"><i class="fi fi-br-inbox-in" aria-hidden="true"></i></span><span class="dock-label">Citizen Report Queue</span><span class="dock-badge" id="dock-queue-badge">0</span></a>
+      <button class="dock-item" data-view="reports" style="--item-accent: var(--risk-orange)" title="Citizen Report Queue">
+        <span class="dock-icon"><i class="fi fi-rr-inbox-in" aria-hidden="true"></i></span><span class="dock-label">Citizen Report Queue</span><span class="dock-badge" id="dock-queue-badge">0</span>
+      </button>
 
       <!-- Safe Sites & Capacity (Repositioned right before Sensor Data Sources) -->
-      <a href="authority-capacity.html" class="dock-item" style="--item-accent: var(--risk-green); text-decoration: none;" title="Safe Sites & Capacity"><span class="dock-icon"><i class="fi fi-rr-person-shelter" aria-hidden="true"></i></span><span class="dock-label">Safe Sites &amp; Capacity</span></a>
+      <button class="dock-item" data-view="safesites" style="--item-accent: var(--risk-green)" title="Safe Sites & Capacity">
+        <span class="dock-icon"><i class="fi fi-rr-person-shelter" aria-hidden="true"></i></span><span class="dock-label">Safe Sites &amp; Capacity</span>
+      </button>
 
       <!-- AI Decision Support -->
-      <a href="authority-ai.html" class="dock-item" style="--item-accent: var(--accent-purple, #8b5cf6); text-decoration: none;" title="AI Decision Support"><span class="dock-icon"><i class="fi fi-rr-robot" aria-hidden="true"></i></span><span class="dock-label">AI Decision Support</span></a>
+      <button class="dock-item" data-view="decision-support" style="--item-accent: var(--accent-purple, #8b5cf6)" title="AI Decision Support">
+        <span class="dock-icon"><i class="fi fi-rr-robot" aria-hidden="true"></i></span><span class="dock-label">AI Decision Support</span>
+      </button>
 
       <!-- Sensor Data Sources -->
       <button class="dock-item" data-view="datasources" style="--item-accent: var(--accent-blue)" title="Sensor Data Sources">
@@ -161,10 +171,11 @@
         </div>
       </div>
 
-      <!-- Pill 2: Basemap Mode Switcher (Standard Light vs Satellite Imagery) -->
+      <!-- Pill 2: Basemap Mode Switcher (Standard Light vs Satellite Imagery vs Windy Radar) -->
       <div class="map-view-switcher topbar-pill" id="map-view-switcher">
         <button class="view-switch-btn active" id="btn-mode-gis" onclick="setAuthorityBasemap('standard')" title="Show Clean Light Gray Basemap"><i class="fi fi-rr-map" aria-hidden="true"></i> Standard</button>
         <button class="view-switch-btn" id="btn-mode-satellite" onclick="setAuthorityBasemap('satellite')" title="Show Photographic Satellite Imagery (ArcGIS World Imagery)"><i class="fi fi-rr-satellite" aria-hidden="true"></i> Satellite</button>
+        <button class="view-switch-btn" id="btn-mode-windy" onclick="setAuthorityBasemap('windy')" title="Show Windy Radar Overlay (Live Doppler Precipitation & Atmospheric Reflectivity)"><i class="fi fi-rr-wind" aria-hidden="true"></i> Windy Radar</button>
       </div>
 
       <!-- Pill 3: Citizen-Style Search Bar (Replaces AI Confidence) -->
@@ -194,6 +205,34 @@
       <!-- Archive Data Disclaimer Removed -->
       <div id="authority-map"></div>
 
+      <!-- Full-Viewport Windy Live Weather & Radar Map View -->
+      <iframe id="authority-windy-frame" class="authority-windy-frame" style="display:none;" frameborder="0" src="" allowfullscreen></iframe>
+
+      <!-- Floating Windy Radar Sub-Layer Switcher (Visible when Windy Radar is Active) -->
+      <div id="windy-radar-layer-bar" class="windy-radar-layer-bar" style="display:none;" onclick="event.stopPropagation()">
+        <div class="wrlb-status">
+          <span class="wrlb-dot"></span>
+          <span class="wrlb-label">WINDY RADAR</span>
+        </div>
+        <div class="wrlb-buttons">
+          <button class="windy-layer-btn active" data-layer="radar" onclick="setWindySubLayer('radar', event)" title="Live Doppler Precipitation Radar">
+            <i class="fi fi-rr-cloud-showers-heavy" aria-hidden="true"></i> Radar
+          </button>
+          <button class="windy-layer-btn" data-layer="wind" onclick="setWindySubLayer('wind', event)" title="Wind Streamlines & Gusts">
+            <i class="fi fi-rr-wind" aria-hidden="true"></i> Wind
+          </button>
+          <button class="windy-layer-btn" data-layer="rain" onclick="setWindySubLayer('rain', event)" title="Precipitation Accumulation">
+            <i class="fi fi-rr-cloud-rain" aria-hidden="true"></i> Rain
+          </button>
+          <button class="windy-layer-btn" data-layer="clouds" onclick="setWindySubLayer('clouds', event)" title="Satellite Cloud Coverage">
+            <i class="fi fi-rr-cloud" aria-hidden="true"></i> Clouds
+          </button>
+          <button class="windy-layer-btn" data-layer="temp" onclick="setWindySubLayer('temp', event)" title="Surface Temperature Field">
+            <i class="fi fi-rr-temperature-high" aria-hidden="true"></i> Temp
+          </button>
+        </div>
+      </div>
+
       <!-- Floating Hazard Button (Top Right — Clear of Zoom & Topbar) -->
       <button id="btn-map-hazard" class="btn-map-hazard" onclick="toggleMapHazardDropdown(event)" title="Active Monitored Hazards">
         <span class="hazard-btn-icon">⚠️</span>
@@ -209,6 +248,12 @@
             <span>Active Monitored Hazards</span>
           </div>
           <span class="mhd-chip">LIVE TELEMETRY</span>
+        </div>
+        <div class="mhd-filter-tabs">
+          <button class="mhd-filter-btn active" id="mhd-filter-all" onclick="setHazardStatusFilter('ALL', event)">All</button>
+          <button class="mhd-filter-btn filter-active" id="mhd-filter-active" onclick="setHazardStatusFilter('Active', event)">Active</button>
+          <button class="mhd-filter-btn filter-monitoring" id="mhd-filter-monitoring" onclick="setHazardStatusFilter('Monitoring', event)">Monitoring</button>
+          <button class="mhd-filter-btn filter-normal" id="mhd-filter-normal" onclick="setHazardStatusFilter('Normal', event)">Normal</button>
         </div>
         <div class="mhd-list" id="map-hazard-dropdown-list">
           <!-- Populated dynamically via js/authority.js -->
@@ -328,10 +373,11 @@
       </div>
 
 
-        <!-- ========================================================
-             TASK 18: AI DECISION SUPPORT PANEL
-             Integrated DeepSeek-R1 8B Evidence-Grounded Decision Brief
-             ======================================================== -->
+      <!-- ========================================================
+           VIEW 2: AI DECISION SUPPORT PANEL
+           Integrated DeepSeek-R1 8B Evidence-Grounded Decision Brief
+           ======================================================== -->
+      <section id="view-decision-support" style="display:none;">
         <div class="dsb-card" id="ai-decision-support-panel">
           <div class="dsb-header">
             <div class="dsb-title-wrap">
@@ -417,7 +463,12 @@
           <span id="ai-brief-timestamp"></span>
           <span id="ai-refresh-spinner"></span>
         </div>
+      </section>
 
+      <!-- ========================================================
+           VIEW 1: OPERATIONAL COMMAND CENTER
+           ======================================================== -->
+      <section id="view-command" style="display:none;">
         <!-- 8 Core KPIs (Clickable for Instant Drilldown) -->
         <div class="dashboard-kpis">
           <!-- Active Hazards -->
@@ -1120,14 +1171,13 @@
   <script src="js/live-state.js?v=20"></script>
   <script src="js/priority-engine.js?v=16"></script>
   <script src="js/ap-boundary.js?v=16"></script>
-  <script src="js/map.js?v=16"></script>
-  <script src="js/ai-engine.js?v=16"></script>
+  <script src="js/map.js?v=21"></script>
   <script src="js/hazards.js?v=16"></script>
   <script src="js/location-service.js?v=16"></script>
   <script src="js/windy-integration.js?v=16"></script>
   <script src="js/alerts.js?v=16"></script>
   <script src="js/reports.js?v=16"></script>
-  <script src="js/authority.js?v=16"></script>
+  <script src="js/authority.js?v=21"></script>
 
   <!-- Teja Simulation & Incident Command Extensions -->
   <script src="js/simulation-engine.js?v=16"></script>

@@ -18,21 +18,28 @@ const { WebSocketServer } = require('ws');
 
 // Integrated Source Registry & Dynamic Upstream Feeds
 const SourceRegistry = require('./source-registry.js');
+const { safeObject } = require('./js/redact.js');
 const { getOfficialCapAlerts, getCapFeed, CAP_FEEDS } = require('./sources/cap-feed.js');
 const { getCpcbAirQuality, getOpenAqAirQuality } = require('./sources/cpcb-air.js');
+const { getApWeather } = require('./sources/ap-weather.js');
 const { getGdacsEvents } = require('./sources/gdacs.js');
 const { getCWCRiverLevels } = require('./sources/cwc-nwic.js');
 const { getGoogleFloodForecast } = require('./sources/google-flood.js');
-const { getCopernicusFloodSignal, getLatestSentinel1Observation, processLatestSentinel1Observation, verifySentinel1ProductAccess } = require('./sources/copernicus.js');
+const { getLatestSentinel1Observation, processLatestSentinel1Observation, verifySentinel1ProductAccess } = require('./sources/copernicus.js');
 const { getNasaFirmsHotspots } = require('./sources/nasa-firms.js');
-const AIBridge = require('./ai-bridge.js');
 const { correlateMultiHazards } = require('./sources/multi-hazard.js');
 const OsrmService = require('./sources/osrm.js');
+
+// Process-level unhandled promise rejection guard
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED REJECTION]', reason);
+});
 
 // Native .env file loader (zero external dependencies)
 try {
   const envPath = path.join(__dirname, '.env');
   if (fs.existsSync(envPath)) {
+    console.log(`[Config] Loaded environment variables from: ${envPath}`);
     const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
     for (const line of envLines) {
       const trimmed = line.trim();
@@ -49,9 +56,22 @@ try {
   console.warn('Note: .env file could not be read:', e.message);
 }
 
+// Normalize Windy environment aliases (point and map forecast keys)
+if (!process.env.WINDY_POINT_KEY) {
+  process.env.WINDY_POINT_KEY = process.env.WINDY_DATA_KEY || process.env.WINDY_API_KEY || process.env.WINDY_API_POINT_KEY || '';
+}
+if (!process.env.WINDY_DATA_KEY) process.env.WINDY_DATA_KEY = process.env.WINDY_POINT_KEY;
+if (!process.env.WINDY_API_KEY) process.env.WINDY_API_KEY = process.env.WINDY_POINT_KEY;
+
+if (!process.env.WINDY_MAP_KEY) {
+  process.env.WINDY_MAP_KEY = process.env.WINDY_API_MAP_KEY || '';
+}
+if (!process.env.WINDY_API_MAP_KEY) process.env.WINDY_API_MAP_KEY = process.env.WINDY_MAP_KEY;
+
 const PORT = process.env.PORT || 3000;
-const PUBLIC_DIR = __dirname;
-const WINDY_API_KEY = process.env.WINDY_API_KEY || '';
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const WINDY_DATA_KEY = process.env.WINDY_POINT_KEY || process.env.WINDY_DATA_KEY || '';
+const WINDY_MAP_KEY = process.env.WINDY_MAP_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const MIN_LIVE_SOURCES_FOR_AI = parseInt(process.env.MIN_LIVE_SOURCES_FOR_AI || '3', 10);
 
@@ -982,7 +1002,7 @@ const server = http.createServer(async (req, res) => {
         nodeVersion: process.version,
         dataProviders: {
           earthquakes: 'USGS Earthquake Hazards Program (Active)',
-          weather: WINDY_API_KEY ? 'Windy Point Forecast v2 (API Key Active)' : 'Open-Meteo Live Forecast (Active)',
+          weather: WINDY_DATA_KEY ? 'Windy Point Forecast v2 (API Key Active)' : 'Open-Meteo Live Forecast (Active)',
           airQuality: 'Open-Meteo Atmospheric Quality Feed (Active)'
         }
       }));
@@ -994,7 +1014,7 @@ const server = http.createServer(async (req, res) => {
         const force = parsedUrl.query.refresh === '1';
         const health = await SourceRegistry.checkAllSources(force);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        return res.end(JSON.stringify(health));
+        return res.end(JSON.stringify(safeObject(health)));
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         return res.end(JSON.stringify({ error: 'Source health check failed: ' + err.message }));
@@ -1063,6 +1083,19 @@ const server = http.createServer(async (req, res) => {
       } catch (err) {
         res.writeHead(500);
         return res.end(JSON.stringify({ success: false, status: 'UNAVAILABLE', error: err.message, stations: [] }));
+      }
+    }
+
+    // 2d. AP Weather Data (data.gov.in)
+    if (pathname === '/api/ap-weather' && req.method === 'GET') {
+      res.setHeader('Content-Type', 'application/json');
+      try {
+        const data = await getApWeather();
+        res.writeHead(data.status === 'NOT_CONFIGURED' ? 200 : (data.success ? 200 : 503));
+        return res.end(JSON.stringify(data));
+      } catch (err) {
+        res.writeHead(500);
+        return res.end(JSON.stringify({ success: false, status: 'UNAVAILABLE', error: err.message, data: null }));
       }
     }
 
@@ -1136,8 +1169,8 @@ const server = http.createServer(async (req, res) => {
         return res.end(JSON.stringify({
           generatedAt: new Date().toISOString(),
           liveSourceCount: liveCount,
-          minRequiredSources: AIBridge.MIN_LIVE_SOURCES_FOR_AI,
-          hasSufficientData: liveCount >= AIBridge.MIN_LIVE_SOURCES_FOR_AI,
+          minRequiredSources: MIN_LIVE_SOURCES_FOR_AI,
+          hasSufficientData: liveCount >= MIN_LIVE_SOURCES_FOR_AI,
           confidenceMetrics: {
             dataCompletenessPct: dataConfidence,
             dataConfidencePct: dataConfidence,
@@ -1952,13 +1985,14 @@ const server = http.createServer(async (req, res) => {
           }
 
           // If a Windy API key is configured, query the Point Forecast API
-          if (WINDY_API_KEY) {
+          if (WINDY_DATA_KEY) {
             const postData = JSON.stringify({
               lat: Number(lat),
               lon: Number(lon),
               model: payload.model || 'ecmwf',
               parameters: ['wind', 'windGust', 'temp', 'precip', 'rh', 'pressure'],
-              levels: ['surface']
+              levels: ['surface'],
+              key: WINDY_DATA_KEY
             });
 
             const options = {
@@ -1968,7 +2002,7 @@ const server = http.createServer(async (req, res) => {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'x-windy-key': WINDY_API_KEY,
+                'x-windy-key': WINDY_DATA_KEY,
                 'Content-Length': Buffer.byteLength(postData)
               },
               timeout: 6000
@@ -2028,7 +2062,7 @@ const server = http.createServer(async (req, res) => {
             }
           }
 
-          // When no WINDY_API_KEY or if Windy API fails: Use authentic Live Open-Meteo forecast (NO fake data)
+          // When no WINDY_DATA_KEY or if Windy API fails: Use authentic Live Open-Meteo forecast (NO fake data)
           const liveMeteo = await getOpenMeteoWeather(lat, lon);
           if (liveMeteo.success) {
             let respObj = { ...liveMeteo };
@@ -2067,7 +2101,7 @@ const server = http.createServer(async (req, res) => {
               };
             }
             res.writeHead(200);
-            return res.end(JSON.stringify(respObj));
+            return res.end(JSON.stringify(safeObject(respObj)));
           } else {
             res.writeHead(503, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({
@@ -2089,146 +2123,161 @@ const server = http.createServer(async (req, res) => {
 
     // 10. Situation Report Briefing
     if (pathname === '/api/export-sitrep') {
-      const quakes = await getUSGSEarthquakes(5);
-      const sitrep = {
-        title: 'RISK2RESCUE — INCIDENT COMMANDER SITREP',
-        generatedAt: new Date().toISOString(),
-        classification: 'OPERATIONAL RESTRICTED // NDRF-SDMA',
-        monitoredThreats: 5,
-        liveEarthquakesRecorded: quakes.count || 0,
-        activeCitizenReports: storedReports.length,
-        broadcastAlertsDispatched: storedAlerts.length,
-        dataIntegrity: {
-          earthquakeFeed: quakes.source,
-          weatherFeed: WINDY_API_KEY ? 'Windy.com Live API' : 'Open-Meteo Live API',
-          demographics: 'Census of India 2011 / AP SDMA Baseline'
-        },
-        actionDirectives: [
-          'Maintain round-the-clock Doppler radar tracking of coastal core.',
-          'Pre-position 6 NDRF search & rescue battalions at Kakinada & Machilipatnam highway nodes.',
-          'Enforce maritime fishing ban within 40 nautical miles.',
-          'Keep continuous telemetry sync with CWC Godavari river outflow.'
-        ]
-      };
-      res.writeHead(200);
-      return res.end(JSON.stringify(sitrep, null, 2));
+      try {
+        const quakes = await getUSGSEarthquakes(5);
+        const sitrep = {
+          title: 'RISK2RESCUE — INCIDENT COMMANDER SITREP',
+          generatedAt: new Date().toISOString(),
+          classification: 'OPERATIONAL RESTRICTED // NDRF-SDMA',
+          monitoredThreats: 5,
+          liveEarthquakesRecorded: quakes.count || 0,
+          activeCitizenReports: storedReports.length,
+          broadcastAlertsDispatched: storedAlerts.length,
+          dataIntegrity: {
+            earthquakeFeed: quakes.source,
+            weatherFeed: WINDY_DATA_KEY ? 'Windy.com Live API' : 'Open-Meteo Live API',
+            demographics: 'Census of India 2011 / AP SDMA Baseline'
+          },
+          actionDirectives: [
+            'Maintain round-the-clock Doppler radar tracking of coastal core.',
+            'Pre-position 6 NDRF search & rescue battalions at Kakinada & Machilipatnam highway nodes.',
+            'Enforce maritime fishing ban within 40 nautical miles.',
+            'Keep continuous telemetry sync with CWC Godavari river outflow.'
+          ]
+        };
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify(sitrep, null, 2));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ success: false, error: 'Failed to generate sitrep: ' + err.message }));
+      }
     }
 
     // 11. CENSUS 2011 VILLAGE DEMOGRAPHICS LOOKUP
     if (pathname === '/api/census/villages') {
-      const villages = getCensusLookup();
-      const zoneId = parsedUrl.query.zone_id;
-      const hazard = parsedUrl.query.hazard_type;
-      let filtered = villages;
-      if (zoneId) filtered = filtered.filter(v => v.mapped_zone_id === zoneId);
-      if (hazard) filtered = filtered.filter(v => v.hazard_type === hazard);
+      try {
+        const villages = getCensusLookup();
+        const zoneId = parsedUrl.query.zone_id;
+        const hazard = parsedUrl.query.hazard_type;
+        let filtered = villages;
+        if (zoneId) filtered = filtered.filter(v => v.mapped_zone_id === zoneId);
+        if (hazard) filtered = filtered.filter(v => v.hazard_type === hazard);
 
-      res.writeHead(200);
-      return res.end(JSON.stringify({
-        success: true,
-        source: 'Census of India 2011 (Official Village Directory, growth-adjusted to 2026)',
-        count: filtered.length,
-        totalCensus2011Pop: filtered.reduce((a, b) => a + b.census_2011_pop, 0),
-        totalGrowthAdjustedPop: filtered.reduce((a, b) => a + b.growth_adjusted_pop, 0),
-        villages: filtered
-      }));
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({
+          success: true,
+          source: 'Census of India 2011 (Official Village Directory, growth-adjusted to 2026)',
+          count: filtered.length,
+          totalCensus2011Pop: filtered.reduce((a, b) => a + b.census_2011_pop, 0),
+          totalGrowthAdjustedPop: filtered.reduce((a, b) => a + b.growth_adjusted_pop, 0),
+          villages: filtered
+        }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ success: false, error: 'Failed to retrieve census village demographics: ' + err.message }));
+      }
     }
 
     // 12. RELIEF SHELTERS DATABASE (SDMA Live Network)
     if (pathname === '/api/shelters') {
-      const rawShelters = getSheltersData();
-      const validShelters = rawShelters.filter(s => {
-        if (s.lat === null || s.lat === undefined || s.lng === null || s.lng === undefined) return false;
-        const lat = Number(s.lat);
-        const lng = Number(s.lng);
-        if (isNaN(lat) || isNaN(lng)) return false;
-        return isCoordInsideAP(lng, lat);
-      });
+      try {
+        const rawShelters = getSheltersData();
+        const validShelters = rawShelters.filter(s => {
+          if (s.lat === null || s.lat === undefined || s.lng === null || s.lng === undefined) return false;
+          const lat = Number(s.lat);
+          const lng = Number(s.lng);
+          if (isNaN(lat) || isNaN(lng)) return false;
+          return isCoordInsideAP(lng, lat);
+        });
 
-      const shelters = validShelters.map(s => {
-        const cap = (typeof s.capacity === 'number' && !isNaN(s.capacity) && s.capacity > 0) ? s.capacity : null;
-        const hasOcc = typeof s.current_occupancy === 'number' && !isNaN(s.current_occupancy) && s.current_occupancy >= 0;
-        const occ = hasOcc ? s.current_occupancy : null;
-        let occStatus = 'UNKNOWN';
-        if (hasOcc) {
-          const observedAt = s.last_updated || s.occupancyObservedAt || s.observedAt || null;
-          if (s.occupancyStatus === 'STALE' || (observedAt && (Date.now() - new Date(observedAt).getTime() > 24 * 3600 * 1000))) {
-            occStatus = 'STALE';
-          } else {
-            occStatus = s.occupancyStatus || 'LIVE';
+        const shelters = validShelters.map(s => {
+          const cap = (typeof s.capacity === 'number' && !isNaN(s.capacity) && s.capacity > 0) ? s.capacity : null;
+          const hasOcc = typeof s.current_occupancy === 'number' && !isNaN(s.current_occupancy) && s.current_occupancy >= 0;
+          const occ = hasOcc ? s.current_occupancy : null;
+          let occStatus = 'UNKNOWN';
+          if (hasOcc) {
+            const observedAt = s.last_updated || s.occupancyObservedAt || s.observedAt || null;
+            if (s.occupancyStatus === 'STALE' || (observedAt && (Date.now() - new Date(observedAt).getTime() > 24 * 3600 * 1000))) {
+              occStatus = 'STALE';
+            } else {
+              occStatus = s.occupancyStatus || 'LIVE';
+            }
           }
-        }
-        const rawStatus = (s.status || '').toLowerCase();
-        const opStatus = ['open', 'full', 'closed'].includes(rawStatus) ? rawStatus : 'UNKNOWN';
-        const availBeds = (cap !== null && hasOcc) ? Math.max(0, cap - occ) : null;
-        const occRatePct = (cap !== null && hasOcc && cap > 0) ? Math.round((occ / cap) * 100) : null;
+          const rawStatus = (s.status || '').toLowerCase();
+          const opStatus = ['open', 'full', 'closed'].includes(rawStatus) ? rawStatus : 'UNKNOWN';
+          const availBeds = (cap !== null && hasOcc) ? Math.max(0, cap - occ) : null;
+          const occRatePct = (cap !== null && hasOcc && cap > 0) ? Math.round((occ / cap) * 100) : null;
 
-        let availability = 'UNKNOWN';
-        if (opStatus === 'closed') {
-          availability = 'CLOSED';
-        } else if (opStatus === 'full') {
-          availability = 'FULL';
-        } else if (opStatus === 'open' && cap !== null && hasOcc) {
-          availability = (cap - occ > 0) ? 'AVAILABLE' : 'FULL';
-        } else if (opStatus === 'open') {
-          availability = 'OPEN_UNCONFIRMED_CAPACITY';
-        }
+          let availability = 'UNKNOWN';
+          if (opStatus === 'closed') {
+            availability = 'CLOSED';
+          } else if (opStatus === 'full') {
+            availability = 'FULL';
+          } else if (opStatus === 'open' && cap !== null && hasOcc) {
+            availability = (cap - occ > 0) ? 'AVAILABLE' : 'FULL';
+          } else if (opStatus === 'open') {
+            availability = 'OPEN_UNCONFIRMED_CAPACITY';
+          }
 
-        return {
-          ...s,
-          shelterId: s.shelter_id || s.id,
-          shelter_id: s.shelter_id || s.id,
-          id: s.shelter_id || s.id,
-          latitude: Number(s.lat),
-          longitude: Number(s.lng),
-          referenceCapacity: cap,
-          capacity: cap,
-          currentOccupancy: occ,
-          current_occupancy: occ,
-          occupancyStatus: occStatus,
-          occupancyObservedAt: hasOcc ? (s.last_updated || null) : null,
-          last_updated: s.last_updated || null,
-          updated_by: s.updated_by || null,
-          operationalStatus: opStatus,
-          status: opStatus,
-          availability,
-          available_beds: availBeds,
-          availableBeds: availBeds,
-          occupancy_rate_pct: occRatePct,
-          occupancyRatePct: occRatePct,
-          is_full: opStatus === 'full' || (cap !== null && hasOcc && occ >= cap),
-          is_closed: opStatus === 'closed',
+          return {
+            ...s,
+            shelterId: s.shelter_id || s.id,
+            shelter_id: s.shelter_id || s.id,
+            id: s.shelter_id || s.id,
+            latitude: Number(s.lat),
+            longitude: Number(s.lng),
+            referenceCapacity: cap,
+            capacity: cap,
+            currentOccupancy: occ,
+            current_occupancy: occ,
+            occupancyStatus: occStatus,
+            occupancyObservedAt: hasOcc ? (s.last_updated || null) : null,
+            last_updated: s.last_updated || null,
+            updated_by: s.updated_by || null,
+            operationalStatus: opStatus,
+            status: opStatus,
+            availability,
+            available_beds: availBeds,
+            availableBeds: availBeds,
+            occupancy_rate_pct: occRatePct,
+            occupancyRatePct: occRatePct,
+            is_full: opStatus === 'full' || (cap !== null && hasOcc && occ >= cap),
+            is_closed: opStatus === 'closed',
+            sourceId: 'ap_sdma_shelters',
+            tier: 'OFFICIAL_BASELINE',
+            reference: true,
+            provenance: s.updated_by || 'AP SDMA Reference Baseline'
+          };
+        });
+
+        const totalCap = shelters.reduce((a, b) => a + (b.referenceCapacity || 0), 0);
+        const reporting = shelters.filter(s => s.currentOccupancy !== null);
+        const totalOcc = reporting.length > 0 ? reporting.reduce((a, b) => a + b.currentOccupancy, 0) : null;
+        const reportingCap = reporting.reduce((a, b) => a + (b.referenceCapacity || 0), 0);
+        const overallPct = (totalOcc !== null && reportingCap > 0) ? Math.round((totalOcc / reportingCap) * 100) : null;
+
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({
+          success: true,
+          source: 'State Disaster Management Authority (SDMA) Relief Shelter Network',
           sourceId: 'ap_sdma_shelters',
           tier: 'OFFICIAL_BASELINE',
-          reference: true,
-          provenance: s.updated_by || 'AP SDMA Reference Baseline'
-        };
-      });
-
-      const totalCap = shelters.reduce((a, b) => a + (b.referenceCapacity || 0), 0);
-      const reporting = shelters.filter(s => s.currentOccupancy !== null);
-      const totalOcc = reporting.length > 0 ? reporting.reduce((a, b) => a + b.currentOccupancy, 0) : null;
-      const reportingCap = reporting.reduce((a, b) => a + (b.referenceCapacity || 0), 0);
-      const overallPct = (totalOcc !== null && reportingCap > 0) ? Math.round((totalOcc / reportingCap) * 100) : null;
-
-      res.writeHead(200);
-      return res.end(JSON.stringify({
-        success: true,
-        source: 'State Disaster Management Authority (SDMA) Relief Shelter Network',
-        sourceId: 'ap_sdma_shelters',
-        tier: 'OFFICIAL_BASELINE',
-        count: shelters.length,
-        summary: {
-          totalCapacity: totalCap,
-          totalOccupancy: totalOcc,
-          sheltersReportingCount: reporting.length,
-          shelterOccupancyStatus: reporting.length === shelters.length ? 'LIVE' : (reporting.length > 0 ? 'PARTIAL' : 'UNKNOWN'),
-          totalAvailableBeds: (totalOcc !== null) ? Math.max(0, reportingCap - totalOcc) : null,
-          overallOccupancyPct: overallPct,
-          openSheltersCount: shelters.filter(s => s.operationalStatus === 'open' && !s.is_full).length
-        },
-        shelters
-      }));
+          count: shelters.length,
+          summary: {
+            totalCapacity: totalCap,
+            totalOccupancy: totalOcc,
+            sheltersReportingCount: reporting.length,
+            shelterOccupancyStatus: reporting.length === shelters.length ? 'LIVE' : (reporting.length > 0 ? 'PARTIAL' : 'UNKNOWN'),
+            totalAvailableBeds: (totalOcc !== null) ? Math.max(0, reportingCap - totalOcc) : null,
+            overallOccupancyPct: overallPct,
+            openSheltersCount: shelters.filter(s => s.operationalStatus === 'open' && !s.is_full).length
+          },
+          shelters
+        }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ success: false, error: 'Failed to query relief shelter network: ' + err.message, shelters: [] }));
+      }
     }
 
     // 13. SHELTER REAL-TIME CAPACITY UPDATE (Authority Command Side: Supports PATCH /api/shelters/:id and POST /api/shelters/:id/update)
@@ -2321,51 +2370,56 @@ const server = http.createServer(async (req, res) => {
 
     // 14. OSRM SAFE-ZONE EVACUATION ROUTING ENGINE (Task 20 Grounded)
     if (pathname === '/api/evacuation/routes' && req.method === 'GET') {
-      const qLat = parsedUrl.query.lat || parsedUrl.query.citizenLat;
-      const qLon = parsedUrl.query.lon || parsedUrl.query.lng || parsedUrl.query.citizenLon;
-      if (qLat !== undefined && qLon !== undefined && qLat !== '' && qLon !== '') {
-        const lat = parseFloat(qLat);
-        const lon = parseFloat(qLon);
-        if (isNaN(lat) || isNaN(lon) || !Number.isFinite(lat) || !Number.isFinite(lon)) {
-          res.writeHead(400);
-          return res.end(JSON.stringify({
-            error: 'Invalid coordinate parameters: lat and lon must be valid finite numbers',
-            routeStatus: 'UNAVAILABLE'
-          }));
+      try {
+        const qLat = parsedUrl.query.lat || parsedUrl.query.citizenLat;
+        const qLon = parsedUrl.query.lon || parsedUrl.query.lng || parsedUrl.query.citizenLon;
+        if (qLat !== undefined && qLon !== undefined && qLat !== '' && qLon !== '') {
+          const lat = parseFloat(qLat);
+          const lon = parseFloat(qLon);
+          if (isNaN(lat) || isNaN(lon) || !Number.isFinite(lat) || !Number.isFinite(lon)) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({
+              error: 'Invalid coordinate parameters: lat and lon must be valid finite numbers',
+              routeStatus: 'UNAVAILABLE'
+            }));
+          }
+          if (!OsrmService.isCoordInsideAP(lon, lat)) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            return res.end(JSON.stringify({
+              error: 'Specified coordinates are outside Andhra Pradesh disaster management operational boundary',
+              routeStatus: 'UNAVAILABLE'
+            }));
+          }
+          const hazard = parsedUrl.query.hazardType || 'cyclone';
+          const result = await calculateEvacuationRoutes(lat, lon, hazard);
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          return res.end(JSON.stringify(result));
         }
-        if (!OsrmService.isCoordInsideAP(lon, lat)) {
-          res.writeHead(400);
-          return res.end(JSON.stringify({
-            error: 'Specified coordinates are outside Andhra Pradesh disaster management operational boundary',
-            routeStatus: 'UNAVAILABLE'
-          }));
-        }
-        const hazard = parsedUrl.query.hazardType || 'cyclone';
-        const result = await calculateEvacuationRoutes(lat, lon, hazard);
-        res.writeHead(200);
-        return res.end(JSON.stringify(result));
-      }
 
-      // Default GET: Return canonical routing infrastructure status overview
-      const summary = OsrmService.getOsrmRoutingSummary();
-      const allShelters = getSheltersData();
-      res.writeHead(200);
-      return res.end(JSON.stringify({
-        status: 'OK',
-        routingProvider: summary.provider,
-        sourceId: summary.sourceId,
-        tier: summary.tier,
-        role: summary.role,
-        networkSummary: {
-          totalShelters: allShelters.length,
-          openShelters: allShelters.filter(s => s.status !== 'closed').length,
-          totalCachedRoutes: summary.totalRoutesCached,
-          activeLiveRoutes: summary.activeLiveEntries,
-          degradedStaleRoutes: summary.degradedStaleEntries
-        },
-        disclaimer: summary.disclaimer,
-        timestamp: new Date().toISOString()
-      }));
+        // Default GET: Return canonical routing infrastructure status overview
+        const summary = OsrmService.getOsrmRoutingSummary();
+        const allShelters = getSheltersData();
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({
+          status: 'OK',
+          routingProvider: summary.provider,
+          sourceId: summary.sourceId,
+          tier: summary.tier,
+          role: summary.role,
+          networkSummary: {
+            totalShelters: allShelters.length,
+            openShelters: allShelters.filter(s => s.status !== 'closed').length,
+            totalCachedRoutes: summary.totalRoutesCached,
+            activeLiveRoutes: summary.activeLiveEntries,
+            degradedStaleRoutes: summary.degradedStaleEntries
+          },
+          disclaimer: summary.disclaimer,
+          timestamp: new Date().toISOString()
+        }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ success: false, error: 'Failed to compute evacuation routes: ' + err.message, routeStatus: 'UNAVAILABLE' }));
+      }
     }
 
     if (pathname === '/api/evacuation/routes' && req.method === 'POST') {
@@ -2721,6 +2775,11 @@ const server = http.createServer(async (req, res) => {
         if (!state) {
           state = await AIEngine.forceCompute();
         }
+        if (pathname === '/api/ai-engine/zones') {
+          const zones = (state && (state.zones || state.allZones)) || [];
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          return res.end(JSON.stringify(zones));
+        }
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         return res.end(JSON.stringify(state));
       } catch (err) {
@@ -2903,47 +2962,53 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
 
           let providerLabel = '';
           let isFallback = false;
+          let metaInfo = null;
 
           const providerUsed = (process.env.AI_PROVIDER || '').toLowerCase();
           const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_HOST || 'https://ollama.com';
           const ollamaModel = process.env.OLLAMA_MODEL || 'deepseek-r1:cloud';
-          const aiKey = process.env.OLLAMA_API_KEY || '';
-          // 1. Local Ollama (DeepSeek-R1)
+
+          // -------------------------------------------------------------------
+          // TIER 1: Ollama Cloud / Direct LLM API Call (DeepSeek-R1 / configured model)
+          // -------------------------------------------------------------------
           if (!recommendationText && (providerUsed === 'ollama' || providerUsed === 'auto' || providerUsed === '')) {
             try {
-              console.log('[AI] Attempting provider: ollama');
+              console.log('[AI] Attempting AI provider: Ollama Cloud (AIEngine.callOllamaApi)');
               const ollamaRes = await AIEngine.callOllamaApi(ollamaBaseUrl, ollamaModel, promptContent);
               if (ollamaRes) {
                 recommendationText = ollamaRes;
                 modelUsed = ollamaModel;
-                providerLabel = 'ollama';
-                console.log('[AI] Provider response received (ollama)');
+                providerLabel = 'ollama-cloud';
+                console.log('[AI] Provider response received (Ollama Cloud)');
               }
             } catch (err) {
-              console.warn('[AI ERROR] Provider failure (ollama):', err.message);
+              console.warn('[AI WARN] Ollama Cloud call failed:', err.message);
             }
           }
 
-          // 2. Claude API
-          if (!recommendationText && (providerUsed === 'claude' || providerUsed === 'auto' || (providerUsed === '' && ANTHROPIC_API_KEY))) {
+          // Optional tertiary provider check: Claude API (if explicit or configured)
+          if (!recommendationText && (providerUsed === 'claude' || (providerUsed === 'auto' && ANTHROPIC_API_KEY))) {
             try {
-              if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY is not configured');
-              console.log('[AI] Attempting provider: claude');
-              const claudeRes = await AIEngine.callClaudeApi(ANTHROPIC_API_KEY, promptContent);
-              if (claudeRes) {
-                recommendationText = claudeRes;
-                modelUsed = 'claude-3-5-sonnet-20241022';
-                providerLabel = 'claude';
-                console.log('[AI] Provider response received (claude)');
+              if (ANTHROPIC_API_KEY) {
+                console.log('[AI] Attempting tertiary provider: claude');
+                const claudeRes = await AIEngine.callClaudeApi(ANTHROPIC_API_KEY, promptContent);
+                if (claudeRes) {
+                  recommendationText = claudeRes;
+                  modelUsed = 'claude-3-5-sonnet-20241022';
+                  providerLabel = 'claude';
+                  console.log('[AI] Provider response received (claude)');
+                }
               }
             } catch (err) {
-              console.warn('[AI ERROR] Provider failure (claude):', err.message);
+              console.warn('[AI WARN] Provider failure (claude):', err.message);
             }
           }
 
-          // 3. Deterministic Fallback
+          // -------------------------------------------------------------------
+          // TIER 3 (LAST RESORT FALLBACK): Deterministic Operational Risk Analyst Engine
+          // -------------------------------------------------------------------
           if (!recommendationText) {
-            console.log('[AI] Falling back to deterministic analyst');
+            console.log('[AI] Step 3: Falling back to deterministic operational risk analyst engine (last resort)');
             if (topHabitations.length === 0) {
               recommendationText = 'All monitored Andhra Pradesh sectors maintain baseline conditions without critical hazard escalations. Field units remain on standard civil readiness.';
             } else {
@@ -3014,6 +3079,8 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
             provider: providerLabel,
             model: modelUsed,
             recommendation: recommendationText,
+            brief: recommendationText,
+            meta: metaInfo || { model: modelUsed, provider: providerLabel },
             evidence: logEntry.inputSummary,
             structuredEvidence: structuredEvidence,
             confidence: {
@@ -3189,11 +3256,17 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
 
     // 18. WINDY CONFIGURATION & MAP FORECAST KEY SERVICE
     if (pathname === '/api/windy/config') {
+      const activeMapKey = process.env.WINDY_MAP_KEY || process.env.WINDY_API_MAP_KEY || '';
+      const activePointKey = process.env.WINDY_POINT_KEY || process.env.WINDY_DATA_KEY || process.env.WINDY_API_KEY || '';
       if (req.method === 'GET') {
-        res.writeHead(200);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({
-          key: process.env.WINDY_MAP_KEY || process.env.WINDY_API_KEY || '',
-          configured: !!(process.env.WINDY_MAP_KEY || process.env.WINDY_API_KEY)
+          key: activeMapKey,
+          mapKey: activeMapKey,
+          pointKey: activePointKey,
+          configured: !!activeMapKey,
+          pointConfigured: !!activePointKey,
+          layers: ['radar', 'wind', 'rain', 'clouds', 'temp']
         }));
       }
       if (req.method === 'POST') {
@@ -3202,16 +3275,25 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
         req.on('end', () => {
           try {
             const payload = JSON.parse(body || '{}');
-            if (payload.key) {
-              process.env.WINDY_MAP_KEY = payload.key.trim();
-              res.writeHead(200);
-              return res.end(JSON.stringify({ success: true, message: 'Windy Map Forecast key saved in runtime.' }));
+            if (payload.key || payload.mapKey) {
+              const k = (payload.key || payload.mapKey).trim();
+              process.env.WINDY_MAP_KEY = k;
+              process.env.WINDY_API_MAP_KEY = k;
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, message: 'Windy Map Forecast key saved in runtime.', key: k }));
+            } else if (payload.pointKey) {
+              const pk = payload.pointKey.trim();
+              process.env.WINDY_POINT_KEY = pk;
+              process.env.WINDY_DATA_KEY = pk;
+              process.env.WINDY_API_KEY = pk;
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ success: true, message: 'Windy Point Forecast key saved in runtime.' }));
             } else {
-              res.writeHead(400);
+              res.writeHead(400, { 'Content-Type': 'application/json' });
               return res.end(JSON.stringify({ error: 'Key parameter required' }));
             }
           } catch (e) {
-            res.writeHead(400);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: 'Invalid JSON payload' }));
           }
         });
@@ -3244,6 +3326,39 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
   }
 
   // ================= STATIC FILE SERVING =================
+  // Defense-in-depth: explicitly reject dotfiles, server source, secrets, and internal docs
+  const cleanPath = (pathname || '').toLowerCase().replace(/\\/g, '/');
+  const pathParts = cleanPath.split('/').filter(Boolean);
+  const hasDotfile = pathParts.some(part => part.startsWith('.'));
+
+  if (
+    hasDotfile ||
+    cleanPath === '/.env' ||
+    cleanPath.startsWith('/.env') ||
+    cleanPath === '/server.js' ||
+    cleanPath.startsWith('/server.js') ||
+    cleanPath === '/package.json' ||
+    cleanPath === '/package-lock.json' ||
+    cleanPath.startsWith('/node_modules') ||
+    cleanPath.startsWith('/sources') ||
+    cleanPath === '/source-registry.js' ||
+    cleanPath === '/js/ai-engine.js' ||
+    cleanPath.startsWith('/js/ai-engine.js') ||
+    cleanPath.endsWith('.md') ||
+    cleanPath.startsWith('/scratch') ||
+    cleanPath.startsWith('/scripts') ||
+    cleanPath.startsWith('/data')
+  ) {
+    res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(`
+      <div style="font-family:sans-serif; text-align:center; padding:50px; background:#070b14; color:#fff; min-height:100vh;">
+        <h1 style="color:#ef4444; font-size:48px; margin-bottom:10px;">404</h1>
+        <h2>Page Not Found</h2>
+        <p style="color:#94a3b8;">The requested resource <code style="color:#38bdf8;">${pathname}</code> was not found.</p>
+      </div>
+    `);
+  }
+
   if (pathname === '/' || pathname === '') {
     pathname = '/index.html';
   } else if (pathname === '/citizen') {
@@ -3260,9 +3375,20 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
     }
   }
 
-  // Prevent directory traversal
+  // Prevent directory traversal and ensure resolved path is strictly inside PUBLIC_DIR
   const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
-  let filePath = path.join(PUBLIC_DIR, safePath);
+  let filePath = path.resolve(PUBLIC_DIR, safePath.startsWith('/') || safePath.startsWith('\\') ? safePath.slice(1) : safePath);
+  const resolvedPublic = path.resolve(PUBLIC_DIR);
+  if (!filePath.startsWith(resolvedPublic)) {
+    res.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(`
+      <div style="font-family:sans-serif; text-align:center; padding:50px; background:#070b14; color:#fff; min-height:100vh;">
+        <h1 style="color:#ef4444; font-size:48px; margin-bottom:10px;">404</h1>
+        <h2>Page Not Found</h2>
+        <p style="color:#94a3b8;">The requested resource <code style="color:#38bdf8;">${pathname}</code> was not found.</p>
+      </div>
+    `);
+  }
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {

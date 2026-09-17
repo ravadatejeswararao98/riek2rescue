@@ -1,3 +1,4 @@
+const { safeText } = require('../js/redact.js');
 /**
  * RISK2RESCUE — CPCB REAL-TIME AIR QUALITY INGESTION (sources/cpcb-air.js)
  * Central Pollution Control Board (CPCB) MoEFCC real-time continuous ambient air quality monitoring (CAAQMS)
@@ -70,17 +71,17 @@ function fetchJson(targetUrl, headers = {}, timeoutMs = 8000) {
             try {
               resolve(JSON.parse(raw));
             } catch (e) {
-              reject(new Error('JSON parse error from ' + targetUrl));
+              reject(new Error(safeText('JSON parse error from ' + targetUrl)));
             }
           } else {
-            reject(new Error(`HTTP ${res.statusCode} from ${targetUrl}`));
+            reject(new Error(safeText(`HTTP ${res.statusCode} from ${targetUrl}`)));
           }
         });
       });
       req.on('error', reject);
       req.on('timeout', () => {
         req.destroy();
-        reject(new Error(`Request timeout after ${timeoutMs}ms`));
+        reject(new Error(safeText(`Request timeout after ${timeoutMs}ms`)));
       });
       req.end();
     } catch (e) {
@@ -163,7 +164,7 @@ function getAqiCategory(aqi) {
  */
 async function getCpcbAirQuality() {
   const apiKey = process.env.DATA_GOV_IN_API_KEY || process.env.CPCB_API_KEY;
-  const resourceId = process.env.DATA_GOV_IN_AQI_RESOURCE_ID || '3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69';
+  const resourceId = process.env.DATA_GOV_IN_AQI_RESOURCE_ID;
 
   if (!apiKey || apiKey.trim() === '') {
     return {
@@ -171,7 +172,19 @@ async function getCpcbAirQuality() {
       status: 'NOT_CONFIGURED',
       sourceId: 'cpcb_airquality',
       agency: 'Central Pollution Control Board (CPCB / MoEFCC)',
-      error: 'DATA_GOV_IN_API_KEY / CPCB_API_KEY is not configured in .env',
+      error: 'DATA_GOV_IN_API_KEY is not configured in .env',
+      stations: [],
+      summary: null
+    };
+  }
+
+  if (!resourceId || resourceId.trim() === '') {
+    return {
+      success: false,
+      status: 'UNAVAILABLE',
+      sourceId: 'cpcb_airquality',
+      agency: 'Central Pollution Control Board (CPCB / MoEFCC)',
+      error: 'DATA_GOV_IN_AQI_RESOURCE_ID is missing or not configured in .env',
       stations: [],
       summary: null
     };
@@ -326,10 +339,10 @@ async function getOpenAqAirQuality() {
   if (!apiKey || apiKey.trim() === '') {
     return {
       success: false,
-      status: 'NOT_CONFIGURED',
+      status: 'UNAVAILABLE',
       sourceId: 'openaq_aq',
       agency: 'OpenAQ Community Air Quality Platform',
-      error: 'OPENAQ_API_KEY is not configured in .env (OpenAQ v3 requires API key)',
+      error: 'OPENAQ_API_KEY is missing or not configured in .env (OpenAQ v3 requires API key)',
       stations: [],
       summary: null
     };

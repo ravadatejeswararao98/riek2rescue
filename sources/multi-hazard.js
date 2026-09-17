@@ -1,3 +1,4 @@
+const { safeText } = require('../js/redact.js');
 /**
  * RISK2RESCUE — MULTI-HAZARD OPERATIONAL CORRELATOR (sources/multi-hazard.js)
  * 

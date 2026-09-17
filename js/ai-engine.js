@@ -274,6 +274,7 @@ class AIEngine {
         ],
         zonesByHazard: this.groupZonesByHazard(dynamicZones),
         allZones: dynamicZones,
+        zones: dynamicZones,
         priorityRanking: priorityData,
         situationalBrief,
         telemetrySummary: telemetry.summary,
@@ -961,7 +962,7 @@ Provide a concise, professional 2-4 sentence operational briefing recommendation
           stream: false,
           options: {
             temperature: 0.2,
-            num_predict: 250
+            num_predict: parseInt(process.env.AI_NUM_PREDICT || '800', 10)
           }
         });
 

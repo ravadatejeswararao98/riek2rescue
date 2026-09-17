@@ -180,6 +180,86 @@
   filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.7));
 }
 
+/* Floating Windy Radar Sub-Layer Switcher Bar */
+.windy-radar-layer-bar {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 16, 30, 0.90);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 9999px;
+  padding: 4px 8px 4px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 16px rgba(56, 189, 248, 0.25);
+  user-select: none;
+}
+
+.wrlb-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: #38bdf8;
+  margin-right: 4px;
+}
+
+.wrlb-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: wrlbPulse 1.8s infinite;
+}
+
+@keyframes wrlbPulse {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 12px #22c55e; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+.wrlb-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.windy-layer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 4px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.windy-layer-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.windy-layer-btn.active {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.65), rgba(56, 189, 248, 0.35));
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
 .dock-badge {
   position: absolute;
   top: 4px;
@@ -922,6 +1002,16 @@
   width: 100%;
   height: 100%;
   z-index: 1;
+}
+
+.authority-windy-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  z-index: 2;
+  background: #0b1120;
 }
 
 /* ---- Floating Glassmorphic Topbar (Row of Independent Floating Pills) ---- */

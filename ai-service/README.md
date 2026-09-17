@@ -5,6 +5,9 @@ This directory contains the foundational Python FastAPI service for Risk2Rescue 
 ## Purpose
 The `ai-service` provides a dedicated backend for processing AI and machine learning workloads, entirely decoupled from the core Node.js application. Future tasks will integrate heavy AI models (e.g., TerraTorch, DeepSeek) here.
 
+## Prerequisites
+- **Python 3.12+**: Must be installed separately on your system (download from [python.org](https://www.python.org/downloads/)).
+
 ## Setup Instructions
 
 1. **Navigate to the directory**:
