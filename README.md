@@ -194,6 +194,6 @@ The built-in `server.js` provides useful mock telemetry and data endpoints:
 ---
 
 ## 🛡️ Credits & License
-- **Author**: Teja
+- **Author**: TEAM SPARK
 - **License**: MIT
 - **Data Standards Grounding**: Fused with concepts from NDRF, IMD, CWC, GSI, and INCOIS.
