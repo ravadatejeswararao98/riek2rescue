@@ -167,9 +167,9 @@ npm start
 ```
 
 Open your browser and navigate to:
-- **Gateway**: [http://localhost:3000](http://localhost:3000)
-- **Citizen Portal**: [http://localhost:3000/citizen](http://localhost:3000/citizen)
-- **Authority Command Center**: [http://localhost:3000/authority](http://localhost:3000/authority)
+- **Gateway**: [http://riek2rescue.onrender.com](http://riek2rescue.onrender.com)
+- **Citizen Portal**: [http://riek2rescue.onrender.com/citizen.html](http://riek2rescue.onrender.com/citizen.html)
+- **Authority Command Center**: [http://riek2rescue.onrender.com/authority.html](http://riek2rescue.onrender.com/authority.html)
 
 ### Option 2: Direct Browser Launch (Static Mode)
 Double-click `index.html`, `citizen.html`, or `authority.html` directly in your file manager. The entire frontend works with zero server requirements.
