@@ -354,10 +354,52 @@ class DisasterMap {
       // Removed strict isInsideAndhraPradesh filter here because hazard epicenters 
       // (like earthquakes or cyclones) can originate offshore or in neighboring states 
       // but their radius still impacts Andhra Pradesh.
-      const baseRadius = zone.baseRadius || zone.radius;
-      const hazardType = zone.hazardType || (zone.name.toLowerCase().includes('cyclone') ? 'cyclone' : zone.name.toLowerCase().includes('flood') ? 'flood' : zone.name.toLowerCase().includes('landslide') ? 'landslide' : zone.name.toLowerCase().includes('earthquake') ? 'earthquake' : 'cyclone');
+      const baseRadius = zone.baseRadius || zone.radius || 16000;
+      const hazardType = zone.hazardType || (zone.name.toLowerCase().includes('cyclone') ? 'cyclone' : zone.name.toLowerCase().includes('flood') ? 'flood' : zone.name.toLowerCase().includes('landslide') ? 'landslide' : zone.name.toLowerCase().includes('fire') ? 'fire' : zone.name.toLowerCase().includes('earthquake') ? 'earthquake' : 'cyclone');
 
-      if (zone.epicenter || zone.baseRadius) {
+      const hasExactPolygon = Boolean(
+        (zone.geometry && Array.isArray(zone.geometry.coordinates) && zone.geometry.coordinates[0]) ||
+        Array.isArray(zone.polygon) ||
+        Array.isArray(zone.coordinates)
+      );
+
+      if (hasExactPolygon) {
+        // Direct rendering for verified live telemetry / satellite polygons
+        const rawCoords = (zone.geometry && zone.geometry.coordinates[0]) || zone.polygon || zone.coordinates;
+        const colors = RISK_COLORS[zone.level] || RISK_COLORS.RED;
+        const geojsonFeature = {
+          type: "Feature",
+          properties: {
+            name: zone.name,
+            level: zone.level,
+            pop: zone.pop || 0,
+            desc: zone.desc || 'Live sensor hazard boundary',
+            source: zone.source
+          },
+          geometry: {
+            type: "Polygon",
+            coordinates: [rawCoords]
+          }
+        };
+
+        const polygonLayer = L.geoJSON(geojsonFeature, {
+          style: () => ({
+            fillColor: colors.fill,
+            fillOpacity: zone.level === 'RED' ? 0.35 : 0.28,
+            color: colors.stroke,
+            weight: zone.level === 'RED' ? 2.5 : 1.8,
+            opacity: colors.strokeOpacity || 0.85,
+            className: `hazard-polygon level-${(zone.level || 'red').toLowerCase()}`
+          })
+        }).addTo(this.map);
+
+        polygonLayer.bindPopup(this.createRiskPopup(zone), { className: 'custom-popup' });
+        polygonLayer.bindTooltip(zone.name, { permanent: false, sticky: true, className: 'zone-tooltip' });
+        this.riskZoneCircles.push({ zone, circle: polygonLayer, rings: [polygonLayer], label: null });
+        if (!this.hazardPolygons) this.hazardPolygons = [];
+        this.hazardPolygons.push({ polygon: geojsonFeature, level: zone.level, hazardType, layer: polygonLayer });
+
+      } else if (zone.epicenter || zone.baseRadius) {
         // Multi-ring concentric hazard epicenter rendering
         const rings = [];
         let primaryCircle = null;

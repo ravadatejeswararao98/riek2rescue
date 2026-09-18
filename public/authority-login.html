@@ -812,11 +812,8 @@
 
   </div>
 
-  <!-- Firebase Live Database & Auth SDKs (Part C) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="js/firebase-config.js"></script>
+  <!-- Unified Risk2Rescue Shared Auth & Real-Time Sync Client -->
+  <script src="js/shared-client.js"></script>
 
   <!-- Reusable Location Service for AP Districts Dropdown -->
   <script src="js/location-service.js"></script>
@@ -1001,6 +998,19 @@
       btnText.textContent = 'Verifying clearance credentials...';
 
       try {
+        if (window.rziClient && typeof window.rziClient.login === 'function') {
+          try {
+            await window.rziClient.login(identifier, password);
+            btnText.textContent = 'Clearance verified ➔';
+            setTimeout(() => {
+              window.location.href = 'authority.html';
+            }, 350);
+            return;
+          } catch (loginErr) {
+            console.warn('API login notice (checking local accounts fallback):', loginErr.message);
+          }
+        }
+
         const inputHash = await hashPasscode(password);
         const accounts = await getStoredAuthorityAccounts();
         const idLower = identifier.toLowerCase();
@@ -1188,7 +1198,39 @@
         console.warn('Local account store error:', storeErr);
       }
 
-      // 1. Firebase Auth createUserWithEmailAndPassword + Firestore "officers" collection if available
+      // 1. Shared PostgreSQL / REST API Registration
+      if (window.rziClient && typeof window.rziClient.register === 'function') {
+        try {
+          await window.rziClient.register({
+            name: officerData.name,
+            email: officerData.email,
+            phone: officerData.phone,
+            officerId: officerData.officerId,
+            department: officerData.department,
+            district: officerData.district,
+            password: pwInput.value
+          });
+
+          sessionStorage.setItem('rzi_authority_officer', JSON.stringify(officerData));
+          document.cookie = "rzi_auth=true; path=/";
+          btnText.textContent = 'Account created ➔ Redirecting...';
+          setTimeout(() => {
+            window.location.href = 'authority.html';
+          }, 400);
+          return;
+        } catch (regErr) {
+          console.warn('API register notice (using fallback):', regErr.message);
+          if (regErr.message && regErr.message.includes('already registered')) {
+            setError(emailInput, emailErr, 'This official email or Officer ID is already registered. Please sign in instead.');
+            submitBtn.disabled = false;
+            spinner.style.display = 'none';
+            btnText.textContent = 'Create Account & Continue ➔';
+            return;
+          }
+        }
+      }
+
+      // 2. Legacy / Fallback Auth
       if (auth) {
         try {
           const userCredential = await auth.createUserWithEmailAndPassword(emailInput.value.trim(), pwInput.value);

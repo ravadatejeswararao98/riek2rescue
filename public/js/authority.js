@@ -4,7 +4,7 @@
 
 let authMapInstance = null;
 let riskChart = null;
-window.currentPriorityData = null;
+window.currentPriorityData = window.currentPriorityData || null;
 
 // Built-in Toast Notification for Authority Dashboard
 function showToast(msg, type = 'info') {
@@ -89,6 +89,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   updateAIExplanation('map-view');
   updateAiConfidenceBadge('Active');
   loadCWCRiverGauges(); // CWC Real-Time River Water Level Gauges (Requirement E)
+  initAuthorityWebSocket(); // Real-time push updates over WebSocket
 
   // Populate Population at Risk summary cards (Red/Orange/Yellow totals)
   // by summing across all disaster sub-zone rows on page load.
@@ -684,10 +685,13 @@ function switchView(viewKey) {
       }
     }
 
-    // Aggregate population totals from DOM sub-zone tables when entering population-risk view
+    // Aggregate population totals and active zones when entering population-risk view
     if (viewKey === 'population-risk') {
-      if (typeof aggregatePopulationFromDOM === 'function') {
-        aggregatePopulationFromDOM();
+      if (typeof updatePopulationRiskGrid === 'function') {
+        updatePopulationRiskGrid(window.currentPriorityData);
+      }
+      if (typeof syncDockBadges === 'function') {
+        syncDockBadges();
       }
     }
 
@@ -701,6 +705,28 @@ function switchView(viewKey) {
     if (viewKey === 'zone-manager') {
       if (typeof renderZoneManager === 'function') {
         renderZoneManager();
+      }
+      if (typeof syncDockBadges === 'function') {
+        syncDockBadges();
+      }
+    }
+
+    if (viewKey === 'habitations') {
+      if (typeof renderPriorityQueue === 'function') {
+        renderPriorityQueue();
+      }
+      if (typeof syncDockBadges === 'function') {
+        syncDockBadges();
+      }
+    }
+
+    // Refresh and align operational assessment when entering command center
+    if (viewKey === 'command') {
+      if (typeof fetchDashboardState === 'function') {
+        fetchDashboardState();
+      }
+      if (typeof updateAIExplanation === 'function') {
+        updateAIExplanation('command');
       }
     }
 
@@ -752,7 +778,7 @@ function renderZoneManager() {
   tbody.innerHTML = '';
   
   if (!window.APP_DATA || !window.APP_DATA.riskZones || window.APP_DATA.riskZones.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No active risk zones.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-secondary);">No active risk zones reported. All operational sectors currently in safe baseline.</td></tr>';
     return;
   }
   
@@ -763,21 +789,33 @@ function renderZoneManager() {
     tr.onmouseout = () => tr.style.background = 'transparent';
     
     // Risk level badge mapping
-    const riskLower = (zone.level || 'green').toLowerCase();
+    const riskLower = (zone.level || zone.current_tier || 'green').toLowerCase();
     const riskBadgeClass = `risk-${riskLower}`;
+
+    // Source attribution badge
+    const src = zone.source || (zone.id && zone.id.startsWith('LIVE_') ? 'LIVE_SENSOR' : (zone.id && zone.id.startsWith('AI_') ? 'AI_DYNAMIC' : 'AUTHORITY_OVERRIDE'));
+    let srcBadge = '<span style="background:rgba(59,130,246,0.15); color:#60a5fa; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;">Authority</span>';
+    if (src === 'LIVE_SENSOR') {
+      srcBadge = '<span style="background:rgba(239,68,68,0.15); color:#f87171; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;">Live Sensor</span>';
+    } else if (src === 'AI_DYNAMIC') {
+      srcBadge = '<span style="background:rgba(168,85,247,0.15); color:#c084fc; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;">AI Engine</span>';
+    }
     
     // Beautiful row styling with padding and modern typography
     tr.innerHTML = `
-      <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-secondary);">${zone.id || 'N/A'}</td>
+      <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-secondary);">
+        ${zone.id || 'N/A'}
+        ${srcBadge}
+      </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);">
         <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">${zone.name || 'Unnamed Zone'}</div>
-        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">${zone.desc || 'No description available'}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">${zone.desc || 'Live hazard perimeter'}</div>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);">
-        <span class="risk-badge ${riskBadgeClass}" style="padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display: inline-block;">${zone.level || 'GREEN'}</span>
+        <span class="risk-badge ${riskBadgeClass}" style="padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display: inline-block;">${zone.level || zone.current_tier || 'GREEN'}</span>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; font-size: 0.9rem;">
-        ${(zone.pop || 0).toLocaleString()} <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 4px;">PPL</span>
+        ${(zone.pop || zone.affectedPopulation || 0).toLocaleString()} <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 4px;">PPL</span>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-secondary);">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -786,10 +824,14 @@ function renderZoneManager() {
         </div>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: center;">
-        <button class="btn" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); padding: 8px 16px; font-size: 0.8rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" onmouseover="this.style.background='rgba(239,68,68,0.2)'; this.style.transform='translateY(-1px)';" onmouseout="this.style.background='rgba(239,68,68,0.1)'; this.style.transform='none';" onclick="removeZone('${zone.id}')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-          Revoke
-        </button>
+        <div style="display: inline-flex; gap: 8px;">
+          <button class="btn" style="background: rgba(56,189,248,0.12); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); padding: 6px 12px; font-size: 0.75rem; font-weight: 600; border-radius: 6px; cursor: pointer;" onclick="locateZoneOnMap(${zone.lat}, ${zone.lng})" title="Focus on map">
+            Locate
+          </button>
+          <button class="btn" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); padding: 6px 12px; font-size: 0.75rem; font-weight: 600; border-radius: 6px; cursor: pointer;" onclick="removeZone('${zone.id}')" title="Revoke or suppress zone">
+            Revoke
+          </button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
@@ -797,15 +839,44 @@ function renderZoneManager() {
 }
 window.renderZoneManager = renderZoneManager;
 
-function removeZone(zoneId) {
+function locateZoneOnMap(lat, lng) {
+  if (typeof switchView === 'function') switchView('map-view');
+  if (window.authMapInstance && typeof window.authMapInstance.flyToLocation === 'function') {
+    window.authMapInstance.flyToLocation(lat, lng, 12);
+  } else if (window.authMapInstance && window.authMapInstance.getMap()) {
+    window.authMapInstance.getMap().setView([lat, lng], 12);
+  }
+}
+window.locateZoneOnMap = locateZoneOnMap;
+
+async function removeZone(zoneId) {
   if (!window.APP_DATA || !window.APP_DATA.riskZones) return;
   const initialLength = window.APP_DATA.riskZones.length;
   window.APP_DATA.riskZones = window.APP_DATA.riskZones.filter(z => z.id !== zoneId);
   
+  // Persist revocation/suppression to backend
+  try {
+    const token = (typeof window.authClient !== 'undefined' && window.authClient.token) ? window.authClient.token : localStorage.getItem('rzi_auth_token');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    await fetch(`/api/gis/zones/${encodeURIComponent(zoneId)}`, {
+      method: 'DELETE',
+      headers
+    }).catch(() => null);
+  } catch (e) {
+    console.warn('[Authority] Failed to sync zone deletion to server:', e);
+  }
+
   if (window.APP_DATA.riskZones.length < initialLength) {
     // 1. Re-render Authority UI
     if (typeof renderZoneManager === 'function') {
       renderZoneManager();
+    }
+    if (typeof updatePopulationRiskGrid === 'function') {
+      updatePopulationRiskGrid(window.currentPriorityData);
+    }
+    if (typeof syncDockBadges === 'function') {
+      syncDockBadges();
     }
     // 2. Redraw map
     if (window.authMapInstance && typeof window.authMapInstance.drawRiskZones === 'function') {
@@ -815,103 +886,128 @@ function removeZone(zoneId) {
     if (window.firebaseLive && typeof window.firebaseLive.broadcastZoneRemoval === 'function') {
       window.firebaseLive.broadcastZoneRemoval(zoneId);
     }
-    showToast(`Zone ${zoneId} removed successfully.`, "success");
+    showToast(`Zone ${zoneId} revoked and suppressed.`, "success");
   }
 }
 window.removeZone = removeZone;
 
-const MONITORED_HAZARDS = [
-  {
-    key: 'cyclone',
-    name: 'Cyclone Landfall',
-    icon: '<i class="fi fi-rr-tornado" aria-hidden="true"></i>',
-    iconClass: 'fi-rr-tornado',
-    tier: 'CRITICAL',
-    badge: 'badge-critical',
-    status: 'Active',
-    summary: 'Severe cyclonic storm system approaching coastal corridors with sustained wind speeds of 115 km/h.',
-    lat: 16.9891,
-    lng: 82.2475,
-    zoom: 11,
-    zonesCount: 12,
-    population: '34,500'
-  },
-  {
-    key: 'flood',
-    name: 'Flash Flood Inundation',
-    icon: '<i class="fi fi-rr-water" aria-hidden="true"></i>',
-    iconClass: 'fi-rr-water',
-    tier: 'HIGH ALERT',
-    badge: 'badge-high',
-    status: 'Monitoring',
-    summary: 'Riverine overflow and storm-surge induced waterlogging across low-lying coastal floodplains.',
-    lat: 16.7000,
-    lng: 82.0000,
-    zoom: 11,
-    zonesCount: 8,
-    population: '21,800'
-  },
-  {
-    key: 'landslide',
-    name: 'Severe Slope Landslide',
-    icon: '<i class="fi fi-rr-mountains" aria-hidden="true"></i>',
-    iconClass: 'fi-rr-mountains',
-    tier: 'MODERATE',
-    badge: 'badge-moderate',
-    status: 'Monitoring',
-    summary: 'High soil saturation and slope instability along Eastern Ghats hill roads and cut slopes.',
-    lat: 17.8500,
-    lng: 83.0000,
-    zoom: 11,
-    zonesCount: 4,
-    population: '8,200'
-  },
-  {
-    key: 'earthquake',
-    name: 'Seismic Activity',
-    icon: '<i class="fi fi-rr-waveform-path" aria-hidden="true"></i>',
-    iconClass: 'fi-rr-waveform-path',
-    tier: 'LOW RISK',
-    badge: 'badge-low',
-    status: 'Normal',
-    summary: 'Regional seismic telemetry stations reporting normal tectonic background levels.',
-    lat: 17.0000,
-    lng: 81.8000,
-    zoom: 9,
-    zonesCount: 1,
-    population: '0'
-  },
-  {
-    key: 'tsunami',
-    name: 'Tsunami Early Warning',
-    icon: '<i class="fi fi-rr-wave" aria-hidden="true"></i>',
-    iconClass: 'fi-rr-wave',
-    tier: 'MODERATE',
-    badge: 'badge-moderate',
-    status: 'Monitoring',
-    summary: 'Deep-ocean DART buoys and coastal tide gauges actively monitored for seismic surge waves.',
-    lat: 16.5000,
-    lng: 82.3000,
-    zoom: 10,
-    zonesCount: 3,
-    population: '14,000'
-  },
-  {
-    key: 'cloudburst',
-    name: 'Extreme Weather Squall',
-    icon: '<i class="fi fi-rr-thunderstorm" aria-hidden="true"></i>',
-    iconClass: 'fi-rr-thunderstorm',
-    tier: 'HIGH ALERT',
-    badge: 'badge-high',
-    status: 'Active',
-    summary: 'Localized convective cloudburst and intense microburst precipitation detected by Doppler radar.',
-    lat: 17.2000,
-    lng: 82.1500,
-    zoom: 11,
-    zonesCount: 6,
-    population: '18,500'
-  }
-];
+// Dynamic Monitored Hazards derived strictly from canonical live state (Issue 1 & 5)
+let dynamicMonitoredHazards = [];
+window.dynamicMonitoredHazards = dynamicMonitoredHazards;
+
+function getHazardIcon(type) {
+  const t = (type || '').toLowerCase();
+  if (t.includes('cyclone') || t.includes('wind')) return '<i class="fi fi-rr-tornado" aria-hidden="true"></i>';
+  if (t.includes('flood') || t.includes('river') || t.includes('inundation')) return '<i class="fi fi-rr-water" aria-hidden="true"></i>';
+  if (t.includes('fire') || t.includes('thermal')) return '<i class="fi fi-rr-flame" aria-hidden="true"></i>';
+  if (t.includes('quake') || t.includes('seismic') || t.includes('earthquake')) return '<i class="fi fi-rr-waveform-path" aria-hidden="true"></i>';
+  if (t.includes('air') || t.includes('aqi') || t.includes('pollution')) return '<i class="fi fi-rr-cloud" aria-hidden="true"></i>';
+  if (t.includes('landslide')) return '<i class="fi fi-rr-mountains" aria-hidden="true"></i>';
+  return '<i class="fi fi-rr-triangle-warning" aria-hidden="true"></i>';
+}
+
+function updateHazardBadgeCount(count) {
+  const badgeEls = document.querySelectorAll('.hazard-badge-count, #hazard-badge-count');
+  badgeEls.forEach(el => {
+    el.textContent = count;
+    el.style.display = 'inline-block';
+    if (count > 0) {
+      el.style.background = '#ef4444';
+      el.style.color = '#ffffff';
+    } else {
+      el.style.background = 'rgba(255,255,255,0.15)';
+      el.style.color = 'var(--text-muted, #94a3b8)';
+    }
+  });
+
+  const regBadges = document.querySelectorAll('#hazard-registry-badge, .hazard-registry-badge');
+  regBadges.forEach(el => {
+    el.textContent = `${count} Active Hazard${count === 1 ? '' : 's'}`;
+    el.className = `risk-badge ${count > 0 ? 'risk-red' : 'risk-green'}`;
+  });
+}
+window.updateHazardBadgeCount = updateHazardBadgeCount;
+
+function syncMonitoredHazardsFromLiveIntel(aiState, liveZones = null) {
+  const zones = Array.isArray(liveZones) ? liveZones : (window.APP_DATA && Array.isArray(window.APP_DATA.riskZones) ? window.APP_DATA.riskZones : []);
+  const alerts = (window.APP_DATA && Array.isArray(window.APP_DATA.alerts)) ? window.APP_DATA.alerts : [];
+  
+  const hazardsMap = new Map();
+
+  // 1. Ingest from live risk zones
+  zones.forEach(z => {
+    const key = z.id || `${z.hazardType || 'hazard'}_${z.lat}_${z.lng}`;
+    const level = (z.level || z.current_tier || 'GREEN').toUpperCase();
+    const isActive = level === 'RED' || level === 'CRITICAL';
+    const isMonitoring = level === 'ORANGE' || level === 'YELLOW' || level === 'HIGH' || level === 'MODERATE';
+    const status = isActive ? 'Active' : (isMonitoring ? 'Monitoring' : 'Normal');
+    const tier = isActive ? 'CRITICAL' : (level === 'ORANGE' ? 'HIGH ALERT' : (level === 'YELLOW' ? 'MODERATE' : 'LOW RISK'));
+    const badge = isActive ? 'badge-critical' : (level === 'ORANGE' ? 'badge-high' : (level === 'YELLOW' ? 'badge-moderate' : 'badge-low'));
+    const pop = Number(z.pop || z.affectedPopulation || 0);
+
+    hazardsMap.set(key, {
+      key,
+      id: z.id,
+      name: z.name || 'Live Hazard Corridor',
+      type: z.hazardType || 'hazard',
+      icon: getHazardIcon(z.hazardType),
+      tier,
+      badge,
+      status,
+      summary: z.desc || 'Live hazard perimeter actively monitored by sensor telemetry.',
+      lat: Number(z.lat || 16.5),
+      lng: Number(z.lng || 80.6),
+      zoom: 12,
+      zonesCount: 1,
+      population: pop > 0 ? pop.toLocaleString() : '0',
+      popNum: pop,
+      source: z.source || 'LIVE_SENSOR'
+    });
+  });
+
+  // 2. Ingest from official CAP alerts
+  alerts.forEach((a, idx) => {
+    const key = a.id || `ALERT_${idx}`;
+    if (!hazardsMap.has(key)) {
+      const sev = (a.severity || 'Moderate').toUpperCase();
+      const isActive = sev === 'CRITICAL' || sev === 'EXTREME' || sev === 'SEVERE';
+      const status = isActive ? 'Active' : 'Monitoring';
+      const tier = isActive ? 'CRITICAL' : 'HIGH ALERT';
+      const badge = isActive ? 'badge-critical' : 'badge-high';
+      const lat = Number(a.lat) || 16.5;
+      const lng = Number(a.lng) || 80.6;
+
+      hazardsMap.set(key, {
+        key,
+        id: a.id,
+        name: a.title || a.headline || 'Official Hazard Warning',
+        type: a.type || a.event || 'hazard',
+        icon: getHazardIcon(a.type || a.event),
+        tier,
+        badge,
+        status,
+        summary: a.description || a.areaDesc || 'Official CAP meteorological advisory.',
+        lat,
+        lng,
+        zoom: 12,
+        zonesCount: 1,
+        population: '0',
+        popNum: 0,
+        source: 'OFFICIAL_CAP'
+      });
+    }
+  });
+
+  dynamicMonitoredHazards = Array.from(hazardsMap.values());
+  window.dynamicMonitoredHazards = dynamicMonitoredHazards;
+
+  // Update badge count across all shells
+  const activeCount = dynamicMonitoredHazards.filter(h => h.status === 'Active' || h.status === 'Monitoring').length;
+  updateHazardBadgeCount(activeCount);
+
+  renderHazardDropdownList();
+}
+window.syncMonitoredHazardsFromLiveIntel = syncMonitoredHazardsFromLiveIntel;
 
 window.currentHazardStatusFilter = 'ALL';
 window.currentSelectedHazard = null;
@@ -922,11 +1018,14 @@ function renderHazardDropdownList(filterStatus = window.currentHazardStatusFilte
   if (!listContainer) return;
 
   const filtered = (filterStatus === 'ALL')
-    ? MONITORED_HAZARDS
-    : MONITORED_HAZARDS.filter(h => (h.status || '').toLowerCase() === filterStatus.toLowerCase());
+    ? dynamicMonitoredHazards
+    : dynamicMonitoredHazards.filter(h => (h.status || '').toLowerCase() === filterStatus.toLowerCase());
 
   if (filtered.length === 0) {
-    listContainer.innerHTML = `<div style="padding:14px; text-align:center; color:#94a3b8; font-size:11px;">No monitored threats currently marked as ${filterStatus}.</div>`;
+    const msg = dynamicMonitoredHazards.length === 0
+      ? '🛡️ No active monitored hazard threats currently detected inside Andhra Pradesh.'
+      : `No monitored threats currently marked as ${filterStatus}.`;
+    listContainer.innerHTML = `<div style="padding:16px 14px; text-align:center; color:#94a3b8; font-size:11px; line-height:1.5;">${msg}</div>`;
     return;
   }
 
@@ -939,12 +1038,12 @@ function renderHazardDropdownList(filterStatus = window.currentHazardStatusFilte
         <div class="mhd-item-left">
           <span class="mhd-item-icon">${h.icon}</span>
           <div>
-            <div class="mhd-item-name">${h.name}</div>
-            <div class="mhd-item-sub">${h.tier} &bull; ${h.population} at risk</div>
+            <div class="mhd-item-name">${escapeHtml(h.name)}</div>
+            <div class="mhd-item-sub">${escapeHtml(h.tier)} &bull; ${h.population} at risk</div>
           </div>
         </div>
         <span style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:6px; background:${statusBg}; color:${statusColor}; border:1px solid ${statusColor}40;">
-          ${h.status}
+          ${escapeHtml(h.status)}
         </span>
       </div>
     `;
@@ -1112,7 +1211,8 @@ function selectHazardFromDropdown(hazardKey) {
     btn.classList.remove('active');
   }
 
-  const hazard = MONITORED_HAZARDS.find(h => h.key === hazardKey) || MONITORED_HAZARDS[0];
+  const hazard = dynamicMonitoredHazards.find(h => h.key === hazardKey || h.id === hazardKey) || dynamicMonitoredHazards[0];
+  if (!hazard) return;
 
   // Set active hazard context (Issue 2)
   window.currentSelectedHazard = hazard.key;
@@ -2678,12 +2778,11 @@ function locateHazardById(hazardId, event) {
   if (window.APP_DATA && Array.isArray(window.APP_DATA.activeHazards)) {
     hazard = window.APP_DATA.activeHazards.find(h => h.id === hazardId);
   }
-  if (!hazard && typeof MONITORED_HAZARDS !== 'undefined') {
-    const idMap = { 'HAZ001': 'cyclone', 'HAZ002': 'flood', 'HAZ003': 'landslide', 'HAZ004': 'earthquake', 'HAZ005': 'squall' };
-    const key = idMap[hazardId];
-    if (key) {
-      hazard = MONITORED_HAZARDS.find(h => h.key === key);
-    }
+  if (!hazard && typeof dynamicMonitoredHazards !== 'undefined') {
+    hazard = dynamicMonitoredHazards.find(h => h.id === hazardId || h.key === hazardId);
+  }
+  if (!hazard && window.APP_DATA && Array.isArray(window.APP_DATA.riskZones)) {
+    hazard = window.APP_DATA.riskZones.find(z => z.id === hazardId);
   }
 
   if (hazard) {
@@ -2925,10 +3024,11 @@ async function initCommandCenter() {
     }
   }
 
-  // Fetch real-time telemetry and canonical dashboard state from live backend APIs
+  // Fetch real-time telemetry, canonical dashboard state, and priority rankings on 15s cadence
   fetchLiveTelemetry();
   fetchDashboardState();
   setInterval(fetchDashboardState, 15000);
+  setInterval(loadPriorityRanking, 15000);
 }
 
 function escapeHtml(str) {
@@ -3016,7 +3116,7 @@ async function fetchLiveTelemetry() {
     const gustSource = document.getElementById('kpi-gust-source');
     if (gustVal) {
       if (data.radar && data.radar.maxGustSpeedKmH !== null && data.radar.maxGustSpeedKmH !== undefined) {
-        if (window.Provenance) {
+        if (window.Provenance && typeof window.Provenance.renderBadge === 'function') {
           gustVal.innerHTML = `${data.radar.maxGustSpeedKmH} <span style="font-size:0.6em;color:var(--text-muted)">km/h</span> ${window.Provenance.renderBadge('open_meteo_weather')}`;
         } else {
           gustVal.textContent = `${data.radar.maxGustSpeedKmH} km/h`;
@@ -3040,7 +3140,7 @@ async function fetchLiveTelemetry() {
     if (seisMag) {
       if (data.seismic && data.seismic.status !== 'UNAVAILABLE' && data.seismic.maxRecordedMagnitude !== undefined && data.seismic.maxRecordedMagnitude !== null) {
         const magVal = data.seismic.maxRecordedMagnitude > 0 ? `M ${data.seismic.maxRecordedMagnitude.toFixed(1)}` : 'M 0.0 (Quiet)';
-        if (window.Provenance) {
+        if (window.Provenance && typeof window.Provenance.renderBadge === 'function') {
           seisMag.innerHTML = `${magVal} ${window.Provenance.renderBadge('usgs_earthquakes')}`;
         } else {
           seisMag.textContent = magVal;
@@ -3067,12 +3167,13 @@ function updateCommandCenterKPIs(state) {
   const kpis = state.kpis || {};
 
   // 1. Active Monitored Hazards / Alerts
+  const rawHaz = kpis.activeHazards?.value ?? kpis.activeAlerts?.value ?? (Array.isArray(state.alerts) ? state.alerts.length : 0);
+  const count = Number(rawHaz) || 0;
+
   const hazVal = document.getElementById('kpi-active-hazards');
   const hazCard = hazVal ? hazVal.closest('.kpi-card') : null;
   const hazTrend = hazCard ? hazCard.querySelector('.kpi-trend') : null;
   if (hazVal) {
-    const rawHaz = kpis.activeHazards?.value ?? kpis.activeAlerts?.value ?? (Array.isArray(state.alerts) ? state.alerts.length : 0);
-    const count = Number(rawHaz) || 0;
     hazVal.textContent = count;
     if (hazTrend) {
       if (count > 0) {
@@ -3084,6 +3185,10 @@ function updateCommandCenterKPIs(state) {
       }
     }
   }
+
+  // Synchronize Map "Hazards N" badge and monitored hazards dropdown (Issue 1 & 5)
+  updateHazardBadgeCount(count);
+  syncMonitoredHazardsFromLiveIntel(null, state.riskZones || (window.APP_DATA && window.APP_DATA.riskZones));
 
   // 2. High-Risk Habitations
   const habVal = document.getElementById('kpi-high-risk-habs');
@@ -3192,13 +3297,37 @@ async function fetchDashboardState() {
     const res = await fetch('/api/dashboard/state');
     if (res.ok) {
       const data = await res.json();
+      if (Array.isArray(data.riskZones) && window.APP_DATA) {
+        window.APP_DATA.riskZones = data.riskZones;
+      }
       updateCommandCenterKPIs(data);
       if (Array.isArray(data.alerts)) {
         renderCommandAlertFeed(data.alerts);
       }
+      const syncTimeEl = document.getElementById('command-live-sync-time');
+      if (syncTimeEl) {
+        const now = new Date();
+        syncTimeEl.textContent = `Synced: ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} IST`;
+      }
+      if (typeof updatePopulationRiskGrid === 'function') {
+        updatePopulationRiskGrid(window.currentPriorityData);
+      }
+      if (typeof renderZoneManager === 'function') {
+        renderZoneManager();
+      }
+      if (typeof syncDockBadges === 'function') {
+        syncDockBadges();
+      }
     }
   } catch (err) {
     console.warn('[Authority] Failed to fetch dashboard state:', err);
+  }
+
+  // Keep live telemetry (Doppler radar gust and USGS seismic trends) synchronized on exact same 15s cadence (Issue 6)
+  try {
+    await fetchLiveTelemetry();
+  } catch (err) {
+    console.warn('[Authority] Failed to sync live telemetry:', err);
   }
 }
 window.fetchDashboardState = fetchDashboardState;
@@ -3750,71 +3879,269 @@ async function loadPriorityRanking(forceRefresh = false) {
   }
 }
 
-/**
- * aggregatePopulationFromDOM
- * -----------------------------------------------------------------------
- * Reads every sub-zone row from ALL hazard group tables inside
- * `.hazard-pop-group-card` elements, inspects the tier badge in each row
- * (RED / ORANGE / YELLOW), and reads the population from the <strong>
- * cell in column 4.  Totals are summed across all disasters so the
- * summary cards at the top always reflect exactly the data shown below.
- */
-function aggregatePopulationFromDOM() {
-  let redPop = 0, orangePop = 0, yellowPop = 0;
+function renderDynamicPopulationGroups(prioData) {
+  const container = document.getElementById('dynamic-hazard-pop-groups');
+  if (!container) return;
 
-  const groupCards = document.querySelectorAll('.hazard-pop-group-card');
-  if (groupCards && groupCards.length > 0) {
-    groupCards.forEach(card => {
-      const rows = card.querySelectorAll('tbody tr');
-      rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length < 4) return;
+  const zones = (window.APP_DATA && Array.isArray(window.APP_DATA.riskZones)) ? window.APP_DATA.riskZones : [];
+  const habs = (prioData && Array.isArray(prioData.habitations)) ? prioData.habitations : [];
 
-        const badgeEl = cells[1].querySelector('.risk-badge') || cells[1];
-        const tier = (badgeEl ? badgeEl.textContent : '').trim().toUpperCase();
-
-        const popEl = cells[3].querySelector('strong') || cells[3];
-        const rawText = popEl ? popEl.textContent : '';
-        const pop = parseInt(rawText.replace(/[^0-9]/g, ''), 10) || 0;
-
-        if (tier.includes('RED') || tier.includes('CRITICAL')) {
-          redPop += pop;
-        } else if (tier.includes('ORANGE') || tier.includes('HIGH')) {
-          orangePop += pop;
-        } else if (tier.includes('YELLOW') || tier.includes('MODERATE')) {
-          yellowPop += pop;
-        }
-      });
-    });
+  if (zones.length === 0 && !habs.some(h => (h.priorityLevel === 'CRITICAL' || h.priorityLevel === 'HIGH') && h.hazardType)) {
+    container.innerHTML = `
+      <div class="section-card" style="padding:28px; text-align:center; color:var(--text-secondary);">
+        <span style="font-size:24px; display:block; margin-bottom:8px;">🛡️</span>
+        <div style="font-weight:600; color:var(--text-primary); font-size:14px;">All Operational Sectors Baseline Safe</div>
+        <div style="font-size:12px; margin-top:4px;">No active disaster hazard footprints or populations at risk currently reported inside Andhra Pradesh.</div>
+      </div>
+    `;
+    return;
   }
 
-  // If sub-zones haven't mounted or parsed yet, provide the computed baseline sums:
-  // Cyclone (45k Red, 62k Orange, 35k Yellow) + Flood (58.5k Red, 40k Orange) + Landslide (18k Orange, 14k Yellow)
-  if (redPop === 0 && orangePop === 0 && yellowPop === 0) {
-    redPop = 103500;
-    orangePop = 120000;
-    yellowPop = 49000;
-  }
+  // Group zones by hazard category
+  const hazardsByType = {};
+  zones.forEach(z => {
+    const rawType = (z.hazardType || z.type || z.hazard || 'hazard').toLowerCase();
+    let type = 'hazard';
+    let typeLabel = z.name || 'Active Hazard Threat Zone';
+    if (rawType.includes('cyclone') || rawType.includes('wind') || rawType.includes('storm')) {
+      type = 'cyclone';
+      typeLabel = '🌀 Coastal Cyclone & Surge Corridors';
+    } else if (rawType.includes('flood') || rawType.includes('river') || rawType.includes('inundat')) {
+      type = 'flood';
+      typeLabel = '🌊 Riverine Flood & Delta Belts';
+    } else if (rawType.includes('fire') || rawType.includes('thermal')) {
+      type = 'fire';
+      typeLabel = '🔥 Thermal & Wildfire Hotspots';
+    } else if (rawType.includes('quake') || rawType.includes('seismic') || rawType.includes('earthquake')) {
+      type = 'earthquake';
+      typeLabel = '🚨 Seismic Impact Sectors';
+    } else if (rawType.includes('industrial') || rawType.includes('chemical') || rawType.includes('gas')) {
+      type = 'industrial';
+      typeLabel = '⚠️ Industrial Hazard Footprints';
+    }
+
+    const tier = (z.level || z.current_tier || 'GREEN').toUpperCase();
+    if (!hazardsByType[type]) {
+      hazardsByType[type] = { name: typeLabel, zones: [], totalPop: 0, level: tier };
+    }
+    hazardsByType[type].zones.push(z);
+    hazardsByType[type].totalPop += (z.pop || z.affectedPopulation || 0);
+    if (tier === 'RED') hazardsByType[type].level = 'RED';
+    else if (tier === 'ORANGE' && hazardsByType[type].level !== 'RED') hazardsByType[type].level = 'ORANGE';
+    else if (tier === 'YELLOW' && (hazardsByType[type].level === 'GREEN' || !hazardsByType[type].level)) hazardsByType[type].level = 'YELLOW';
+  });
+
+  let html = '';
+  Object.entries(hazardsByType).forEach(([type, group]) => {
+    const icon = getHazardIcon(type);
+    const badgeClass = group.level === 'RED' ? 'risk-red' : (group.level === 'ORANGE' ? 'risk-orange' : (group.level === 'YELLOW' ? 'risk-yellow' : 'risk-green'));
+    html += `
+      <div class="section-card hazard-pop-group-card">
+        <div class="section-card-header">
+          <div class="section-card-title">
+            <span>${icon}</span>
+            <span>${escapeHtml(group.name)}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="risk-badge ${badgeClass}">${escapeHtml(group.level)} &bull; ${group.totalPop.toLocaleString()} POPULATION</span>
+            <button class="btn btn-glass" style="font-size:11px; color:#38bdf8; padding:3px 8px;" onclick="selectHazardFromDropdown('${group.zones[0]?.id || type}')">🗺️ Locate GIS ➔</button>
+          </div>
+        </div>
+        <div class="section-card-body">
+          <table class="hab-table">
+            <thead><tr><th>Zone ID</th><th>Zone Name</th><th>Severity Tier</th><th>Epicenter Coords</th><th>Population</th><th>Source</th><th>Action</th></tr></thead>
+            <tbody>
+              ${group.zones.map(z => `
+                <tr>
+                  <td><code>${escapeHtml(z.id || 'ZONE')}</code></td>
+                  <td><strong>${escapeHtml(z.name)}</strong></td>
+                  <td><span class="risk-badge risk-${(z.level || z.current_tier || 'green').toLowerCase()}">${escapeHtml(z.level || z.current_tier || 'GREEN')}</span></td>
+                  <td><code>${z.lat ? Number(z.lat).toFixed(4) : '--'}° N, ${z.lng ? Number(z.lng).toFixed(4) : '--'}° E</code></td>
+                  <td><strong>${(z.pop || z.affectedPopulation || 0).toLocaleString()}</strong></td>
+                  <td><span style="font-size:11px; color:var(--text-muted);">${escapeHtml(z.source || 'LIVE_SENSOR')}</span></td>
+                  <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px; color:#38bdf8;" onclick="locateZoneOnMap(${z.lat}, ${z.lng})">Locate 🗺️</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function updatePopulationRiskGrid(data) {
+  const prioData = data || window.currentPriorityData;
+  const habs = (prioData && Array.isArray(prioData.habitations)) ? prioData.habitations : [];
+  const zones = (window.APP_DATA && Array.isArray(window.APP_DATA.riskZones)) ? window.APP_DATA.riskZones : [];
+
+  let redPop = 0;
+  let orangePop = 0;
+  let yellowPop = 0;
+
+  const redZones = [];
+  const orangeZones = [];
+  const yellowZones = [];
+
+  const redHabs = [];
+  const orangeHabs = [];
+  const yellowHabs = [];
+
+  // 1. Tally habitations from priority engine
+  habs.forEach(h => {
+    const tier = (h.priorityLevel || '').toUpperCase();
+    const pop = Number(h.populationAtRisk || h.population || 0);
+    if (tier === 'CRITICAL' || tier === 'RED') {
+      redPop += pop;
+      redHabs.push(h);
+    } else if (tier === 'HIGH' || tier === 'ORANGE') {
+      orangePop += pop;
+      orangeHabs.push(h);
+    } else if (tier === 'MODERATE' || tier === 'YELLOW') {
+      yellowPop += pop;
+      yellowHabs.push(h);
+    }
+  });
+
+  // 2. Tally live operational hazard zones
+  zones.forEach(z => {
+    const tier = (z.level || z.current_tier || '').toUpperCase();
+    const pop = Number(z.pop || z.affectedPopulation || 0);
+    if (tier === 'CRITICAL' || tier === 'RED') {
+      redPop += pop;
+      redZones.push(z);
+    } else if (tier === 'HIGH' || tier === 'ORANGE') {
+      orangePop += pop;
+      orangeZones.push(z);
+    } else if (tier === 'MODERATE' || tier === 'YELLOW') {
+      yellowPop += pop;
+      yellowZones.push(z);
+    }
+  });
 
   const totalPop = redPop + orangePop + yellowPop;
 
-  const redEl    = document.getElementById('prc-val-red');
+  const redEl = document.getElementById('prc-val-red');
   const orangeEl = document.getElementById('prc-val-orange');
   const yellowEl = document.getElementById('prc-val-yellow');
-  const totalEl  = document.getElementById('prc-val-total');
+  const totalEl = document.getElementById('prc-val-total');
 
-  if (redEl)    redEl.textContent    = redPop.toLocaleString('en-IN');
+  if (redEl) redEl.textContent = redPop.toLocaleString('en-IN');
   if (orangeEl) orangeEl.textContent = orangePop.toLocaleString('en-IN');
   if (yellowEl) yellowEl.textContent = yellowPop.toLocaleString('en-IN');
-  if (totalEl)  totalEl.textContent  = totalPop.toLocaleString('en-IN');
-}
-window.aggregatePopulationFromDOM = aggregatePopulationFromDOM;
+  if (totalEl) totalEl.textContent = totalPop.toLocaleString('en-IN');
 
-function updatePopulationRiskGrid(data) {
-  // Always aggregate from the disaster sub-zone tables below so the
-  // summary cards at the top strictly reflect the sum of all disasters.
-  aggregatePopulationFromDOM();
+  const redZonesEl = document.getElementById('prc-zones-red');
+  const orangeZonesEl = document.getElementById('prc-zones-orange');
+  const yellowZonesEl = document.getElementById('prc-zones-yellow');
+  const totalZonesEl = document.getElementById('prc-zones-total');
+
+  if (redZonesEl) {
+    if (redZones.length > 0) {
+      redZonesEl.textContent = `${redZones.length} Red Zone${redZones.length === 1 ? '' : 's'} (${redZones.map(z => z.name).slice(0, 2).join(', ')})`;
+    } else if (redHabs.length > 0) {
+      redZonesEl.textContent = `${redHabs.length} Critical Habitations (${redHabs.map(h => h.village_name).slice(0, 2).join(', ')})`;
+    } else {
+      redZonesEl.textContent = 'No active red zones';
+    }
+  }
+
+  if (orangeZonesEl) {
+    if (orangeZones.length > 0) {
+      orangeZonesEl.textContent = `${orangeZones.length} Orange Zone${orangeZones.length === 1 ? '' : 's'} (${orangeZones.map(z => z.name).slice(0, 2).join(', ')})`;
+    } else if (orangeHabs.length > 0) {
+      orangeZonesEl.textContent = `${orangeHabs.length} High Alert Habitations (${orangeHabs.map(h => h.village_name).slice(0, 2).join(', ')})`;
+    } else {
+      orangeZonesEl.textContent = 'No active orange zones';
+    }
+  }
+
+  if (yellowZonesEl) {
+    if (yellowZones.length > 0) {
+      yellowZonesEl.textContent = `${yellowZones.length} Monitored Zone${yellowZones.length === 1 ? '' : 's'} (${yellowZones.map(z => z.name).slice(0, 2).join(', ')})`;
+    } else if (yellowHabs.length > 0) {
+      yellowZonesEl.textContent = `${yellowHabs.length} Monitored Habitations`;
+    } else {
+      yellowZonesEl.textContent = 'All sectors monitoring normal';
+    }
+  }
+
+  if (totalZonesEl) {
+    const totalActiveZones = redZones.length + orangeZones.length + yellowZones.length;
+    const totalImpactedHabs = redHabs.length + orangeHabs.length + yellowHabs.length;
+    if (totalActiveZones > 0 || totalImpactedHabs > 0) {
+      totalZonesEl.textContent = `${totalActiveZones} Active Hazard Zones • ${totalImpactedHabs} Impacted Habitations`;
+    } else {
+      totalZonesEl.textContent = 'Live Canonical Exposure State';
+    }
+  }
+
+  renderDynamicPopulationGroups(prioData);
+  syncDockBadges();
 }
+window.updatePopulationRiskGrid = updatePopulationRiskGrid;
+window.aggregatePopulationFromDOM = function() {
+  updatePopulationRiskGrid(window.currentPriorityData);
+};
+
+// Synchronize Left Navigation Dock badges with active zones and at-risk population
+function syncDockBadges() {
+  const zones = (window.APP_DATA && Array.isArray(window.APP_DATA.riskZones)) ? window.APP_DATA.riskZones : [];
+  const pData = window.currentPriorityData;
+  const habs = (pData && Array.isArray(pData.habitations)) ? pData.habitations : [];
+
+  // 1. Zone Manager badge: active operational zones
+  const activeZones = zones.filter(z => (z.level || z.current_tier || '').toUpperCase() !== 'GREEN');
+  const zoneCount = zones.length;
+  const activeZoneCount = activeZones.length;
+  const zoneBadges = document.querySelectorAll('#dock-zones-badge, .dock-zones-badge');
+  zoneBadges.forEach(b => {
+    b.textContent = String(activeZoneCount > 0 ? activeZoneCount : zoneCount);
+    b.style.display = zoneCount > 0 ? 'flex' : 'none';
+    b.style.background = activeZoneCount > 0 ? 'var(--risk-orange, #f97316)' : 'rgba(255,255,255,0.18)';
+    b.title = `${zoneCount} zones monitored (${activeZoneCount} active threats)`;
+  });
+
+  // 2. Red Zones & Habitations badge: critical & high priority count
+  const critHabs = habs.filter(h => (h.priorityLevel || '').toUpperCase() === 'CRITICAL' || (h.priorityLevel || '').toUpperCase() === 'RED').length;
+  const highHabs = habs.filter(h => (h.priorityLevel || '').toUpperCase() === 'HIGH' || (h.priorityLevel || '').toUpperCase() === 'ORANGE').length;
+  const habCount = critHabs + highHabs;
+  const habBadges = document.querySelectorAll('#dock-habs-badge, .dock-habs-badge');
+  habBadges.forEach(b => {
+    b.textContent = String(habCount);
+    b.style.display = habCount > 0 ? 'flex' : 'none';
+    b.style.background = critHabs > 0 ? 'var(--risk-red, #ef4444)' : 'var(--risk-orange, #f97316)';
+    b.title = `${habCount} habitations in active hazard corridors`;
+  });
+
+  // 3. Population at Risk badge: live exposed population
+  let redPop = 0, orangePop = 0, yellowPop = 0;
+  habs.forEach(h => {
+    const t = (h.priorityLevel || '').toUpperCase();
+    const p = Number(h.populationAtRisk || h.population || 0);
+    if (t === 'CRITICAL' || t === 'RED') redPop += p;
+    else if (t === 'HIGH' || t === 'ORANGE') orangePop += p;
+    else if (t === 'MODERATE' || t === 'YELLOW') yellowPop += p;
+  });
+  zones.forEach(z => {
+    const t = (z.level || z.current_tier || '').toUpperCase();
+    const p = Number(z.pop || z.affectedPopulation || 0);
+    if (t === 'CRITICAL' || t === 'RED') redPop += p;
+    else if (t === 'HIGH' || t === 'ORANGE') orangePop += p;
+    else if (t === 'MODERATE' || t === 'YELLOW') yellowPop += p;
+  });
+  const totalPop = redPop + orangePop + yellowPop;
+  const popBadges = document.querySelectorAll('#dock-pop-badge, .dock-pop-badge');
+  popBadges.forEach(b => {
+    const label = totalPop >= 1000 ? `${(totalPop / 1000).toFixed(1)}k` : totalPop;
+    b.textContent = String(label);
+    b.style.display = totalPop > 0 ? 'flex' : 'none';
+    b.style.background = (redPop > 0) ? 'var(--risk-red, #ef4444)' : 'var(--risk-orange, #f97316)';
+    b.title = `${totalPop.toLocaleString()} population at risk`;
+  });
+}
+window.syncDockBadges = syncDockBadges;
 
 function clearHazardFilter() {
   window.currentSelectedHazard = null;
@@ -5295,5 +5622,103 @@ window.openShelterModal = openShelterModal;
 window.closeShelterModal = closeShelterModal;
 window.updateOccupancyPreview = updateOccupancyPreview;
 window.submitShelterOccupancy = submitShelterOccupancy;
+
+// ================================================================
+// LIVE WEBSOCKET COMMAND STREAM CLIENT (Authority Command Center)
+// Receives real-time zone and hazard updates pushed from server
+// ================================================================
+let commandSocket = null;
+let commandSocketRetryDelay = 2000;
+let commandSocketRetryTimeout = null;
+const MAX_COMMAND_SOCKET_RETRY_DELAY = 30000;
+
+function initAuthorityWebSocket() {
+  if (commandSocket && (commandSocket.readyState === WebSocket.OPEN || commandSocket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  try {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${location.host}`;
+    commandSocket = new WebSocket(wsUrl);
+    window.commandSocket = commandSocket;
+
+    commandSocket.onopen = () => {
+      commandSocketRetryDelay = 2000;
+      console.log('[Authority WS] Connected to backend live state stream');
+    };
+
+    commandSocket.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'live_state_update' && msg.data) {
+          handleAuthorityLiveStateUpdate(msg.data);
+        } else if (msg.type === 'authority_alert' && msg.alert) {
+          showToast(`🚨 Priority Broadcast: ${msg.alert.title || msg.alert.message || 'Emergency Alert'}`, 'danger');
+        }
+      } catch (e) {
+        // Degrade silently
+      }
+    };
+
+    commandSocket.onerror = () => {};
+
+    commandSocket.onclose = () => {
+      if (commandSocketRetryTimeout) clearTimeout(commandSocketRetryTimeout);
+      commandSocketRetryTimeout = setTimeout(() => {
+        commandSocketRetryDelay = Math.min(MAX_COMMAND_SOCKET_RETRY_DELAY, Math.round(commandSocketRetryDelay * 1.5));
+        initAuthorityWebSocket();
+      }, commandSocketRetryDelay);
+    };
+  } catch (err) {
+    // Degrade silently
+  }
+}
+
+function handleAuthorityLiveStateUpdate(data) {
+  if (!data) return;
+
+  // 1. Update KPI numbers immediately from live state
+  if (data.kpis) {
+    const hazVal = document.getElementById('kpi-active-hazards');
+    if (hazVal && typeof data.kpis.activeHazards === 'number') {
+      hazVal.textContent = data.kpis.activeHazards;
+    }
+    const habVal = document.getElementById('kpi-high-risk-habs');
+    if (habVal && typeof data.kpis.highRiskHabs === 'number') {
+      habVal.textContent = data.kpis.highRiskHabs;
+    }
+    const popVal = document.getElementById('kpi-pop-risk');
+    if (popVal && typeof data.kpis.populationAtRisk === 'number') {
+      const popNum = data.kpis.populationAtRisk;
+      popVal.textContent = popNum >= 1000 ? `${(popNum / 1000).toFixed(1)}k` : popNum.toLocaleString();
+    }
+  }
+
+  // 2. Update telemetry indicators
+  if (data.telemetry) {
+    if (data.telemetry.radarWeather && data.telemetry.radarWeather.maxGustKmh !== null) {
+      const gustVal = document.getElementById('kpi-gust-speed');
+      if (gustVal) {
+        gustVal.textContent = `${data.telemetry.radarWeather.maxGustKmh} km/h`;
+      }
+    }
+    if (data.telemetry.latestQuake && data.telemetry.latestQuake.mag !== null) {
+      const seisMag = document.getElementById('kpi-seismic-mag');
+      if (seisMag) {
+        seisMag.textContent = `M ${Number(data.telemetry.latestQuake.mag).toFixed(1)}`;
+      }
+    }
+  }
+
+  // 3. Update alert feeds and tables
+  if (Array.isArray(data.alerts)) {
+    renderCommandAlertFeed(data.alerts);
+  }
+}
+
+window.initAuthorityWebSocket = initAuthorityWebSocket;
+window.handleAuthorityLiveStateUpdate = handleAuthorityLiveStateUpdate;
+
 
 

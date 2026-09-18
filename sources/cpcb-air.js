@@ -50,6 +50,44 @@ function isCoordInsideAP(lon, lat) {
   return false;
 }
 
+/**
+ * Dynamically computes Andhra Pradesh bounding box from GeoJSON boundary geometry at runtime
+ * Returns { minLon, minLat, maxLon, maxLat } formatted to 4 decimal places
+ */
+function getApBoundingBox() {
+  let minLon = Infinity, minLat = Infinity, maxLon = -Infinity, maxLat = -Infinity;
+  function processCoords(coords) {
+    if (!Array.isArray(coords)) return;
+    if (typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+      const lon = coords[0];
+      const lat = coords[1];
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+    } else {
+      for (const item of coords) {
+        processCoords(item);
+      }
+    }
+  }
+
+  if (apPolygon && apPolygon.coordinates) {
+    processCoords(apPolygon.coordinates);
+  }
+
+  if (!isFinite(minLon) || !isFinite(minLat) || !isFinite(maxLon) || !isFinite(maxLat)) {
+    return { minLon: 76.7656, minLat: 12.6210, maxLon: 84.7681, maxLat: 19.1300 };
+  }
+
+  return {
+    minLon: +minLon.toFixed(4),
+    minLat: +minLat.toFixed(4),
+    maxLon: +maxLon.toFixed(4),
+    maxLat: +maxLat.toFixed(4)
+  };
+}
+
 function fetchJson(targetUrl, headers = {}, timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
     try {
@@ -181,7 +219,7 @@ async function getCpcbAirQuality() {
   if (!resourceId || resourceId.trim() === '') {
     return {
       success: false,
-      status: 'UNAVAILABLE',
+      status: 'NOT_CONFIGURED',
       sourceId: 'cpcb_airquality',
       agency: 'Central Pollution Control Board (CPCB / MoEFCC)',
       error: 'DATA_GOV_IN_AQI_RESOURCE_ID is missing or not configured in .env',
@@ -210,6 +248,13 @@ async function getCpcbAirQuality() {
     let staleCount = 0;
 
     for (const rec of apRecords) {
+      const lat = parseFloat(rec.latitude);
+      const lon = parseFloat(rec.longitude);
+      // Validate coordinates strictly inside AP boundary (reject out-of-state coordinates)
+      if (!isNaN(lat) && !isNaN(lon) && !isCoordInsideAP(lon, lat)) {
+        continue;
+      }
+
       const stationKey = (rec.station || `${rec.city}_${rec.latitude}`).trim();
       if (!stationKey) continue;
 
@@ -339,7 +384,7 @@ async function getOpenAqAirQuality() {
   if (!apiKey || apiKey.trim() === '') {
     return {
       success: false,
-      status: 'UNAVAILABLE',
+      status: 'NOT_CONFIGURED',
       sourceId: 'openaq_aq',
       agency: 'OpenAQ Community Air Quality Platform',
       error: 'OPENAQ_API_KEY is missing or not configured in .env (OpenAQ v3 requires API key)',
@@ -348,7 +393,9 @@ async function getOpenAqAirQuality() {
     };
   }
 
-  const url = 'https://api.openaq.org/v3/locations?limit=100';
+  const bbox = getApBoundingBox();
+  const bboxParam = `${bbox.minLon},${bbox.minLat},${bbox.maxLon},${bbox.maxLat}`;
+  const url = `https://api.openaq.org/v3/locations?limit=1000&bbox=${bboxParam}`;
   try {
     const json = await fetchJson(url, { 'X-API-Key': apiKey }, 7000);
     const results = json.results || [];
@@ -361,17 +408,19 @@ async function getOpenAqAirQuality() {
     });
 
     if (apStations.length === 0) {
+      console.warn(`[OpenAQ] BBox query (${bboxParam}) returned ${results.length} total stations, but 0 stations fall strictly inside Andhra Pradesh boundary polygon.`);
       return {
         success: false,
         status: 'UNAVAILABLE',
         sourceId: 'openaq_aq',
         agency: 'OpenAQ Community Air Quality Platform',
-        error: 'No active OpenAQ ground stations reporting within Andhra Pradesh',
+        error: `No active OpenAQ ground stations reporting within Andhra Pradesh (${results.length} stations in bounding box)`,
         stations: [],
         summary: null
       };
     }
 
+    const nowIso = new Date().toISOString();
     return {
       success: true,
       status: 'LIVE',
@@ -380,7 +429,8 @@ async function getOpenAqAirQuality() {
       role: 'CROSS_CHECK',
       count: apStations.length,
       stations: apStations,
-      fetchedAt: new Date().toISOString()
+      fetchedAt: nowIso,
+      observedAt: nowIso
     };
   } catch (e) {
     return {
@@ -400,5 +450,7 @@ module.exports = {
   getOpenAqAirQuality,
   getAqiCategory,
   calculateCpcbSubIndex,
-  isCoordInsideAP
+  isCoordInsideAP,
+  isAndhraPradesh,
+  getApBoundingBox
 };

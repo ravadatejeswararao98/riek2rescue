@@ -75,6 +75,32 @@
     },
 
     /**
+     * Renders a standalone provenance badge HTML string for a source
+     * @param {string} sourceId - ID of contributing source
+     * @param {string} [status='LIVE'] - Source status
+     * @param {string|number} [fetchedAt] - Timestamp of acquisition
+     * @returns {string} HTML string
+     */
+    renderBadge(sourceId, status = 'LIVE', fetchedAt = null) {
+      const agencyLabel = Provenance.agencyShortNames[sourceId] || sourceId;
+      const ageStr = fetchedAt ? Provenance.formatAge(fetchedAt) : '';
+
+      let statusClass = 'status-live';
+      if (status === 'BASELINE') statusClass = 'status-baseline';
+      else if (status === 'REFERENCE') statusClass = 'status-reference';
+      else if (status === 'STALE') statusClass = 'status-stale';
+      else if (status === 'DEGRADED') statusClass = 'status-degraded';
+      else if (status === 'HISTORICAL') statusClass = 'status-historical';
+      else if (status === 'SIMULATED') statusClass = 'status-simulated';
+      else if (status === 'UNAVAILABLE') statusClass = 'status-unavailable';
+
+      return `<span class="provenance-chip ${statusClass}" title="Click to view ${escapeHtml(agencyLabel)} in Sensor Data Sources" onclick="event.stopPropagation(); if (window.Provenance && window.Provenance.openSourceInPanel) window.Provenance.openSourceInPanel('${sourceId}')">
+        <span class="prov-agency">${escapeHtml(agencyLabel)}</span>
+        ${ageStr ? `<span class="prov-age">· ${escapeHtml(ageStr)}</span>` : ''}
+      </span>`;
+    },
+
+    /**
      * Core renderer for any dynamic metric
      * @param {HTMLElement|string} targetEl - Element or query selector
      * @param {Object} options

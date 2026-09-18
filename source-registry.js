@@ -123,9 +123,21 @@ function recordMetric(sourceId, { success, latencyMs, recordCount = 0, error = n
 function isSourceConfigured(source) {
   if (!source.requiresKey) return true;
   if (source.id === 'copernicus_dataspace') {
-    const cid = process.env.COPERNICUS_CLIENT_ID;
-    const csec = process.env.COPERNICUS_CLIENT_SECRET;
+    const cid = process.env.COPERNICUS_CLIENT_ID || process.env.SENTINEL_HUB_CLIENT_ID;
+    const csec = process.env.COPERNICUS_CLIENT_SECRET || process.env.SENTINEL_HUB_CLIENT_SECRET;
     return Boolean(cid && csec && cid.trim() !== '' && csec.trim() !== '' && !cid.startsWith('YOUR_') && !csec.startsWith('YOUR_'));
+  }
+  if (source.id === 'cpcb_airquality') {
+    const key = process.env.DATA_GOV_IN_API_KEY || process.env.CPCB_API_KEY;
+    return Boolean(key && key.trim() !== '' && !key.startsWith('YOUR_'));
+  }
+  if (source.id === 'google_flood_forecast') {
+    const key = process.env.GOOGLE_FLOOD_API_KEY;
+    return Boolean(key && key.trim() !== '' && !key.startsWith('YOUR_') && !key.startsWith('AIzaSyDemoKey'));
+  }
+  if (source.id === 'openaq_aq') {
+    const key = process.env.OPENAQ_API_KEY;
+    return Boolean(key && key.trim() !== '' && !key.startsWith('YOUR_'));
   }
   if (source.id === 'alert_router_email') {
     const resend = process.env.RESEND_API_KEY;
@@ -330,8 +342,12 @@ const SOURCES = [
     requiresKey: 'OPENAQ_API_KEY',
     consumers: ['view-datasources', 'air-quality-inspector'],
     probe: async () => {
+      const srcObj = getSource('openaq_aq') || { id: 'openaq_aq', requiresKey: 'OPENAQ_API_KEY' };
+      if (!isSourceConfigured(srcObj)) {
+        return { ok: false, error: 'OPENAQ_API_KEY is not configured in .env', notConfigured: true, detail: 'Add OPENAQ_API_KEY to .env' };
+      }
       const res = await getOpenAqAirQuality();
-      if (res.status === 'NOT_CONFIGURED') return { ok: false, error: res.error, notConfigured: true };
+      if (res.status === 'NOT_CONFIGURED') return { ok: false, error: res.error, notConfigured: true, detail: res.error };
       if (res.success) {
         return { ok: true, latencyMs: 320, recordCount: res.count, detail: `${res.count} ground stations reporting in Andhra Pradesh`, observedAt: res.lastUpdated || res.observedAt || null };
       }
@@ -396,8 +412,12 @@ const SOURCES = [
     requiresKey: 'GOOGLE_FLOOD_API_KEY',
     consumers: ['view-datasources', 'hydrology-forecast-overlay'],
     probe: async () => {
+      const srcObj = getSource('google_flood_forecast') || { id: 'google_flood_forecast', requiresKey: 'GOOGLE_FLOOD_API_KEY' };
+      if (!isSourceConfigured(srcObj)) {
+        return { ok: false, error: 'GOOGLE_FLOOD_API_KEY is not configured in .env', notConfigured: true, detail: 'Add GOOGLE_FLOOD_API_KEY to .env' };
+      }
       const res = await getGoogleFloodForecast();
-      if (res.status === 'NOT_CONFIGURED') return { ok: false, error: res.error, notConfigured: true };
+      if (res.status === 'NOT_CONFIGURED') return { ok: false, error: res.error, notConfigured: true, detail: res.error };
       if (res.success) {
         return { ok: true, latencyMs: 250, recordCount: res.count, detail: `${res.count} flood forecast models reporting in AP sector`, observedAt: res.observedAt || null };
       }
@@ -463,8 +483,8 @@ const SOURCES = [
     probe: async () => {
       const res = await getGdacsEvents();
       if (res.success) {
-        const observedAt = res.lastEventTime || (res.apEvents && res.apEvents[0]?.pubDate) || null;
-        return { ok: true, latencyMs: 340, recordCount: res.indiaEventsCount, detail: `${res.indiaEventsCount} active Indian events (${res.totalGlobalEvents} global)`, observedAt };
+        const observedAt = res.lastEventTime || (res.apEvents && res.apEvents[0]?.pubDate) || (res.apEvents && res.apEvents[0]?.issuedAt) || null;
+        return { ok: true, latencyMs: 340, recordCount: res.apEventsCount, detail: `${res.apEventsCount} active events in AP (${res.indiaEventsCount} India-wide)`, observedAt };
       }
       throw new Error(res.error || 'GDACS probe failed');
     }
@@ -559,6 +579,10 @@ const SOURCES = [
     requiresKey: 'COPERNICUS_CLIENT_ID',
     consumers: ['satellite-signal-processor', 'view-datasources', 'telemetry-inspector'],
     probe: async () => {
+      const srcObj = getSource('copernicus_dataspace') || { id: 'copernicus_dataspace', requiresKey: 'COPERNICUS_CLIENT_ID' };
+      if (!isSourceConfigured(srcObj)) {
+        return { ok: false, notConfigured: true, detail: 'Add COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET to .env' };
+      }
       let copMod = null;
       try {
         copMod = require('./sources/copernicus.js');

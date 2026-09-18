@@ -1371,11 +1371,24 @@ function getZoneForCoordinates(lat, lng) {
   // 4. Check APP_DATA.riskZones
   if (typeof APP_DATA !== 'undefined' && Array.isArray(APP_DATA.riskZones)) {
     APP_DATA.riskZones.forEach(rz => {
+      // Check exact polygon geometry if available (e.g. from live sensor feeds)
+      const rawPoly = (rz.geometry && Array.isArray(rz.geometry.coordinates) && rz.geometry.coordinates[0]) ||
+                      (Array.isArray(rz.polygon) && rz.polygon) ||
+                      (Array.isArray(rz.coordinates) && rz.coordinates);
+      if (Array.isArray(rawPoly) && rawPoly.length >= 3) {
+        try {
+          if (_pointInPolygonCoords([nLng, nLat], rawPoly)) {
+            considerZone(rz.level || rz.current_tier || 'RED', rz, 'app_data_risk_zone_polygon');
+            return;
+          }
+        } catch (e) {}
+      }
+
       if (typeof rz.lat === 'number' && typeof rz.lng === 'number') {
         const d = _hazardDistanceKm(nLat, nLng, rz.lat, rz.lng);
         const radiusMeters = rz.radius || 28000;
         if (d * 1000 <= radiusMeters * 1.1) {
-          considerZone(rz.level, rz, 'app_data_risk_zone');
+          considerZone(rz.level || rz.current_tier, rz, 'app_data_risk_zone');
         }
       }
     });

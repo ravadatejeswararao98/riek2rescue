@@ -70,11 +70,24 @@
       <div class="dock-divider"></div>
 
       <!-- Red Zones & Habitations -->
-      <a href="authority-queue.html" class="dock-item active" style="--item-accent: var(--risk-red); text-decoration: none;" title="Priority Queue"><span class="dock-icon"><i class="fi fi-br-house-building" aria-hidden="true"></i></span><span class="dock-label">Priority Queue</span></a>
+      <a href="authority-queue.html" class="dock-item active" style="--item-accent: var(--risk-red); text-decoration: none;" title="Red Zones & Habitations">
+        <span class="dock-icon"><i class="fi fi-br-house-building" aria-hidden="true"></i></span>
+        <span class="dock-label">Red Zones &amp; Habitations</span>
+        <span class="dock-badge" id="dock-habs-badge" style="display:none;">0</span>
+      </a>
+
+      <!-- Zone Manager -->
+      <button class="dock-item" data-view="zone-manager" style="--item-accent: var(--risk-orange)" title="Zone Manager">
+        <span class="dock-icon"><i class="fi fi-rr-map" aria-hidden="true"></i></span>
+        <span class="dock-label">Zone Manager</span>
+        <span class="dock-badge" id="dock-zones-badge" style="display:none;">0</span>
+      </button>
 
       <!-- Population at Risk -->
       <button class="dock-item" data-view="population-risk" style="--item-accent: var(--risk-orange)" title="Population at Risk">
-        <span class="dock-icon"><i class="fi fi-rr-triangle-warning" aria-hidden="true"></i></span><span class="dock-label">Population at Risk</span>
+        <span class="dock-icon"><i class="fi fi-rr-triangle-warning" aria-hidden="true"></i></span>
+        <span class="dock-label">Population at Risk</span>
+        <span class="dock-badge" id="dock-pop-badge" style="display:none;">0</span>
       </button>
 
       <!-- Divider -->
@@ -227,7 +240,7 @@
       <button id="btn-map-hazard" class="btn-map-hazard" onclick="toggleMapHazardDropdown(event)" title="Active Monitored Hazards">
         <span class="hazard-btn-icon">⚠️</span>
         <span class="hazard-btn-text">Hazards</span>
-        <span class="hazard-badge-count" id="hazard-badge-count">5</span>
+        <span class="hazard-badge-count" id="hazard-badge-count">0</span>
       </button>
 
       <!-- Floating Hazard Dropdown Window (Smoothly animates downward) -->
@@ -267,7 +280,7 @@
             </div>
             <div class="hztc-stat">
               <span class="hztc-stat-lbl">Pop. at Risk</span>
-              <strong id="hztc-stat-pop" class="hztc-stat-val">1,03,500</strong>
+              <strong id="hztc-stat-pop" class="hztc-stat-val">—</strong>
             </div>
             <div class="hztc-stat">
               <span class="hztc-stat-lbl">Live Telemetry</span>
@@ -594,7 +607,7 @@
               <span>🌀</span>
               <span>Active Hazard Registry & Early Threat Detection</span>
             </div>
-            <span class="risk-badge risk-red">5 Active Hazards</span>
+            <span class="risk-badge risk-green" id="hazard-registry-badge">0 Active Hazards</span>
           </div>
           <div class="section-card-body">
             <table class="hab-table">
@@ -744,7 +757,7 @@
         <div class="pop-risk-grid" id="pop-risk-grid">
           <div class="pop-risk-card level-red" onclick="switchView('map-view')" style="cursor:pointer;" title="Click to view Red Zones on Map">
             <div class="prc-tier-tag">🔴 CRITICAL</div>
-            <div class="prc-value" id="prc-val-red">1,03,500</div>
+            <div class="prc-value" id="prc-val-red">0</div>
             <div class="prc-label">Within RED Zones (direct danger)</div>
             <div class="prc-zones" id="prc-zones-red">Kakinada Port & Uppada Coastal Belt</div>
           </div>
@@ -1130,12 +1143,8 @@
   <!-- Mobile Overlay Backdrop -->
   <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-  <!-- Firebase Live Database SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="js/firebase-config.js"></script>
-  <script src="js/firebase-live.js"></script>
-  <script src="js/firebase-modal.js"></script>
+  <!-- Shared Auth & Real-Time Sync Client (Authority Role) -->
+  <script src="js/shared-client.js"></script>
 
   <!-- Core App Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>

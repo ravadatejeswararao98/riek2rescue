@@ -265,8 +265,9 @@ async function getGdacsEvents() {
       indiaEventsCount: indiaEvents.length,
       apEventsCount: apEvents.length,
       fetchedAt: new Date().toISOString(),
-      events: indiaEvents, // Prioritize India-region events
+      events: apEvents, // Strictly filtered for Andhra Pradesh operational boundary
       apEvents: apEvents,
+      indiaEvents: indiaEvents,
       allEventsCount: allEvents.length,
       cached: false
     };

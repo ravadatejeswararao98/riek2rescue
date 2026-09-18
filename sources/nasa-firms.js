@@ -200,11 +200,17 @@ function parseFirmsCsv(csvText, fetchedAt) {
  * Main NASA FIRMS Query Function
  */
 async function getNasaFirmsHotspots() {
-  const mapKey = process.env.NASA_FIRMS_MAP_KEY || process.env.FIRMS_MAP_KEY || '';
   const now = Date.now();
   const fetchedAt = new Date().toISOString();
 
-  // 1. Configuration Truth: If API key is unset, return NOT_CONFIGURED
+  // 1. Fresh Cache Check
+  if (firmsCache.data && now < firmsCache.expiresAt) {
+    return { ...firmsCache.data, cached: true };
+  }
+
+  const mapKey = process.env.NASA_FIRMS_MAP_KEY || process.env.FIRMS_MAP_KEY || '';
+
+  // 2. Configuration Truth: If API key is unset, return NOT_CONFIGURED
   if (!mapKey || mapKey.trim() === '') {
     return {
       success: false,
@@ -223,11 +229,6 @@ async function getNasaFirmsHotspots() {
       provenance: 'nasa_firms_live',
       stale: false
     };
-  }
-
-  // 2. Fresh Cache Check
-  if (firmsCache.data && now < firmsCache.expiresAt) {
-    return { ...firmsCache.data, cached: true };
   }
 
   // 3. Query Genuine NASA FIRMS Service
@@ -302,18 +303,19 @@ async function getNasaFirmsHotspots() {
 }
 
 function clearFirmsCache() {
-  cachedFirmsData = null;
-  cachedFirmsExpiresAt = 0;
+  firmsCache = { data: null, expiresAt: 0 };
 }
 
 function setFirmsCache(data, ttlMs = FIRMS_CACHE_TTL_MS) {
-  cachedFirmsData = data;
-  cachedFirmsExpiresAt = Date.now() + ttlMs;
+  firmsCache = {
+    data,
+    expiresAt: Date.now() + ttlMs
+  };
 }
 
 function getCachedFirmsData() {
-  if (cachedFirmsData && Date.now() < cachedFirmsExpiresAt) {
-    return cachedFirmsData;
+  if (firmsCache.data && Date.now() < firmsCache.expiresAt) {
+    return firmsCache.data;
   }
   return null;
 }

@@ -1,5 +1,30 @@
 [
   {
+    "id": "REC-1789711273619",
+    "timestamp": "2026-09-18T06:01:13.619Z",
+    "model": "gpt-oss:20b",
+    "provider": "ollama-cloud",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Kakinada Urban Slums",
+          "pop": 8500
+        },
+        {
+          "name": "Machilipatnam Delta",
+          "pop": 4200
+        },
+        {
+          "name": "Coastal Industrial Park",
+          "pop": 2500
+        }
+      ],
+      "deficitReports": [],
+      "telemetry": {}
+    },
+    "recommendation": "Priority engine assigns low priority to Kakinada Urban Slums, Machilipatnam Delta, and Coastal Industrial Park because hazard severity data is missing, life‑risk scores are zero, and access is full, yielding scores of 39, 37, and 35 respectively. All three sites have high vulnerability indices (90, 80, 70) but no confirmed hazards, so the current risk assessment remains low. Sensor telemetry is unavailable, and seismic status is normal. Continue monitoring these locations and update priority if hazard severity or life‑risk data becomes available."
+  },
+  {
     "id": "REC-1789670879322",
     "timestamp": "2026-09-17T18:47:59.322Z",
     "model": "gpt-oss:20b",
@@ -3576,35 +3601,5 @@
       "telemetry": {}
     },
     "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
-  },
-  {
-    "id": "REC-1789446032629",
-    "timestamp": "2026-09-15T04:20:32.629Z",
-    "model": "Deterministic Operational Risk Analyst Engine",
-    "provider": "deterministic-fallback",
-    "inputSummary": {
-      "topHabitations": [
-        {
-          "name": "Kakinada Urban Slums",
-          "pop": 8500
-        },
-        {
-          "name": "Coastal Industrial Park",
-          "pop": 2500
-        },
-        {
-          "name": "Machilipatnam Delta",
-          "pop": 4200
-        }
-      ],
-      "deficitReports": [
-        {
-          "zone": "Machilipatnam Delta",
-          "deficit": 4200
-        }
-      ],
-      "telemetry": {}
-    },
-    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (combined 11k citizens at risk) to Kakinada Municipal Shelter. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Machilipatnam Delta registers an aggregate carrying-capacity deficit of 4,200 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
   }
 ]

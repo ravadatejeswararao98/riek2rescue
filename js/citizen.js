@@ -1724,6 +1724,8 @@ function initAlertWebSocket() {
         const data = JSON.parse(event.data);
         if (data.type === 'authority_alert' && data.alert) {
           handleIncomingAuthorityAlert(data.alert);
+        } else if (data.type === 'live_state_update' && data.data) {
+          handleIncomingLiveStateUpdate(data.data);
         }
       } catch (e) {
         // Degrade silently
@@ -1812,6 +1814,44 @@ function handleIncomingAuthorityAlert(alert) {
 
   // 5. Proximity / Zone check: trigger evacuation flow if citizen is inside or near
   checkAlertZoneProximityAndTriggerEvacuation(alert, createdZone);
+}
+
+function handleIncomingLiveStateUpdate(state) {
+  if (!state) return;
+
+  // 1. Update risk zones in memory and map engine
+  if (Array.isArray(state.zones)) {
+    if (window.APP_DATA) {
+      window.APP_DATA.riskZones = state.zones;
+    }
+    if (window.hazardEngine && window.hazardEngine.aiState) {
+      window.hazardEngine.aiState.allZones = state.zones;
+      window.hazardEngine.aiState.zones = state.zones;
+      if (typeof window.hazardEngine.render === 'function') {
+        window.hazardEngine.render(window.hazardEngine.currentHazard || 'all', true);
+      }
+    }
+  }
+
+  // 2. Refresh citizen location risk badge
+  if (typeof updateCitizenRiskBadge === 'function') {
+    updateCitizenRiskBadge(window.citizenCurrentLocation);
+  }
+
+  // 3. Ingest active alerts into notifications
+  if (Array.isArray(state.alerts) && state.alerts.length > 0) {
+    state.alerts.forEach(a => {
+      if (typeof addCitizenNotification === 'function') {
+        addCitizenNotification({
+          type: 'official alert',
+          title: a.title || a.headline || 'Official Alert',
+          message: `${a.event || 'Advisory'}: ${a.areaDesc || 'Andhra Pradesh'}`,
+          timestamp: a.effective ? new Date(a.effective).getTime() : Date.now(),
+          read: false
+        });
+      }
+    });
+  }
 }
 
 function checkAlertZoneProximityAndTriggerEvacuation(alert, createdZone = null) {

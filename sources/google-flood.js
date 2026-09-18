@@ -12,10 +12,50 @@ const { safeText } = require('../js/redact.js');
  */
 
 const https = require('https');
+const fs = require('fs');
+const path = require('path');
 
 const GOOGLE_FLOOD_API_HOST = 'floodforecasting.googleapis.com';
 const FLOOD_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour cache
 let floodCache = { data: null, expiresAt: 0 };
+
+// Authoritative AP Boundary GeoJSON Loader
+let apBoundaryGeom = null;
+try {
+  const boundaryPath = path.join(__dirname, '..', 'data', 'andhra_pradesh_boundary.geojson');
+  if (fs.existsSync(boundaryPath)) {
+    const raw = JSON.parse(fs.readFileSync(boundaryPath, 'utf8'));
+    apBoundaryGeom = raw.features && raw.features[0] ? raw.features[0].geometry : null;
+  }
+} catch (e) {
+  console.warn('[GoogleFlood] Failed to load AP boundary GeoJSON:', e.message);
+}
+
+function pointInPolygon(pt, ring) {
+  let inside = false;
+  const x = pt[0], y = pt[1];
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function isCoordInsideAP(lon, lat) {
+  if (typeof lon !== 'number' || typeof lat !== 'number' || isNaN(lon) || isNaN(lat)) return false;
+  if (!apBoundaryGeom) return false;
+  const pt = [lon, lat];
+  if (apBoundaryGeom.type === 'Polygon') {
+    return pointInPolygon(pt, apBoundaryGeom.coordinates[0]);
+  } else if (apBoundaryGeom.type === 'MultiPolygon') {
+    for (const poly of apBoundaryGeom.coordinates) {
+      if (pointInPolygon(pt, poly[0])) return true;
+    }
+  }
+  return false;
+}
 
 function fetchJson(targetUrl, timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
@@ -66,7 +106,7 @@ async function getGoogleFloodForecast() {
   if (!apiKey || apiKey.trim() === '') {
     return {
       success: false,
-      status: 'UNAVAILABLE',
+      status: 'NOT_CONFIGURED',
       sourceId: 'google_flood_forecast',
       agency: 'Google Flood Hub (Flood Forecasting Initiative)',
       role: 'FORECAST',
@@ -86,11 +126,6 @@ async function getGoogleFloodForecast() {
     // Search gauges around Godavari / Krishna basins in Andhra Pradesh (lat 14 to 18.5, lon 79 to 82.5)
     const url = `https://${GOOGLE_FLOOD_API_HOST}/v1/gauges:searchByArea?key=${encodeURIComponent(apiKey)}&polygon.coordinates=[{"latitude":14.0,"longitude":79.0},{"latitude":18.5,"longitude":81.0},{"latitude":17.0,"longitude":82.5},{"latitude":14.0,"longitude":80.5}]&includeNonQualityVerified=true`;
     const json = await fetchJson(url, 8000);
-    let isCoordInsideAP = null;
-    try {
-      const cwcMod = require('./cwc-nwic.js');
-      isCoordInsideAP = cwcMod.isCoordInsideAP;
-    } catch(e) {}
 
     const rawGauges = (json.gauges || []).map(g => ({
       gaugeId: g.gaugeId || g.name,
@@ -107,10 +142,8 @@ async function getGoogleFloodForecast() {
       attribution: 'Google Flood Hub (CC BY 4.0)'
     }));
 
-    // Filter strictly inside Andhra Pradesh
-    const gauges = typeof isCoordInsideAP === 'function'
-      ? rawGauges.filter(g => g.lat !== null && g.lon !== null && isCoordInsideAP(g.lon, g.lat))
-      : rawGauges;
+    // Filter strictly inside Andhra Pradesh boundary
+    const gauges = rawGauges.filter(g => g.lat !== null && g.lon !== null && isCoordInsideAP(g.lon, g.lat));
 
     const result = {
       success: true,
@@ -149,5 +182,6 @@ async function getGoogleFloodForecast() {
 }
 
 module.exports = {
-  getGoogleFloodForecast
+  getGoogleFloodForecast,
+  isCoordInsideAP
 };

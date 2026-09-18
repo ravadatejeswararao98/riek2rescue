@@ -91,6 +91,37 @@ class AIEngine {
     this.isComputing = false;
     this.timer = null;
     this.serverContext = null;
+    this.initBaselineState();
+  }
+
+  initBaselineState() {
+    try {
+      const habitations = this.loadHabitations();
+      if (Array.isArray(habitations) && habitations.length > 0) {
+        const zones = this.computeDynamicZones(habitations, { weatherMap: {}, quakes: {} });
+        const zonesByHazard = {
+          cyclone: [], flood: [], landslide: [], earthquake: [], cloudburst: [], tsunami: [], erosion: []
+        };
+        zones.forEach(z => {
+          const h = (z.hazardType || 'cyclone').toLowerCase();
+          if (zonesByHazard[h]) zonesByHazard[h].push(z);
+        });
+        this.cachedState = {
+          success: true,
+          generatedAt: new Date().toISOString(),
+          timelineSteps: TIMELINE_HOUR_OFFSETS,
+          zonesByHazard,
+          allZones: zones,
+          zones,
+          priorityRanking: null,
+          situationalBrief: { text: 'Initial baseline state initialized from Census 2011 & AP SDMA registries.' },
+          alerts: [],
+          executionDurationMs: 0
+        };
+      }
+    } catch (e) {
+      console.warn('[AIEngine] Could not load initial baseline state:', e.message);
+    }
   }
 
   init(options = {}) {

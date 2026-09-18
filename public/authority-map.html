@@ -72,13 +72,24 @@
       <div class="dock-divider"></div>
 
       <!-- Red Zones & Habitations -->
-      <button class="dock-item" data-view="habitations" style="--item-accent: var(--risk-red)" title="Priority Queue">
-        <span class="dock-icon"><i class="fi fi-rr-house-building" aria-hidden="true"></i></span><span class="dock-label">Priority Queue</span>
+      <button class="dock-item" data-view="habitations" style="--item-accent: var(--risk-red)" title="Red Zones & Habitations">
+        <span class="dock-icon"><i class="fi fi-rr-house-building" aria-hidden="true"></i></span>
+        <span class="dock-label">Red Zones &amp; Habitations</span>
+        <span class="dock-badge" id="dock-habs-badge" style="display:none;">0</span>
+      </button>
+
+      <!-- Zone Manager -->
+      <button class="dock-item" data-view="zone-manager" style="--item-accent: var(--risk-orange)" title="Zone Manager">
+        <span class="dock-icon"><i class="fi fi-rr-map" aria-hidden="true"></i></span>
+        <span class="dock-label">Zone Manager</span>
+        <span class="dock-badge" id="dock-zones-badge" style="display:none;">0</span>
       </button>
 
       <!-- Population at Risk -->
       <button class="dock-item" data-view="population-risk" style="--item-accent: var(--risk-orange)" title="Population at Risk">
-        <span class="dock-icon"><i class="fi fi-rr-triangle-warning" aria-hidden="true"></i></span><span class="dock-label">Population at Risk</span>
+        <span class="dock-icon"><i class="fi fi-rr-triangle-warning" aria-hidden="true"></i></span>
+        <span class="dock-label">Population at Risk</span>
+        <span class="dock-badge" id="dock-pop-badge" style="display:none;">0</span>
       </button>
 
       <!-- Divider -->
@@ -237,7 +248,7 @@
       <button id="btn-map-hazard" class="btn-map-hazard" onclick="toggleMapHazardDropdown(event)" title="Active Monitored Hazards">
         <span class="hazard-btn-icon">⚠️</span>
         <span class="hazard-btn-text">Hazards</span>
-        <span class="hazard-badge-count" id="hazard-badge-count">5</span>
+        <span class="hazard-badge-count" id="hazard-badge-count">0</span>
       </button>
 
       <!-- Floating Hazard Dropdown Window (Smoothly animates downward) -->
@@ -283,7 +294,7 @@
             </div>
             <div class="hztc-stat">
               <span class="hztc-stat-lbl">Pop. at Risk</span>
-              <strong id="hztc-stat-pop" class="hztc-stat-val">1,03,500</strong>
+              <strong id="hztc-stat-pop" class="hztc-stat-val">—</strong>
             </div>
             <div class="hztc-stat">
               <span class="hztc-stat-lbl">Live Telemetry</span>
@@ -469,6 +480,24 @@
            VIEW 1: OPERATIONAL COMMAND CENTER
            ======================================================== -->
       <section id="view-command" style="display:none;">
+        <!-- Live Telemetry Status Banner -->
+        <div class="command-live-banner" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 18px; margin-bottom:16px; backdrop-filter:blur(8px);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="pulse-dot green" style="width:9px; height:9px; box-shadow:0 0 8px #22c55e;"></span>
+            <strong style="color:#38bdf8; font-size:12px; letter-spacing:0.06em;">LIVE TELEMETRY STREAMING</strong>
+            <span style="color:var(--text-muted);">&bull;</span>
+            <span style="font-size:12px; color:var(--text-secondary);">Canonical Multi-Source Engine</span>
+            <span style="color:var(--text-muted);">&bull;</span>
+            <span id="command-live-sync-time" style="font-size:12px; color:#22c55e; font-weight:600;">Synced: Active</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:11px; color:var(--text-muted); background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">15 Feeds Live (Open-Meteo, USGS, CWC, CPCB, NASA, IMD)</span>
+            <button class="btn btn-glass" style="padding:4px 12px; font-size:11px; border-color:rgba(56,189,248,0.4);" onclick="fetchDashboardState(); showToast('Live telemetry refreshed', 'info');">
+              🔄 Refresh Now
+            </button>
+          </div>
+        </div>
+
         <!-- 8 Core KPIs (Clickable for Instant Drilldown) -->
         <div class="dashboard-kpis">
           <!-- Active Hazards -->
@@ -616,7 +645,7 @@
               <span>🌀</span>
               <span>Active Hazard Registry & Early Threat Detection</span>
             </div>
-            <span class="risk-badge risk-red">5 Active Hazards</span>
+            <span class="risk-badge risk-green" id="hazard-registry-badge">0 Active Hazards</span>
           </div>
           <div class="section-card-body">
             <table class="hab-table">
@@ -766,7 +795,7 @@
         <div class="pop-risk-grid" id="pop-risk-grid">
           <div class="pop-risk-card level-red" onclick="switchView('map-view')" style="cursor:pointer;" title="Click to view Red Zones on Map">
             <div class="prc-tier-tag">🔴 CRITICAL</div>
-            <div class="prc-value" id="prc-val-red">1,03,500</div>
+            <div class="prc-value" id="prc-val-red">0</div>
             <div class="prc-label">Within RED Zones (direct danger)</div>
             <div class="prc-zones" id="prc-zones-red">Kakinada Port & Uppada Coastal Belt</div>
           </div>
@@ -1152,12 +1181,8 @@
   <!-- Mobile Overlay Backdrop -->
   <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-  <!-- Firebase Live Database SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="js/firebase-config.js"></script>
-  <script src="js/firebase-live.js"></script>
-  <script src="js/firebase-modal.js"></script>
+  <!-- Shared Auth & Real-Time Sync Client (Authority Role) -->
+  <script src="js/shared-client.js"></script>
 
   <!-- Core App Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
