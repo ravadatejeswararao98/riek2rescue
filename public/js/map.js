@@ -638,24 +638,6 @@ class DisasterMap {
 
   addHabitationMarkers() {
     this.markers.habitations = L.markerClusterGroup({
-      iconCreateFunction: function (cluster) {
-        const count = cluster.getChildCount();
-        const markers = cluster.getAllChildMarkers();
-        let totalPop = 0;
-        markers.forEach(m => {
-          const p = Number(m._habData.pop || m._habData.growth_adjusted_pop || m._habData.census_2011_pop);
-          if (Number.isFinite(p) && p > 0) totalPop += p;
-        });
-
-        return L.divIcon({
-          html: `<div style="background: rgba(15,23,42,0.95); border: 2px solid rgba(255,255,255,0.2); color: #f1f5f9; padding: 6px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.5); text-align: center;">
-            <span style="font-size:12px;"><i class="fi fi-rr-house-building" aria-hidden="true"></i> ${count} Habitations</span><br>
-            <span style="color:#94a3b8; font-size:10px;">~${totalPop.toLocaleString()} pop</span>
-          </div>`,
-          className: 'custom-cluster-icon',
-          iconSize: L.point(110, 40)
-        });
-      },
       maxClusterRadius: 70,
       disableClusteringAtZoom: 11
     });
@@ -699,17 +681,13 @@ class DisasterMap {
       const riskColors = { RED: '#ef4444', CRITICAL: '#ef4444', ORANGE: '#f97316', HIGH: '#f97316', YELLOW: '#eab308', MODERATE: '#eab308', GREEN: '#22c55e', LOW: '#22c55e', UNKNOWN: '#94a3b8' };
       const col = riskColors[hab.risk] || '#94a3b8';
 
-      const icon = L.divIcon({
-        html: `
-          <div class="map-poi-pin poi-habitation" style="--poi-accent:${col};" title="Habitation: ${hab.name} (${hab.risk} Risk)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-            </svg>
-          </div>
-        `,
-        className: '', iconSize: [22, 22], iconAnchor: [11, 11]
+      const marker = L.circleMarker([hab.lat, hab.lng || hab.lon], {
+        radius: 5,
+        color: '#ffffff',
+        weight: 1.5,
+        fillColor: col,
+        fillOpacity: 0.95
       });
-      const marker = L.marker([hab.lat, hab.lng || hab.lon], { icon });
       marker._habData = hab;
 
       // Light-theme, high-contrast popup for habitations

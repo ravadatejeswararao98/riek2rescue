@@ -893,16 +893,6 @@ class HazardEngine {
     let habCluster = null;
     if (h.habitations && h.habitations.length > 0) {
       habCluster = L.markerClusterGroup({
-        iconCreateFunction: function(cluster) {
-          const count = cluster.getChildCount();
-          return L.divIcon({
-            html: `<div style="background: rgba(15,23,42,0.95); border: 2px solid rgba(255,255,255,0.2); color: #f1f5f9; padding: 6px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.5); text-align: center;">
-              🏠 ${count} Habitations
-            </div>`,
-            className: 'custom-cluster-icon',
-            iconSize: L.point(100, 30)
-          });
-        },
         maxClusterRadius: 70,
         disableClusteringAtZoom: 11
       });
@@ -932,7 +922,13 @@ class HazardEngine {
         const riskColors = { RED:'#ef4444', ORANGE:'#f97316', YELLOW:'#eab308', GREEN:'#22c55e' };
         const col = riskColors[hab.risk] || '#94a3b8';
 
-        const marker = L.marker([hab.lat, hab.lng || hab.lon], { icon: this.habitationIcon(hab.risk, i * 35) })
+        const marker = L.circleMarker([hab.lat, hab.lng || hab.lon], {
+          radius: 4,
+          color: '#ffffff',
+          weight: 1.5,
+          fillColor: col,
+          fillOpacity: 0.95
+        })
           .bindPopup(`
             <div class="map-popup light-theme">
               <div class="popup-header">
@@ -1087,22 +1083,11 @@ class HazardEngine {
 
   zoneLabelIcon(z) {
     const col = z.level === 'RED' ? '#ef4444' : z.level === 'ORANGE' ? '#f97316' : z.level === 'YELLOW' ? '#eab308' : '#22c55e';
-    // Extract short name: use village_name if available, otherwise first 2 words of name
-    const shortName = z.village_name || (z.name || '').split(' ').slice(0, 2).join(' ');
     return L.divIcon({
-      html: `
-        <div class="zone-label-pin" style="--poi-accent:${col};" title="${z.name}">
-          <div class="map-poi-pin poi-habitation" style="--poi-accent:${col};">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-            </svg>
-          </div>
-          <span class="zone-label-text" style="color:#1e293b; background:rgba(255,255,255,0.88); padding:1px 4px; border-radius:3px; font-size:9px; font-weight:700; white-space:nowrap; text-shadow:0 0 2px #fff; margin-top:2px; display:block; text-align:center; max-width:80px; overflow:hidden; text-overflow:ellipsis; border:1px solid ${col}44;">${shortName}</span>
-        </div>
-      `,
+      html: `<div style="width:10px; height:10px; border-radius:50%; background-color:${col}; border:2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.4);"></div>`,
       className: '',
-      iconSize: [80, 38],
-      iconAnchor: [40, 11]
+      iconSize: [10, 10],
+      iconAnchor: [5, 5]
     });
   }
 
@@ -1186,21 +1171,7 @@ class HazardEngine {
     }
   }
 
-  habitationIcon(risk, delayMs = 0) {
-    const col = risk === 'RED' ? '#ef4444' : risk === 'ORANGE' ? '#f97316' : risk === 'YELLOW' ? '#eab308' : '#22c55e';
-    return L.divIcon({
-      html: `
-        <div class="map-poi-pin poi-habitation" style="--poi-accent:${col}; --drop-delay:${delayMs}ms;" title="Habitation Center">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-          </svg>
-        </div>
-      `,
-      className: '',
-      iconSize: [22, 22],
-      iconAnchor: [11, 11]
-    });
-  }
+
 
   alertIcon(level, delayMs = 0) {
     const col = level === 'CRITICAL' ? '#ef4444' : level === 'HIGH' ? '#f97316' : level === 'MODERATE' ? '#eab308' : '#22c55e';
