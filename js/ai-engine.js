@@ -741,6 +741,13 @@ class AIEngine {
   classifySeverityTier(hazardType, inputs, recurrenceMultiplier = 1.0) {
     const { windGustKmh = 0, precipMm = 0, pressureHpa = 1010, mag = 0, elevationM = 10, vulnerability = 0.5 } = inputs;
     const mult = Math.max(1.0, recurrenceMultiplier || 1.0);
+
+    // Strict guard: If there is zero live meteorological or seismic threat (clear skies), 
+    // do not artificially escalate risk into a hazard zone purely based on historical vulnerability.
+    if (windGustKmh < 10 && precipMm < 2 && mag === 0 && pressureHpa >= 1008) {
+      return 'GREEN';
+    }
+
     const effectiveGust = windGustKmh * mult;
     const effectivePrecip = precipMm * mult;
     const pressureDrop = Math.max(0, 1013 - pressureHpa) * mult;
