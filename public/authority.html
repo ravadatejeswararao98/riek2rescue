@@ -116,6 +116,12 @@
       <button class="dock-item" data-view="datasources" style="--item-accent: var(--accent-blue)" title="Sensor Data Sources">
         <span class="dock-icon"><i class="fi fi-rr-satellite-dish" aria-hidden="true"></i></span><span class="dock-label">Sensor Data Sources</span>
       </button>
+
+      <!-- Data Log -->
+      <button class="dock-item" data-view="data-log" style="--item-accent: #10b981" title="Data Log">
+        <span class="dock-icon"><i class="fi fi-rr-rectangle-list" aria-hidden="true"></i></span>
+        <span class="dock-label">Data Log</span>
+      </button>
     </div>
 
     </div>
@@ -826,6 +832,53 @@
         <div id="datasources-root-container"></div>
       </section>
 
+      <!-- ============================================================
+           DATA LOG PANEL
+           ============================================================ -->
+      <section id="view-data-log" style="display:none; padding: 20px;">
+        <div class="section-card" style="height: calc(100vh - 120px); display: flex; flex-direction: column;">
+          <!-- Header -->
+          <div class="section-card-header" style="flex-wrap: wrap; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+            <div class="section-card-title" style="display: flex; align-items: center; gap: 10px;">
+              <span style="color: #10b981; font-size: 18px;"><i class="fi fi-rr-rectangle-list" aria-hidden="true"></i></span>
+              <span>Data Source Log</span>
+            </div>
+            <div class="dl-header-meta" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span class="dl-session-label" style="font-size: 11px; color: var(--text-muted);">Session started: <span id="dl-session-start">—</span></span>
+              <span class="dl-auto-badge" id="dl-auto-badge">⟳ Auto-refresh 10s</span>
+              <button class="btn btn-glass dl-refresh-all-btn" id="dl-refresh-all-btn" style="padding: 4px 12px; font-size: 11px;" title="Refresh all sources now">
+                <i class="fi fi-rr-rotate-right" aria-hidden="true"></i> Refresh Now
+              </button>
+            </div>
+          </div>
+
+          <!-- Source list -->
+          <div class="section-card-body" style="padding: 0; flex: 1; overflow-y: auto; position: relative;">
+            <div class="dl-source-list" id="dl-source-list">
+              <div class="dl-loading" style="padding: 32px; text-align: center; color: var(--text-muted);">⏳ Loading data sources…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sliding log drawer (slides up from bottom) -->
+        <div class="dl-drawer" id="dl-drawer" style="display:none;">
+          <div class="dl-drawer-header">
+            <div class="dl-drawer-title" id="dl-drawer-title">Source Log</div>
+            <div class="dl-drawer-actions">
+              <button class="dl-drawer-refresh-btn" id="dl-drawer-refresh-btn" title="Refresh this source">
+                <i class="fi fi-rr-rotate-right" aria-hidden="true"></i>
+              </button>
+              <button class="dl-drawer-close-btn" id="dl-drawer-close-btn" title="Close log">
+                <i class="fi fi-rr-cross" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="dl-drawer-body" id="dl-drawer-body">
+            <div class="dl-loading">Loading log…</div>
+          </div>
+        </div>
+      </section>
+
       <!-- ========================================================
            VIEW: POPULATION AT RISK (Hazard-Specific Breakdown)
            ======================================================== -->
@@ -1366,5 +1419,6 @@
 
     document.addEventListener('DOMContentLoaded', initOfficerProfile);
   </script>
+  <script src="js/data-log.js"></script>
 </body>
 </html>

@@ -467,6 +467,49 @@
     renderPanel(latestSources);
   }
 
+  /* ── Auto-Healing Retry Logic ────────────────────────────────── */
+  let autoRetryTimer = null;
+  const AUTO_RETRY_INTERVAL_MS = 60000; // Check every 60 seconds
+
+  function hasDegradedSources() {
+    return latestSources.some(s => s.status === 'DEGRADED' || s.status === 'UNAVAILABLE');
+  }
+
+  function scheduleAutoRetry() {
+    if (autoRetryTimer) return; // already scheduled
+    autoRetryTimer = setInterval(async () => {
+      if (!hasDegradedSources()) {
+        // All sources healthy — stop auto-retrying
+        clearInterval(autoRetryTimer);
+        autoRetryTimer = null;
+        console.log('[DSM] Auto-retry: All sources healthy. Stopping auto-retry loop.');
+        return;
+      }
+      console.log('[DSM] Auto-retry: Degraded/unavailable sources detected. Re-probing...');
+      await triggerReprobe(true);
+      // After reprobe, check if sources recovered
+      if (!hasDegradedSources()) {
+        clearInterval(autoRetryTimer);
+        autoRetryTimer = null;
+        console.log('[DSM] Auto-retry: Sources recovered. Auto-retry loop stopped.');
+      }
+    }, AUTO_RETRY_INTERVAL_MS);
+  }
+
+  // Hook into renderPanel to start auto-retry whenever degraded sources appear
+  const _originalRenderPanel = renderPanel;
+  function renderPanelWithAutoRetry(sources) {
+    latestSources = sources || latestSources;
+    _originalRenderPanel(sources);
+    if (hasDegradedSources()) {
+      scheduleAutoRetry();
+    } else if (autoRetryTimer) {
+      // Sources are healthy now — stop the retry loop
+      clearInterval(autoRetryTimer);
+      autoRetryTimer = null;
+    }
+  }
+
   function init() {
     registerGlobals();
 
@@ -480,13 +523,19 @@
     function attachFirestoreListener() {
       if (window.firebaseLive && typeof window.firebaseLive.onDatasources === 'function') {
         window.firebaseLive.onDatasources((ds) => {
-          if (ds && ds.length > 0) renderPanel(ds);
+          if (ds && ds.length > 0) renderPanelWithAutoRetry(ds);
         });
       } else {
         setTimeout(attachFirestoreListener, 2000);
       }
     }
     attachFirestoreListener();
+
+    // Listen for browser online event to immediately re-probe when internet reconnects
+    window.addEventListener('online', () => {
+      console.log('[DSM] Network reconnected. Triggering immediate re-probe...');
+      triggerReprobe(true);
+    });
   }
 
   window.SourceHealthUI = { init, refresh: () => triggerReprobe(false), reprobe: () => triggerReprobe(true), setFilter };

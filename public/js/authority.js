@@ -632,7 +632,7 @@ function switchView(viewKey) {
   // Registered active views — each in its own isolated section
   const views = [
     'command', 'decision-support', 'hazards', 'habitations', 'safesites',
-    'population-risk', 'reports', 'datasources', 'zone-manager'
+    'population-risk', 'reports', 'datasources', 'zone-manager', 'data-log'
   ];
 
   if (viewKey === 'map-view') {
