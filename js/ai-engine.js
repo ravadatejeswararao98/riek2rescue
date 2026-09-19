@@ -570,15 +570,10 @@ class AIEngine {
     const zones = [];
 
     habitations.forEach(hab => {
-      const hType = (hab.hazard_type || 'cyclone').toLowerCase();
       const weather = this.getClosestWeather(hab, telemetry.weatherMap || {});
       const weatherSummary = weather.summary || {};
       const timeSeries = weather.timeSeries || null;
 
-      // Disaster recurrence multiplier per habitation per hazard type
-      const recurrence = this.computeDisasterRecurrence(hab, hType);
-
-      // 1. Compute CURRENT_TIER from live conditions right now with recurrence risk
       const currWindGust = (weatherSummary.maxGustKmh !== undefined && weatherSummary.maxGustKmh !== null)
         ? weatherSummary.maxGustKmh
         : (weather.maxGustKmh !== undefined && weather.maxGustKmh !== null
@@ -598,14 +593,34 @@ class AIEngine {
           : (timeSeries?.pressure ? timeSeries.pressure[0] : 1013));
       const currMagnitude = telemetry.quakes?.maxMagnitude || 0;
 
-      const currentTier = this.classifySeverityTier(hType, {
+      const baseInputs = {
         windGustKmh: currWindGust,
         precipMm: currPrecip,
         pressureHpa: currPressure,
         mag: currMagnitude,
-        elevationM: hab.elevation_m,
-        vulnerability: hab.vulnerability_score
-      }, recurrence.multiplier);
+        elevationM: hab.elevation_m || 10,
+        vulnerability: hab.vulnerability_score || 0.5
+      };
+
+      // Evaluate ALL hazards dynamically and lock onto the most severe threat
+      const hazardsToCheck = ['cyclone', 'flood', 'cloudburst', 'landslide', 'earthquake'];
+      const tierRanks = { RED: 4, ORANGE: 3, YELLOW: 2, GREEN: 1 };
+      
+      let currentTier = 'GREEN';
+      let hType = (hab.hazard_type || 'cyclone').toLowerCase();
+      let recurrence = this.computeDisasterRecurrence(hab, hType);
+
+      hazardsToCheck.forEach(h => {
+        const rec = this.computeDisasterRecurrence(hab, h);
+        const tier = this.classifySeverityTier(h, baseInputs, rec.multiplier);
+        
+        // If a new hazard is more severe, OR if they are equally severe but the new one is not GREEN
+        if (tierRanks[tier] > tierRanks[currentTier] || (tierRanks[tier] === tierRanks[currentTier] && tier !== 'GREEN' && h === (hab.hazard_type || '').toLowerCase())) {
+          currentTier = tier;
+          hType = h;
+          recurrence = rec;
+        }
+      });
 
       // 2. Compute FORECAST_TIER_BY_HOUR for [0h, +3h, +6h, +12h, +24h, +48h]
       const forecastSeries = [];
@@ -655,9 +670,10 @@ class AIEngine {
 
       // Derive base radius based on population & vulnerability
       const popBaseline = Number(hab.growth_adjusted_pop || hab.census_2011_pop || hab.population);
+      // Scaled down to prevent zone overlap for 53 nodes: 5km to 15km max.
       const baseRadiusMeters = (Number.isFinite(popBaseline) && popBaseline > 0)
-        ? Math.min(48000, Math.max(16000, Math.round(Math.sqrt(popBaseline) * 180)))
-        : 20000;
+        ? Math.min(15000, Math.max(5000, Math.round(Math.sqrt(popBaseline) * 50)))
+        : 5000;
 
       // Note explaining ongoing vs approaching trajectory and recurrence
       let note = '';
@@ -725,12 +741,20 @@ class AIEngine {
   classifySeverityTier(hazardType, inputs, recurrenceMultiplier = 1.0) {
     const { windGustKmh = 0, precipMm = 0, pressureHpa = 1010, mag = 0, elevationM = 10, vulnerability = 0.5 } = inputs;
     const mult = Math.max(1.0, recurrenceMultiplier || 1.0);
+    const effectiveGust = windGustKmh * mult;
+    const effectivePrecip = precipMm * mult;
+    const pressureDrop = Math.max(0, 1013 - pressureHpa) * mult;
+    const effectivePressure = 1013 - pressureDrop;
+
+    // =========================================================================
+    // UNIVERSAL EXTREME FALLBACK (Multi-Hazard State-Wide Check)
+    // =========================================================================
+    // Even if a zone is nominally a 'flood' or 'landslide' zone, if it gets hit 
+    // by apocalyptic winds or catastrophic rain, trigger an immediate RED alert.
+    if (effectiveGust >= 95 || effectivePrecip >= 35) return 'RED';
+    if (effectiveGust >= 75 || effectivePrecip >= 25) return 'ORANGE';
 
     if (hazardType === 'cyclone') {
-      const effectiveGust = windGustKmh * mult;
-      const pressureDrop = Math.max(0, 1013 - pressureHpa) * mult;
-      const effectivePressure = 1013 - pressureDrop;
-
       // RED: gale gusts >= 95 km/h OR pressure <= 980 hPa
       if (effectiveGust >= 95 || effectivePressure <= 980) return 'RED';
       // ORANGE: squall gusts >= 65 km/h OR pressure <= 995 hPa
@@ -741,7 +765,6 @@ class AIEngine {
     }
 
     if (hazardType === 'flood') {
-      const effectivePrecip = precipMm * mult;
       if (effectivePrecip >= 25 || (elevationM <= 3 && effectivePrecip >= 15)) return 'RED';
       if (effectivePrecip >= 12 || (elevationM <= 5 && effectivePrecip >= 8)) return 'ORANGE';
       if (effectivePrecip >= 5) return 'YELLOW';
@@ -749,7 +772,6 @@ class AIEngine {
     }
 
     if (hazardType === 'landslide') {
-      const effectivePrecip = precipMm * mult;
       if (effectivePrecip >= 30 && vulnerability >= 0.85) return 'RED';
       if (effectivePrecip >= 18) return 'ORANGE';
       if (effectivePrecip >= 8) return 'YELLOW';
@@ -765,7 +787,6 @@ class AIEngine {
     }
 
     if (hazardType === 'cloudburst') {
-      const effectivePrecip = precipMm * mult;
       if (effectivePrecip >= 35) return 'RED';
       if (effectivePrecip >= 20) return 'ORANGE';
       if (effectivePrecip >= 10) return 'YELLOW';
@@ -773,8 +794,6 @@ class AIEngine {
     }
 
     // Default fallback
-    const effectiveGust = windGustKmh * mult;
-    const effectivePrecip = precipMm * mult;
     if (effectiveGust >= 90 || effectivePrecip >= 25) return 'RED';
     if (effectiveGust >= 60 || effectivePrecip >= 12) return 'ORANGE';
     if (effectiveGust >= 35 || effectivePrecip >= 5) return 'YELLOW';

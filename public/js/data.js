@@ -496,7 +496,8 @@ const DisasterHistoryService = {
 // In LIVE mode: empty live result = empty live result. Never fall back to static data.
 async function syncLiveDashboardState() {
   if (typeof fetch === 'undefined') return;
-  if (APP_DATA.mode === 'DRILL') return; // Do not overwrite drill scenarios while active
+  // LIVE-ONLY MODE: Always fetch from live canonical state.
+  // Drill mode hardcoded data is no longer used for zone rendering.
 
   try {
     const res = await fetch('/api/canonical-state');
@@ -572,12 +573,38 @@ async function syncLiveDashboardState() {
   } catch (e) {
     console.warn('[APP_DATA] Live sync notice:', e.message);
   }
+
+  // Trigger map zone re-render after data update
+  // This ensures zones visually refresh within 10 seconds of new live data
+  if (typeof window !== 'undefined') {
+    if (window.hazardEngine && typeof window.hazardEngine.render === 'function') {
+      window.hazardEngine.render(window.hazardEngine.currentHazard || 'all', true);
+    }
+    // Also dispatch a custom event so other components can react
+    window.dispatchEvent(new CustomEvent('liveSyncUpdated', {
+      detail: { timestamp: Date.now() }
+    }));
+  }
 }
 
-// Initial hydration on DOM ready
+// ================================================================
+// LIVE 10-SECOND POLLING LOOP
+// ================================================================
+// Fetches fresh hazard, zone, and alert data from /api/canonical-state
+// every 10 seconds. Zones on the map update automatically with live data.
 if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', () => {
+    // Immediate first fetch on page load
     syncLiveDashboardState();
+
+    // Then poll every 10 seconds for live updates
+    setInterval(() => {
+      syncLiveDashboardState().then(() => {
+        console.log(`[LiveSync] ✅ Data refreshed at ${new Date().toLocaleTimeString()}`);
+      }).catch(err => {
+        console.warn('[LiveSync] ⚠️ Sync failed:', err.message);
+      });
+    }, 10000); // 10,000ms = 10 seconds
   });
 }
 
