@@ -527,7 +527,7 @@ class HazardEngine {
 
     const greenZoneData = [];    // Collect green zones for merging
     const dangerPolygons = [];   // Collect non-green polygons to carve out of green hull
-
+    const tieredPolygons = { RED: [], ORANGE: [], YELLOW: [] }; // Collect danger polygons for smart union
     // 1. Dynamic GIS Hazard Zones (Derived directly from AI Engine live + forecast state)
     (h.zones || []).forEach(z => {
       const lat = z.epicenter ? z.epicenter.lat : z.lat;
@@ -559,70 +559,21 @@ class HazardEngine {
         return; // Skip individual green polygon — will be merged below
       }
 
-      // ── Non-green zones (RED / ORANGE / YELLOW): render individually ──
+      // ── Non-green zones (RED / ORANGE / YELLOW): collect for union ──
       const polygonCoords = generateOrganicZonePolygon(lat, lng, baseRadius, z.name, hazardType);
 
       // Collect danger polygon geometry for carving out of the green hull later
+      let dpPoly = null;
       if (typeof window !== 'undefined' && window.turf) {
         try {
-          const dpPoly = window.turf.polygon([polygonCoords]);
+          dpPoly = window.turf.polygon([polygonCoords]);
           dpPoly.properties = { level: activeTier, name: z.name, zone: z };
           dangerPolygons.push(dpPoly);
+          if (tieredPolygons[activeTier]) {
+            tieredPolygons[activeTier].push({ poly: dpPoly, zone: z, lat, lng, polygonCoords });
+          }
         } catch (e) {}
       }
-
-      let geojsonFeature = {
-        type: "Feature",
-        properties: {
-          name: z.name,
-          level: activeTier,
-          current_tier: currentTier,
-          pop: z.pop,
-          note: z.note,
-          hazard: h.label
-        },
-        geometry: {
-          type: "Polygon",
-          coordinates: [polygonCoords]
-        }
-      };
-
-      // Clip against Andhra Pradesh operational boundary (Strict fail-closed enforcement)
-      if (window.APBoundaryService) {
-        if (!window.APBoundaryService.isReady()) {
-          return; // Boundary loading: fail-closed to prevent flash of unclipped/out-of-AP zones
-        }
-        try {
-          const turfPoly = window.turf.polygon([polygonCoords]);
-          const clipped = window.APBoundaryService.clipPolygon(turfPoly);
-          if (!clipped || !clipped.geometry) {
-            return; // Completely outside AP, skip rendering
-          }
-          geojsonFeature.geometry = clipped.geometry;
-        } catch (e) {
-          console.warn('[HazardEngine] AP boundary clipping failed for zone:', z.name, e);
-          return;
-        }
-      }
-
-      const polygonLayer = L.geoJSON(geojsonFeature, {
-        style: () => ({
-          fillColor: s.fill,
-          fillOpacity: s.opacity || 0.28,
-          color: s.stroke,
-          weight: activeTier === 'RED' ? 2.6 : 1.8,
-          opacity: s.strokeOpacity || 0.85,
-          className: `hazard-polygon level-${activeTier.toLowerCase()}`
-        })
-      });
-
-      polygonLayer.on('click', (ev) => {
-        if (typeof window.openInspector === 'function') {
-          L.DomEvent.stopPropagation(ev);
-          window.openInspector(z, ev.latlng);
-        }
-      });
-      bucket.zones.push(polygonLayer);
 
       const labelIcon = this.zoneLabelIcon({ ...z, level: activeTier });
       const labelMarker = L.marker([lat, lng], { icon: labelIcon, interactive: true });
@@ -634,7 +585,97 @@ class HazardEngine {
       });
       bucket.zones.push(labelMarker);
 
-      this.renderedZoneLayers.push({ polygonLayer, geojson: geojsonFeature, labelMarker, zone: z, hazard: h, level: activeTier });
+      // Fallback: If Turf is missing, render individually immediately
+      if (!window.turf || !dpPoly) {
+        let geojsonFeature = {
+          type: "Feature",
+          properties: { name: z.name, level: activeTier },
+          geometry: { type: "Polygon", coordinates: [polygonCoords] }
+        };
+        const s = RISK_STYLE[activeTier] || RISK_STYLE.RED;
+        const polygonLayer = L.geoJSON(geojsonFeature, {
+          style: () => ({
+            fillColor: s.fill, fillOpacity: s.opacity || 0.28, color: s.stroke,
+            weight: activeTier === 'RED' ? 2.6 : 1.8, opacity: s.strokeOpacity || 0.85,
+            className: `hazard-polygon level-${activeTier.toLowerCase()}`
+          })
+        });
+        bucket.zones.push(polygonLayer);
+        this.renderedZoneLayers.push({ polygonLayer, labelMarker, zone: z, hazard: h, level: activeTier });
+      } else {
+        this.renderedZoneLayers.push({ labelMarker, zone: z, hazard: h, level: activeTier });
+      }
+    });
+
+    // ── Smart Overlay for Non-Green Zones (No Darkening, Preserve Shape) ──
+    ['RED', 'ORANGE', 'YELLOW'].forEach(tier => {
+      const polys = tieredPolygons[tier];
+      if (!polys || polys.length === 0) return;
+
+      const s = RISK_STYLE[tier] || RISK_STYLE.RED;
+      const paneName = `hazardFillPane-${tier}`;
+      
+      // Create a custom pane for this tier's fills to prevent opacity stacking
+      if (this.map && !this.map.getPane(paneName)) {
+        this.map.createPane(paneName);
+        this.map.getPane(paneName).style.opacity = s.opacity || 0.28;
+        // Keep it above the base map, but below markers
+        this.map.getPane(paneName).style.zIndex = 390; 
+      }
+
+      // Convert the polygons back into a standard FeatureCollection
+      const featureCollection = {
+         type: "FeatureCollection",
+         features: polys.map(p => {
+            let finalGeom = p.poly.geometry;
+            // Strict Andhra Pradesh Boundary Clipping
+            if (window.APBoundaryService && window.APBoundaryService.isReady()) {
+              try {
+                const clipped = window.APBoundaryService.clipPolygon(p.poly);
+                if (clipped && clipped.geometry) {
+                  finalGeom = clipped.geometry;
+                } else {
+                  return null; // Completely outside AP
+                }
+              } catch(e) {
+                console.warn('[HazardEngine] Danger zone AP boundary clipping failed', e);
+              }
+            }
+            return {
+              type: "Feature",
+              properties: { level: tier },
+              geometry: finalGeom
+            };
+         }).filter(f => f !== null)
+      };
+
+      // 1. Render Fills: Opaque fills inside a translucent pane (No Stack Darkening!)
+      if (this.map) {
+        const fillLayer = L.geoJSON(featureCollection, {
+          pane: paneName,
+          style: () => ({
+            fillColor: s.fill,
+            fillOpacity: 1.0, // 100% inside the pane, but the pane itself is 28%
+            stroke: false,
+            className: `hazard-polygon-fill level-${tier.toLowerCase()}`
+          }),
+          interactive: false
+        });
+        bucket.zones.push(fillLayer);
+      }
+
+      // 2. Render Strokes: Normal overlay pane so borders stay crisp and visible
+      const strokeLayer = L.geoJSON(featureCollection, {
+        style: () => ({
+          fill: false,
+          color: s.stroke,
+          weight: tier === 'RED' ? 2.6 : 1.8,
+          opacity: s.strokeOpacity || 0.85,
+          className: `hazard-polygon-stroke level-${tier.toLowerCase()}`
+        }),
+        interactive: false
+      });
+      bucket.zones.push(strokeLayer);
     });
 
     // ── Merge all GREEN zones into a single convex hull polygon ──
@@ -665,6 +706,20 @@ class HazardEngine {
                 };
               }
             } catch (clipErr) {}
+          }
+
+          // 1.5 Clip strictly to Andhra Pradesh operational boundary
+          if (window.APBoundaryService && window.APBoundaryService.isReady()) {
+            try {
+              const clippedAP = window.APBoundaryService.clipPolygon(greenHull);
+              if (clippedAP && clippedAP.geometry) {
+                greenHull = clippedAP;
+              } else {
+                greenHullValid = false;
+              }
+            } catch (apClipErr) {
+              console.warn('[HazardEngine] Green hull AP boundary clipping failed', apClipErr);
+            }
           }
 
           // 2. Carve out (subtract) each danger zone with a 2km buffer so red/yellow/orange never overlap green
